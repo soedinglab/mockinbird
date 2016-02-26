@@ -1,0 +1,3 @@
+include stammp/plots/*.R
+include stammp/scripts/preprocess.config
+include stammp/scripts/utils/*.jar
