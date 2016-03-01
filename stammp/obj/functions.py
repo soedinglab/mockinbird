@@ -293,39 +293,6 @@ def makekmers(k,alphabet):
 #################################################################
 
 #gibt die Distanz zwischen zwei Annotationen auf einem Strang zurueck
-def getDistanceToNextEntrySense(data, i):
-    dist = 0
-    run = True
-    if data['strand'][i] == '+':
-        j = i + 1
-        while run:
-            if j > (len(data['chr'])-1):
-                run = False
-                break
-            if data['chr'][i] != data['chr'][j]:
-                run = False
-                break
-            if data['strand'][i] == data['strand'][j] and data['chr'][i] == data['chr'][j]:
-                dist = data['start'][j]-data['stop'][i]
-                run = False
-                #print(j)
-            j += 1
-    else:
-        j = i - 1
-        while run:
-            if j < 0:
-                run = False
-                break
-            if data['chr'][i] != data['chr'][j]:
-                run = False
-                break
-            if data['strand'][i] == data['strand'][j] and data['chr'][i] == data['chr'][j]:
-                dist = data['start'][i]-data['stop'][j]
-                run = False
-            j -= 1
-    return(dist)
-
-#gibt die Distanz zwischen zwei Annotationen auf einem Strang zurueck
 def getDistanceToNextEntryASense(data, i):
     dist = 0
     run = True

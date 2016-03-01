@@ -32,7 +32,7 @@ class GFF:
         self.strand = []
         self.info   = []
         self.typeof = []
-        self.chrStartIndices = {}
+        self.chrPositions = {}
         index = 0
         tmp_chr = ''
         while(line):
@@ -49,10 +49,20 @@ class GFF:
                     self.info.append(split[8].split('\n')[0])
                 if tmp_chr != split[0]:
                     tmp_chr = split[0]
-                    self.chrStartIndices[tmp_chr] = index
+                    self.chrPositions[tmp_chr] = index
                 index += 1
             line = fc.readline()
         fc.close()
+    
+    def getChromosomePositions(self):
+        cur_chr = self.chr[0]
+        start = 0
+        for i in range(self.size()):
+            if cur_chr != self.chr[i]:
+                self.chrPositions[cur_chr] = [start, (i-1)]
+                start = i
+                cur_chr = self.chr[i]
+        self.chrPositions[cur_chr] = [start, (self.size()-1)]
     
     def saveGFF(self, filename, name='.', typeof='.'):
         """
@@ -82,6 +92,14 @@ class GFF:
             del self.strand[index]
             del self.info[index]
             del self.typeof[index]
+    
+    def addEntry(self, chromosome, start, stop, strand, info, typeof):
+        self.chr.append(chromosome)
+        self.start.append(start)
+        self.stop.append(stop)
+        self.strand.append(strand)
+        self.info.append(info)
+        self.typeof.append(typeof)
     
     def size(self):
         """
@@ -137,6 +155,44 @@ class GFF:
         self.stop   = stop
         self.strand = strand
         self.info   = info
-
+    
+    def getDistanceToNextEntrySense(self, i):
+        run = True
+        if self.strand[i] == '+':
+            j = i + 1
+            while run:
+                if j > (self.size()-1):
+                    return 0
+                if self.chr[i] != self.chr[j]:
+                    return 0
+                if self.strand[i] == self.strand[j] and self.chr[i] == self.chr[j]:
+                    return (self.start[j]-self.stop[i])
+                j += 1
+        else:
+            j = i - 1
+            while run:
+                if j < 0:
+                    return 0
+                if self.chr[i] != self.chr[j]:
+                    return 0
+                if self.strand[i] == self.strand[j] and self.chr[i] == self.chr[j]:
+                    return (self.start[i]-self.stop[j])
+                j -= 1
+    
+    def takeGenesSenseMinDist(self, mindist, verbose=False):
+        i = 0
+        size = self.size()
+        count = 0
+        while i < size:
+            d = self.getDistanceToNextEntrySense(i)
+            if d < mindist and d != 0:
+                self.removeEntry(i)
+                i -= 1
+                size -= 1
+                count += 1
+            i += 1
+        self.getChromosomePositions()
+        if verbose:
+            print('# removed entries: '+str(count))
 
 

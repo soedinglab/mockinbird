@@ -1,1 +1,1 @@
-__all__ = ['functions','parclipsites','genome','gff']
+__all__ = ['functions','parclipsites','genome','gff','pileup']

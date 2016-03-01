@@ -19,7 +19,9 @@ setup(name='stammp',
         'stammp-makeNegSets = stammp.scripts.makeNegSets:run',
         'stammp-xxmotif = stammp.scripts.xxmotif:run',
         'stammp-makeKmerLogOdds = stammp.plots.makeKmerLogOdds:run',
-        'stammp-makeJaccard = stammp.plots.makeJaccard:run']
+        'stammp-makeJaccard = stammp.plots.makeJaccard:run',
+        'stammp-getProcessingIndex = stammp.scripts.getProcessingIndex:run',
+        'stammp-getColocolization = stammp.scripts.getColocolization:run']
       },
       packages=['stammp','stammp.obj','stammp.scripts','stammp.plots', 'stammp.scripts.utils'],
       include_package_data=True,
