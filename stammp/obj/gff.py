@@ -1,3 +1,4 @@
+import math
 class GFF:
     """
     :class:`~stammp.obj.gff.GFF` represents the annotation data of a \*.gff file. The class offers methods to load, save, sort and modify the annotation data. The objects loads the data of a \*.gff file upon creation.
@@ -49,9 +50,9 @@ class GFF:
                     self.info.append(split[8].split('\n')[0])
                 if tmp_chr != split[0]:
                     tmp_chr = split[0]
-                    self.chrPositions[tmp_chr] = index
                 index += 1
             line = fc.readline()
+        self.getChromosomePositions()
         fc.close()
     
     def getChromosomePositions(self):
@@ -194,5 +195,33 @@ class GFF:
         self.getChromosomePositions()
         if verbose:
             print('# removed entries: '+str(count))
+    
+    #wenn das GFF nicht aufsteigend sortiert ist funktioniert das hier alles nicht und self.chrPositions ist dann auch Quatsch
+    def isInside(self, chrname, position, strand, width=0):
+        """
+        """
+        try:
+            index_min = self.chrPositions[chrname][0]
+            index_max = self.chrPositions[chrname][1]
+            if position < self.start[index_min]:
+                return [index_min, False]
+            if position > self.stop[index_max]:
+                return [index_max, False]
+            while index_min <= index_max:
+                index_mid = index_min + math.trunc((index_max-index_min)/2)
+                #print(str(index_mid)+'\t'+self.chr[index_mid]+'\t'+str(self.start[index_mid])+'\t'+str(self.stop[index_mid])+'\t'+self.strand[index_mid])
+                if position >= (self.start[index_mid]-width) and position <= (self.stop[index_mid]+width):
+                    if self.strand[index_mid] == strand:
+                        return [index_mid, True]
+                    else:
+                        return [index_mid, False]
+                if position < self.start[index_mid]:
+                    index_max = (index_mid-1)
+                else:
+                    index_min = (index_mid+1)
+                    
+            return [index_mid, False]
+        except:
+            return [-1, False]
 
 
