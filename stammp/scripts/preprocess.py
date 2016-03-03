@@ -113,7 +113,9 @@ def main(inputfile, outputdir, prefix, configfile):
     print('')
     print(time.strftime("[%Y-%m-%d %H:%M:%S]"), '##### 5prime adapter removal ###########')
     print('')
-    print('\tTotal raw reads: '+str(round(int(subprocess.check_output(['wc', '-l', inputfile], universal_newlines=True).split(' ')[0])/4)))
+    wc_output = subprocess.check_output(['wc', '-l', inputfile], universal_newlines=True)
+    lineno_str, *_ = wc_output.split()
+    print('\tTotal raw reads: %s' % (int(lineno_str) // 4))
     print('\tReads containing the given 5prime adapter ['+config['basic.options']['adapter5prime']+']: '+subprocess.check_output(['grep', '-c', config['basic.options']['adapter5prime'], inputfile], universal_newlines=True))
     cmd_string = 'stammp-remove5primeAdapter '+inputfile+' '+OUTDIR+PREFIX+'_5prime_adapter.clipped --seed '+config['remove5primeAdapter']['rm5_seed']+' --adapter '+config['basic.options']['adapter5prime']+' --barcode '+config['remove5primeAdapter']['rm5_barcode']
     if config['remove5primeAdapter']['rm5_strict'].upper() == 'Y':
@@ -214,25 +216,25 @@ def main(inputfile, outputdir, prefix, configfile):
     print('')
     print(time.strftime("[%Y-%m-%d %H:%M:%S]"), '##### SAM --> BAM ###################################')
     _cmd('samtools view -@ 12 -b -T '+config['basic.options']['genomefasta']+' -o '+OUTDIR+PREFIX+'.bam '+OUTDIR+PREFIX+'.sam')
-    
+
     print('')
     print(time.strftime("[%Y-%m-%d %H:%M:%S]"), '##### Sorting and indexing of BAM file ###########################')
-    _cmd('samtools sort -@ 12 '+OUTDIR+PREFIX+'.bam '+OUTDIR+PREFIX+'_sorted')
+    _cmd('samtools sort -@ 12 '+OUTDIR+PREFIX+'.bam -o '+OUTDIR+PREFIX+'_sorted.bam')
     _cmd('samtools index '+OUTDIR+PREFIX+'_sorted.bam')
-    
+
     print('')
     print(time.strftime("[%Y-%m-%d %H:%M:%S]"), '##### Generating mPileup ############################')
     _cmd('samtools mpileup -C 0 -d 100000 -q 0 -Q 0 -f '+config['basic.options']['genomefasta']+' '+OUTDIR+PREFIX+'_sorted.bam > '+OUTDIR+PREFIX+'.mpileup')
-    
+
     print('')
     print(time.strftime("[%Y-%m-%d %H:%M:%S]"), '##### PreProcess completed ############################')
     if config['basic.options']['rmTemp'] == 'Y':
         print('\tLet\'s remove temporary files!')
-        _cmd('rm '+OUTDIR+PREFIX+'_5prime_adapter.clipped', exit=False)
-        _cmd('rm '+OUTDIR+PREFIX+'_rndBC_clipped.fastq', exit=False)
-        _cmd('rm '+OUTDIR+PREFIX+'.sam', exit=False)
-        _cmd('rm '+OUTDIR+PREFIX+'.bam', exit=False)
-        _cmd('rm '+OUTDIR+PREFIX+'_qfiltered.fastq', exit=False)
+        _cmd('rm -f '+OUTDIR+PREFIX+'_5prime_adapter.clipped', exit=False)
+        _cmd('rm -f '+OUTDIR+PREFIX+'_rndBC_clipped.fastq', exit=False)
+        _cmd('rm -f '+OUTDIR+PREFIX+'.sam', exit=False)
+        _cmd('rm -f '+OUTDIR+PREFIX+'.bam', exit=False)
+        _cmd('rm -f '+OUTDIR+PREFIX+'_qfiltered.fastq', exit=False)
 
 def run():
     parser = argparse.ArgumentParser(description='Wrapper to convert raw fastq files from sequencing files to mpileup files. A fastq-file is adapterclipped, qualityfiltered, mapped and converted.', epilog="contact: torkler@genzentrum.lmu.de")
