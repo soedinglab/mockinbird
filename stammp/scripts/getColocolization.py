@@ -7,7 +7,7 @@ import sys
 from stammp.obj import *
 import math
 
-def main(parclipA, parclipB, anno, start, stop, width, annowidth, verbose):
+def main(parclipA, parclipB, anno, start, stop, width, annowidth, verbose, logRatio=False):
     tmpA     = parclipsites.ParclipSites('')
     dataB    = parclipsites.ParclipSites('')
     tmpA.loadFromFile(parclipA)
@@ -23,9 +23,11 @@ def main(parclipA, parclipB, anno, start, stop, width, annowidth, verbose):
     while count < total and i < (tmpA.size()-1):
         if verbose:
             functions.showProgress(count,total-1,'Selecting PAR-CLIP sites')
-        if anno.isInside(tmpA.chrs[i],tmpA.pos[i],tmpA.strand[i], annowidth)[1]:
-            dataA.addSite(tmpA.chrs[i], tmpA.pos[i], tmpA.m[i], tmpA.r[i], tmpA.result[i], tmpA.strand[i], tmpA.occ[i])
-            count +=1 
+#        if anno.isInside(tmpA.chrs[i],tmpA.pos[i],tmpA.strand[i], annowidth)[1]:
+#            dataA.addSite(tmpA.chrs[i], tmpA.pos[i], tmpA.m[i], tmpA.r[i], tmpA.result[i], tmpA.strand[i], tmpA.occ[i])
+#            count +=1
+        dataA.addSite(tmpA.chrs[i], tmpA.pos[i], tmpA.m[i], tmpA.r[i], tmpA.result[i], tmpA.strand[i], tmpA.occ[i])
+        count +=1 
         i += 1
     coloc = 1
     count_coloc = 1
@@ -46,8 +48,10 @@ def main(parclipA, parclipB, anno, start, stop, width, annowidth, verbose):
     coloc = coloc / count_coloc
     if verbose:
         print('')
-    return math.log( coloc/functions.getQuantile(dataB.occ,0.5) ,2)
-    #return coloc
+    if logRatio:
+        return math.log( coloc/functions.getQuantile(dataB.occ,0.5) ,2)
+    else:
+        return coloc
 
 def run():
     scriptPath = os.path.dirname(os.path.realpath(__file__))

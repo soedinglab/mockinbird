@@ -1,9 +1,13 @@
 import math
 from stammp.obj import functions
+
+
 class ParclipSites:
     """
-        :class:`~stammp.obj.parclipsites.ParclipSites` represents the data obtained by :ref:`ref_binding-site-detection`. The class offers methods to load, save, sort and modify PAR-CLIP data.
-        
+        :class:`~stammp.obj.parclipsites.ParclipSites` represents the data
+        obtained by :ref:`ref_binding-site-detection`. The class offers methods
+        to load, save, sort and modify PAR-CLIP data.
+
         Args:
             name (str): name of the experiment or protein
         Example:
@@ -11,39 +15,41 @@ class ParclipSites:
             >>> sites = parclipsites.ParclipSites('name')
     """
     def __init__(self, name):
-        self.chrs   = []
-        self.pos    = []
-        self.m      = []
-        self.r      = []
+        self.chrs = []
+        self.pos = []
+        self.m = []
+        self.r = []
         self.result = []
         self.strand = []
-        self.occ    = []
-        self.name   = name
+        self.occ = []
+        self.name = name
         self.sorted = False
         self.chrPositions = {}
-    
+
     def loadFromFile(self, filename):
         """
-        Loads PAR-CLIP binding sites obtained by :ref:`ref_binding-site-detection` into a :class:`~stammp.obj.parclipsites.ParclipSites` object.
-        
+        Loads PAR-CLIP binding sites obtained by
+        :ref:`ref_binding-site-detection` into a
+        :class:`~stammp.obj.parclipsites.ParclipSites` object.
+
         Args:
             filename (str): filename
-        
+
         Example:
             >>> from stammp.obj import parclipsites
             >>> sites = parclipsites.ParclipSites('name')
             >>> sites.loadFromFile('/path/to/parclip.table')
         """
-        self.chrs   = []
-        self.pos    = []
-        self.m      = []
-        self.r      = []
+        self.chrs = []
+        self.pos = []
+        self.m = []
+        self.r = []
         self.result = []
         self.strand = []
-        self.occ    = []
-        fc     = open(filename, 'r')
-        line   = fc.readline()
-        line   = fc.readline()
+        self.occ = []
+        fc = open(filename, 'r')
+        line = fc.readline()
+        line = fc.readline()
         while(line):
             split = line.split('\t')
             if len(split) == 7:
@@ -57,14 +63,15 @@ class ParclipSites:
             line = fc.readline()
         fc.close()
         self.getChromosomePositions()
-    
+
     def save2File(self, filename):
         """
-        Saves a :class:`~stammp.obj.parclipsites.ParclipSites` object as tab delimeted text file.
-        
+        Saves a :class:`~stammp.obj.parclipsites.ParclipSites` object as tab
+        delimeted text file.
+
         Args:
             filename (str): Filename
-        
+
         Example:
             >>> from stammp.obj import parclipsites
             >>> sites = parclipsites.ParclipSites('name')
@@ -74,17 +81,21 @@ class ParclipSites:
         fc = open(filename, 'w')
         fc.write('chromosome\tposition\tm\tr\tpvalue\tstrand\tocc\n')
         for i in range(self.size()):
-            fc.write(self.chrs[i]+'\t'+str(self.pos[i])+'\t'+str(self.m[i])+'\t'+str(self.r[i])+'\t'+str(self.result[i])+'\t'+self.strand[i]+'\t'+str(self.occ[i])+'\n')
+            fc.write(self.chrs[i] + '\t' + str(self.pos[i]) + '\t' +
+                     str(self.m[i]) + '\t' + str(self.r[i]) + '\t' +
+                     str(self.result[i]) + '\t'+self.strand[i] + '\t' +
+                     str(self.occ[i])+'\n')
         fc.close()
-    
+
     def print(self, start, stop):
         """
-        Prints PAR-CLIP data between given *start* and *stop* indices of an :class:`~stammp.obj.parclipsites.ParclipSites` object to stdout
-        
+        Prints PAR-CLIP data between given *start* and *stop* indices of an
+        :class:`~stammp.obj.parclipsites.ParclipSites` object to stdout
+
         Args:
             start (int): Start index
             stop (int): Stop index
-        
+
         Example:
             >>> from stammp.obj import parclipsites
             >>> sites = parclipsites.ParclipSites('name')
@@ -96,52 +107,57 @@ class ParclipSites:
             2	: chrI	8955	2	5	0.002277	-	0.5
             3	: chrI	9614	2	5	0.002277	+	0.285
             4	: chrI	11454	4	19	0.003157	+	0.333
-        
         """
         if start < 0 or stop < start or start >= len(self.chrs):
             print('start and/or stop indices are out of range!')
             raise IndexError
         print(' \t: Chr\tPosition\tm\tr\tpval\tstrand\tocc')
         for i in range(start, stop):
-            print(str(i)+'\t: '+self.chrs[i]+'\t'+str(self.pos[i])+'\t'+str(self.m[i])+'\t'+str(self.r[i])+'\t'+str(self.result[i])+'\t'+self.strand[i]+'\t'+str(self.occ[i]))
-    
+            print(str(i) + '\t: ' + self.chrs[i] + '\t' + str(self.pos[i]) +
+                  '\t' + str(self.m[i]) + '\t' + str(self.r[i]) + '\t' +
+                  str(self.result[i]) + '\t' + self.strand[i] + '\t' +
+                  str(self.occ[i]))
+
     def head(self):
-        self.print(0,5)
-    
+        self.print(0, 5)
+
     def tail(self):
         self.print(self.size()-5, self.size())
-    
+
     def size(self):
         """
-        Returns the number of binding sites stored in the :class:`~stammp.obj.parclipsites.ParclipSites` object.
-        
+        Returns the number of binding sites stored in the
+        :class:`~stammp.obj.parclipsites.ParclipSites` object.
+
         Returns:
             int
         """
         return(len(self.chrs))
-    
+
     def sort(self, key='occ'):
         """
-        Sorts the PAR-CLIP data of a :class:`~stammp.obj.parclipsites.ParclipSites` object in descending order according to the given *key*. 
-        
+        Sorts the PAR-CLIP data of a
+        :class:`~stammp.obj.parclipsites.ParclipSites` object in descending
+        order according to the given *key*.
+
         *key* can be one of the following values:
             * *occ* [default] = sites are sorted according to their occupancy
             * *m* = sites are sorted according to the number of mutations
             * *r* = sites are sorted according to the coverage
             * *mr* = sites are sorted according to the ratio of m/r
             * *pvalue* = sites are sorted according to the p-value calculated by :mod:`stammp.scripts.bsfinder`
-        
+
         Args:
             key (str): see above
-        
+
         """
-        tmp_chr       = []
-        tmp_pos       = []
-        tmp_result    = []
-        tmp_m         = []
-        tmp_r         = []
-        tmp_strand    = []
-        tmp_occ       = []
+        tmp_chr = []
+        tmp_pos = []
+        tmp_result = []
+        tmp_m = []
+        tmp_r = []
+        tmp_strand = []
+        tmp_occ = []
         sortedOccupancies = []
         for i in range(len(self.chrs)):
             if key == 'occ':
@@ -153,17 +169,17 @@ class ParclipSites:
             if key == 'pvalue':
                 sortedOccupancies.append((i, self.result[i]))
             if key == 'mr':
-                sortedOccupancies.append((i, (self.m[i]/self.r[i]) ))
-        sortedOccupancies = sorted(sortedOccupancies, key= lambda d: d[1])
-        
+                sortedOccupancies.append((i, (self.m[i]/self.r[i])))
+        sortedOccupancies = sorted(sortedOccupancies, key=lambda d: d[1])
+
         if key == 'pvalue':
             start = 0
-            stop  = len(sortedOccupancies)
-            step  = 1
+            stop = len(sortedOccupancies)
+            step = 1
         else:
             start = len(sortedOccupancies) - 1
-            stop  = 0
-            step  = -1
+            stop = 0
+            step = -1
         for i in range(start, stop, step):
             tmp_chr.append(self.chrs[sortedOccupancies[i][0]])
             tmp_pos.append(self.pos[sortedOccupancies[i][0]])
@@ -172,19 +188,21 @@ class ParclipSites:
             tmp_r.append(self.r[sortedOccupancies[i][0]])
             tmp_strand.append(self.strand[sortedOccupancies[i][0]])
             tmp_occ.append(self.occ[sortedOccupancies[i][0]])
-        self.chrs   = tmp_chr
-        self.pos    = tmp_pos
-        self.m      = tmp_m
-        self.r      = tmp_r
+        self.chrs = tmp_chr
+        self.pos = tmp_pos
+        self.m = tmp_m
+        self.r = tmp_r
         self.result = tmp_result
         self.strand = tmp_strand
-        self.occ    = tmp_occ
+        self.occ = tmp_occ
         self.sorted = True
-    
+
     def removeSite(self, index):
         """
-        Removes a single binding site entry of a :class:`~stammp.obj.parclipsites.ParclipSites` object at the given index
-        
+        Removes a single binding site entry of a
+        :class:`~stammp.obj.parclipsites.ParclipSites` object at the given
+        index
+
         Args:
             index (int): binding site index that will be removed
         """
@@ -197,13 +215,15 @@ class ParclipSites:
             del self.strand[index]
             del self.occ[index]
         else:
-            print('Index: '+str(index)+' out of range. Object has only #'+str(self.size())+' elements.')
+            print('Index: ' + str(index) + ' out of range. Object has only #' +
+                  str(self.size()) + ' elements.')
             raise IndexError
-    
+
     def addSite(self, chrname, position, m, r, pvalue, strand, occupancy):
         """
-        Adds a binding site to a :class:`~stammp.obj.parclipsites.ParclipSites` object.
-        
+        Adds a binding site to a :class:`~stammp.obj.parclipsites.ParclipSites`
+        object.
+
         Args:
             chrname (str): chromosome name
             position (int): position of the binding site within the chromosome
@@ -220,29 +240,33 @@ class ParclipSites:
         self.result.append(pvalue)
         self.strand.append(strand)
         self.occ.append(occupancy)
-    
+
     def removeSitesLocatedInGFF(self, gff, width=0):
         """
-        Removes binding sites of an :class:`~stammp.obj.parclipsites.ParclipSites` object which overlap with a given :class:`~stammp.obj.gff.GFF` object.
-        
+        Removes binding sites of an
+        :class:`~stammp.obj.parclipsites.ParclipSites` object which overlap
+        with a given :class:`~stammp.obj.gff.GFF` object.
+
         Args:
-            gff(GFF): :class:`~stammp.obj.gff.GFF` object 
+            gff(GFF): :class:`~stammp.obj.gff.GFF` object
             width (int): additional width which is added to the annotation information [default = 0]
         """
         i = 0
         while i < self.size():
-            #for j in range(gff.chrStartIndices[self.chrs[i]], gff.size()): #fies weil man das gff nicht vorher aendern darf...
             for j in range(gff.size()):
                 if gff.strand[j] == self.strand[i] and self.chrs[i] == gff.chr[j] and self.pos[i] >= (gff.start[j]-width) and self.pos[i] <= (gff.stop[j]+width):
                     self.removeSite(i)
                     i -= 1
                     break
             i += 1
-    
+
     def save2Fasta(self, genome, filename, start, stop, width=15):
         """
-        For each :class:`~stammp.obj.parclipsites.ParclipSites` between the indices *start* and *stop* genomic sequences +/- *width* nt from a :class:`~stammp.obj.genome.Genome` object are saved as a fasta file specified by *filename*.
-        
+        For each :class:`~stammp.obj.parclipsites.ParclipSites` between the
+        indices *start* and *stop* genomic sequences +/- *width* nt from a
+        :class:`~stammp.obj.genome.Genome` object are saved as a fasta file
+        specified by *filename*.
+
         Args:
             genome (Genome): :class:`~stammp.obj.genome.Genome` object
             filename (str): filename of the resulting fasta file
@@ -256,31 +280,43 @@ class ParclipSites:
             raise IndexError
         if stop >= len(self.chrs):
             stop = len(self.chrs)
-            print('WARNING: stop index is higher than the number of available PAR-CLIP sites. Stop was set to '+str(stop))
+            print('WARNING: stop index is higher than the number of available' +
+                  'PAR-CLIP sites. Stop was set to '+str(stop))
         fc = open(filename, 'w')
         for i in range(start, stop):
             if self.strand[i] == '+':
-                seq = genome.getSequence(self.chrs[i], (self.pos[i]-width), (self.pos[i]+width+1))
+                seq = genome.getSequence(self.chrs[i], (self.pos[i]-width),
+                                         (self.pos[i]+width+1))
                 if seq != -1:
-                    fc.write('>seq:'+str(i)+':'+self.chrs[i]+':'+str(self.pos[i])+':'+self.strand[i]+':'+str(round(self.occ[i], 2))+':'+str(self.m[i])+':'+str(round(self.m[i]/self.occ[i],2))+'\n')
+                    fc.write('>seq:' + str(i) + ':' + self.chrs[i] + ':' +
+                             str(self.pos[i]) + ':' + self.strand[i] + ':' +
+                             str(round(self.occ[i], 2)) + ':' + str(self.m[i]) +
+                             ':' + str(round(self.m[i]/self.occ[i], 2)) + '\n')
                     fc.write(seq+'\n')
                 else:
                     failedSeqs += 1
             else:
-               seq = genome.getSequence(self.chrs[i], (self.pos[i]-width-2), (self.pos[i]+width-1))
-               if seq != -1:
-                   fc.write('>seq:'+str(i)+':'+self.chrs[i]+':'+str(self.pos[i])+':'+self.strand[i]+':'+str(round(self.occ[i], 2))+':'+str(self.m[i])+':'+str(round(self.m[i]/self.occ[i],2))+'\n')
-                   fc.write(functions.makeReverseComplement(seq)+'\n')
-               else:
-                   failedSeqs += 1
+                seq = genome.getSequence(self.chrs[i], (self.pos[i]-width-2),
+                                         (self.pos[i]+width-1))
+                if seq != -1:
+                    fc.write('>seq:' + str(i) + ':' + self.chrs[i] + ':' +
+                             str(self.pos[i]) + ':' + self.strand[i] + ':' +
+                             str(round(self.occ[i], 2)) + ':' + str(self.m[i]) +
+                             ':' + str(round(self.m[i]/self.occ[i], 2)) + '\n')
+                    fc.write(functions.makeReverseComplement(seq)+'\n')
+                else:
+                    failedSeqs += 1
         fc.close()
         if failedSeqs > 0:
             print('WARNING: '+str(failedSeqs)+' couldn\'t be saved into the fasta file, because the sequences requests do not belong to the current genome!')
-    
+
     def getSequences(self, genome, start, stop, width):
         """
-        For each :class:`~stammp.obj.parclipsites.ParclipSites` between the indices *start* and *stop* genomic sequences +/- *width* nt from a :class:`~stammp.obj.genome.Genome` object are returned as a list of strings.
-            
+        For each :class:`~stammp.obj.parclipsites.ParclipSites` between the
+        indices *start* and *stop* genomic sequences +/- *width* nt from a
+        :class:`~stammp.obj.genome.Genome` object are returned as a list of
+        strings.
+
             Args:
                 genome (Genome): :class:`~stammp.obj.genome.Genome` object
                 start (int): start index
@@ -292,19 +328,22 @@ class ParclipSites:
             raise IndexError
         if stop >= len(self.chrs):
             stop = len(self.chrs)
-            print('WARNING: stop index is higher than the number of available PAR-CLIP sites. Stop was set to '+str(stop))
+            print('WARNING: stop index is higher than the number of ' +
+                  'available PAR-CLIP sites. Stop was set to '+str(stop))
         seqs = []
         for i in range(start, stop):
             if self.strand[i] == '+':
-                seq = genome.getSequence(self.chrs[i], (self.pos[i]-width), (self.pos[i]+width+1))
+                seq = genome.getSequence(self.chrs[i], (self.pos[i]-width),
+                                         (self.pos[i]+width+1))
                 if seq != -1:
                     seqs.append(seq)
             else:
-                seq = genome.getSequence(self.chrs[i], (self.pos[i]-width-2), (self.pos[i]+width-1))
+                seq = genome.getSequence(self.chrs[i], (self.pos[i]-width-2),
+                                         (self.pos[i]+width-1))
                 if seq != -1:
                     seqs.append(functions.makeReverseComplement(seq))
         return seqs
-    
+
     def getChromosomePositions(self):
         if self.sorted:
             print('PAR-CLIP sites have been sorted according to other values. Exiting!')
@@ -317,13 +356,14 @@ class ParclipSites:
                 start = i
                 cur_chr = self.chrs[i]
         self.chrPositions[cur_chr] = [start, (self.size()-1)]
-    
+
     def exactSearch(self, chrname, position, strand, width=0):
         """
-        Binary search which returns the index of the PAR-CLIP site entry, if a site is found at the given parameters and -1 otherwise.
-        
+        Binary search which returns the index of the PAR-CLIP site entry, if a
+        site is found at the given parameters and -1 otherwise.
+
         .. warning:: If you added or removed sites after loading you have to call :func:`~stammp.obj.parclipsites.getChromosomePositions`. Otherwise you won't get correct results.
-        
+
         Args:
             chrname (str): chromosome identifier
             position (int): chromsome coordinate
@@ -352,17 +392,19 @@ class ParclipSites:
                     index_max = (index_mid-1)
                 else:
                     index_min = (index_mid+1)
-                    
                 count += 1
             return [index_mid, False]
         except:
             return [-1, False]
-    
-    
+
     def getValues(self, chrname, position, strand, sense, upstream, downstream):
         """
-        Gets all occupancy values in the interval [position-upstream, position+downstream] for the given strand. If sense is true the PAR-CLIP values for the given strand are returned or for the opposite strand if false. If the strand is set to '-' the values are already flipped so that they are returned in 5\' to 3\' orientation.
-        
+        Gets all occupancy values in the interval [position-upstream,
+        position+downstream] for the given strand. If sense is true the
+        PAR-CLIP values for the given strand are returned or for the opposite
+        strand if false. If the strand is set to '-' the values are already
+        flipped so that they are returned in 5\' to 3\' orientation.
+
         Args:
             chrname (str): chromosome identidifier
             position (int): postion within the chromosome
@@ -370,7 +412,7 @@ class ParclipSites:
             sense (bool): If true values for the *strand* are returned or for the opposite strand if false
             upstream (int): number of nucleotides upstream of the position
             downstream (int): number of nucleotides downstream of the position
-        
+
         Returns:
             list : list of length *upstream* + *downstream* +1 with the occupancy value at that genomic position
         """
@@ -378,21 +420,18 @@ class ParclipSites:
         strand2 = strand
         if strand == '+':
             subtract = position-upstream
-            start  = self.exactSearch(chrname, subtract, strand, width=0)
-            stop   = self.exactSearch(chrname, (position+downstream), strand, width=0)
-            if sense == False:
+            start = self.exactSearch(chrname, subtract, strand, width=0)
+            stop = self.exactSearch(chrname, (position+downstream), strand, width=0)
+            if not sense:
                 strand2 = '-'
         else:
             subtract = position-downstream
-            start  = self.exactSearch(chrname, subtract, strand, width=0)
-            stop   = self.exactSearch(chrname, (position+upstream), strand, width=0)
-            if sense == False:
+            start = self.exactSearch(chrname, subtract, strand, width=0)
+            stop = self.exactSearch(chrname, (position+upstream), strand, width=0)
+            if not sense:
                 strand2 = '+'
         if start[0] >= 0 and stop[0] >= 0 and (stop[0]+1) < self.size():
-            #print('start: '+str(start[0]))
-            #print('stop: '+str(stop[0]+1))
             for i in range(start[0], (stop[0]+1)):
-                #print('\t'+str(i)+'\t'+str(self.occ[i]))
                 if self.strand[i] == strand2:
                     index = self.pos[i]-subtract
                     if index >= 0 and index < len(values):
@@ -402,8 +441,3 @@ class ParclipSites:
         if strand == '-':
             values = values[::-1]
         return values
-    
-
-
-
-
