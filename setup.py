@@ -1,5 +1,6 @@
-from setuptools import setup
-import os
+from setuptools import setup, find_packages
+
+
 setup(name='stammp',
       version='0.1',
       description='Analyzing PAR-CLIP data',
@@ -23,7 +24,7 @@ setup(name='stammp',
         'stammp-getProcessingIndex = stammp.scripts.getProcessingIndex:run',
         'stammp-getColocolization = stammp.scripts.getColocolization:run']
       },
-      packages=['stammp','stammp.obj','stammp.scripts','stammp.plots', 'stammp.scripts.utils'],
+      packages=find_packages(),
       include_package_data=True,
+      test_suite='nose.collector',
       zip_safe=False)
-

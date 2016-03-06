@@ -29,6 +29,8 @@ import configparser
 import subprocess
 import glob
 
+from stammp.utils import native_wordcount as wccount
+
 
 def _cmd(cmd, exit=True):
     try:
@@ -129,10 +131,9 @@ def main(inputfile, outputdir, prefix, configfile):
     print('')
     print(time.strftime("[%Y-%m-%d %H:%M:%S]"), '##### 5prime adapter removal ###########')
     print('')
-    wc_output = subprocess.check_output(['wc', '-l', inputfile], universal_newlines=True)
-    lineno_str, *_ = wc_output.split()
-    print('\tTotal raw reads: %s' % (int(lineno_str) // 4))
-    print('\tReads containing the given 5prime adapter ['+config['basic.options']['adapter5prime']+']: '+subprocess.check_output(['grep', '-c', config['basic.options']['adapter5prime'], inputfile], universal_newlines=True))
+    line_count = wccount(inputfile)
+    print('\tTotal raw reads: %s' % (line_count // 4))
+    print('\tReads containing the given 5prime adapter ['+config['basic.options']['adapter5prime']+']: '+subprocess.getoutput(" ".join(['grep', '-c', config['basic.options']['adapter5prime'], inputfile])))
     cmd_string = 'stammp-remove5primeAdapter '+inputfile+' '+OUTDIR+PREFIX+'_5prime_adapter.clipped --seed '+config['remove5primeAdapter']['rm5_seed']+' --adapter '+config['basic.options']['adapter5prime']+' --barcode '+config['remove5primeAdapter']['rm5_barcode']
     if config['remove5primeAdapter']['rm5_strict'].upper() == 'Y':
         cmd_string = cmd_string+' --strict'

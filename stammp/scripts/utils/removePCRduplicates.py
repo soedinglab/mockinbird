@@ -3,15 +3,10 @@ import argparse
 import os
 import sys
 import collections
-import subprocess
 import math
 
-def wccount(filename):
-    out = subprocess.Popen(['wc', '-l', filename],
-                         stdout=subprocess.PIPE,
-                         stderr=subprocess.STDOUT
-                         ).communicate()[0]
-    return int(out.partition(b' ')[0])
+from stammp.utils import native_wordcount as wccount
+
 
 def showProgress(count, total, message):
     frac = math.trunc((count/total)*10)
