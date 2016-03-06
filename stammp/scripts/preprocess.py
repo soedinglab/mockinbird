@@ -27,7 +27,8 @@ import sys
 import time
 import configparser
 import subprocess
-#from stammp.obj.functions import *
+import glob
+
 
 def _cmd(cmd, exit=True):
     try:
@@ -77,6 +78,21 @@ def main(inputfile, outputdir, prefix, configfile):
     fx_Q33 = ''
     if config['basic.options']['fx_Q33'] == 'Y':
        fx_Q33 = ' -Q33'
+
+    bowtie_index = config['basic.options']['bowtieindex']
+    bt_index_glob = "%s*" % bowtie_index
+    if len(glob.glob(bt_index_glob)) == 0:
+        print('bowtie index %r does not exist. Please check the configuration file' % bowtie_index,
+              file=sys.stderr)
+        sys.exit(1)
+
+    genome_fasta_path = config['basic.options']['genomefasta']
+    if not os.path.isfile(genome_fasta_path):
+        print('genome fasta file %r does not exist. '
+              'Please check the configuration file' % genome_fasta_path,
+              file=sys.stderr)
+        sys.exit(1)
+
     ##################################################
     ################################################## FastQC analysis of raw data
     ##################################################
