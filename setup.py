@@ -22,7 +22,8 @@ setup(name='stammp',
         'stammp-makeKmerLogOdds = stammp.plots.makeKmerLogOdds:run',
         'stammp-makeJaccard = stammp.plots.makeJaccard:run',
         'stammp-getProcessingIndex = stammp.scripts.getProcessingIndex:run',
-        'stammp-getColocolization = stammp.scripts.getColocolization:run']
+        'stammp-getColocalization = stammp.scripts.getColocalization:run',
+        'stammp-makeHeatMap = stammp.plots.makeHeatMap:run']
       },
       packages=find_packages(),
       include_package_data=True,

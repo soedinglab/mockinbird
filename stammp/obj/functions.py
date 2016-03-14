@@ -8,6 +8,7 @@ Most modules of STAMMP rely on these functions.
 import sys
 import math
 import copy
+import os
 
 #################################################################
 ######## General file handling functions
@@ -408,21 +409,27 @@ def getQuantileIndex(length,q):
     else:
         return(length-1)
 
+def shrinkValues(values, size):
+    shrinked = [0]*size
+    counts = [0]*size
+    trueSize = len(values)
+    for i in range(trueSize):
+        shrinkedPos = round((i/trueSize)*(size-1))
+        #print(str(i)+'\t'+str(values[i])+'\t->'+str(shrinkedPos))
+        shrinked[shrinkedPos] += values[i]
+        counts[shrinkedPos] += 1
+    #print(counts)
+    for i in range(len(shrinked)):
+        if counts[i] > 0:
+            shrinked[i] = shrinked[i]/counts[i]
+    return shrinked
 
+def checkExistence(filename):
+    if not os.path.isfile(filename):
+        print('Error: '+filename+' does not exist')
+        sys.exit()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+def checkPath(path):
+    if not os.path.isdir(path):
+        print('Warning: '+path+' does not exist and will be generated')
+        os.makedirs(path)
