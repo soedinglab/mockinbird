@@ -33,25 +33,7 @@ from stammp.utils import native_wordcount as wccount
 from stammp.utils import prepare_output_dir
 
 
-def _cmd(cmd, exit=True):
-    try:
-        if isinstance(cmd, list):
-            cmd = ' '.join(cmd)
-
-        proc = subprocess.Popen(args=cmd, shell=True, stderr=subprocess.PIPE,
-                                stdout=subprocess.PIPE, universal_newlines=True)
-        retcode = proc.wait()
-        stdout, stderr = proc.communicate()
-        if retcode != 0:
-            print(stderr, file=sys.stderr)
-            raise Exception
-    except:
-        print('Error at:\n %r \n' % cmd, file=sys.stderr)
-        if exit:
-            sys.exit(1)
-
-
-def main(inputfile, outputdir, prefix, configfile):
+def main(inputfile, outputdir, prefix, configfile, verbose):
     """
     Wrapper method to run 3rd-party programs necessary to pre-process and convert raw fastq files into pileup files for subsequent analysis steps. Detailed parameter settings for the used programs can be modified in the configuration file (:ref:`ref_pre-processing_config`).
 
@@ -67,6 +49,43 @@ def main(inputfile, outputdir, prefix, configfile):
 
 
     """
+
+    # define helper functions
+
+    def print_tool_header(tool):
+        time_format = time.strftime('[%Y-%m-%d %H:%M:%S]')
+        print()
+        print('%s #### %s ####' % (time_format, tool))
+        print()
+
+    def _cmd(cmd, exit=True, verbose=verbose):
+        try:
+            if isinstance(cmd, list):
+                cmd = ' '.join(cmd)
+
+            if verbose:
+                print()
+                print('\t' + cmd)
+                print()
+
+            proc = subprocess.Popen(args=cmd, shell=True, stderr=subprocess.PIPE,
+                                    stdout=subprocess.PIPE, universal_newlines=True)
+            retcode = proc.wait()
+            stdout, stderr = proc.communicate()
+            if retcode != 0:
+                print(stderr, file=sys.stderr)
+                raise Exception
+        except:
+            print('Error at:\n %r \n' % cmd, file=sys.stderr)
+            if exit:
+                sys.exit(1)
+
+    def prepare_dir_or_die(dir_path):
+        try:
+            prepare_output_dir(dir_path)
+        except ValueError as e:
+            print('Error while preparing output directories: %s' % e, file=sys.stderr)
+            sys.exit(1)
     config = configparser.ConfigParser(inline_comment_prefixes=';')
     config.read(configfile)
 
@@ -97,11 +116,20 @@ def main(inputfile, outputdir, prefix, configfile):
     adapter5prime = config['basic.options']['adapter5prime']
     adapter3prime = config['basic.options']['adapter3prime']
 
-    def print_tool_header(tool):
-        time_format = time.strftime('[%Y-%m-%d %H:%M:%S]')
-        print()
-        print('%s #### %s ####' % (time_format, tool))
-        print()
+    # Run pipeline
+
+    # Remove duplicates
+    if config['removePCRduplicates']['rmPCR_use'].upper() == 'Y':
+        fastq_file = os.path.join(outputdir, prefix + '_nodup.fastq')
+        print_tool_header('Remove duplicated reads')
+        dup_rm_toks = [
+            'stammp-removePCRduplicates',
+            inputfile,
+            fastq_file,
+        ]
+        _cmd(dup_rm_toks)
+    else:
+        fastq_file = inputfile
 
     # FastQC analysis of raw data
     if config['fastQC']['fqc_use'] == 'Y':
@@ -122,7 +150,7 @@ def main(inputfile, outputdir, prefix, configfile):
             '--kmers %s' % config['fastQC']['kmers'],
             '--adapters %s' % adapter_file,
             '-d %s' % fastqc_raw_dir,  # temp directory
-            inputfile,
+            fastq_file,
         ]
         _cmd(cmd_tokens)
 
@@ -136,7 +164,7 @@ def main(inputfile, outputdir, prefix, configfile):
         qual_stats_file = os.path.join(fastx_raw_dir, 'fastxstats_raw.txt')
         qual_stats_toks = [
             'fastx_quality_stats',
-            '-i %s' % inputfile,
+            '-i %s' % fastq_file,
             '-o %s' % qual_stats_file,
             fx_Q33,
         ]
@@ -160,10 +188,10 @@ def main(inputfile, outputdir, prefix, configfile):
 
     # 5prime adapter removal
     print_tool_header('5prime adapter removal')
-    line_count = wccount(inputfile)
+    line_count = wccount(fastq_file)
     print('\tTotal raw reads: %s' % (line_count // 4))
 
-    count_5prime_toks = ['grep', '-c', adapter5prime, inputfile]
+    count_5prime_toks = ['grep', '-c', adapter5prime, fastq_file]
     n_5prime_adapter = subprocess.getoutput(' '.join(count_5prime_toks))
     print('\tReads containing the given 5prime adapter %s: %s'
           % (adapter5prime, n_5prime_adapter))
@@ -171,7 +199,7 @@ def main(inputfile, outputdir, prefix, configfile):
     adapter_clipped_file = os.path.join(outputdir, prefix + '_5prime_adapter.clipped')
     adapter_clip_toks = [
         'stammp-remove5primeAdapter',
-        inputfile,
+        fastq_file,
         adapter_clipped_file,
         '--seed %s' % config['remove5primeAdapter']['rm5_seed'],
         '--adapter %s' % adapter5prime,
@@ -184,47 +212,16 @@ def main(inputfile, outputdir, prefix, configfile):
     print('\t5prime adapter sequence is being clipped ...')
     _cmd(adapter_clip_toks)
 
-    # Random barcode removal
-    rndbc_clipped_file = os.path.join(outputdir, prefix + '_rndBC_clipped.fastq')
-    fx_use = config['fastxTrimmer']['fx_use'].upper()
-    rm_dup = config['removePCRduplicates']['rmPCR_use'].upper()
-    if fx_use == 'Y' and rm_dup != 'Y':
-        print_tool_header('Random barcode removal')
-        trim_toks = [
-            'fastx_trimmer',
-            '-i %s' % adapter_clipped_file,
-            '-o %s' % rndbc_clipped_file,
-        ]
-
-        if len(config['fastxTrimmer']['fx_f']) > 0:
-            trim_toks.append('-f %s' % config['fastxTrimmer']['fx_f'])
-        if len(config['fastxTrimmer']['fx_l']) > 0:
-            trim_toks.append('-l %s' % config['fastxTrimmer']['fx_l'])
-        _cmd(trim_toks)
-
-    # Remove PCR duplicates by the random Barcode
-    clipped_file = os.path.join(outputdir, prefix + '_5prime_adapter.clipped')
-    rndbc_clipped_file = os.path.join(outputdir, prefix + '_rndBC_clipped.fastq')
-    if fx_use != 'Y' and rm_dup == 'Y':
-        print_tool_header('Remove PCR duplicates by the random Barcode')
-        dup_rm_toks = [
-            'stammp-removePCRduplicates',
-            clipped_file,
-            rndbc_clipped_file,
-        ]
-        _cmd(dup_rm_toks)
-    if (fx_use == 'Y' and rm_dup == 'Y') or (fx_use != 'Y' and rm_dup != 'Y'):
-        print_tool_header('No rnd barcode removal or PCR duplicate removal')
-        os.rename(clipped_file, rndbc_clipped_file)
+    # Quality filtering
+    qfiltered_file = os.path.join(outputdir, prefix + '_qfiltered.fastq')
 
     # Quality Filtering [Graf]
-    qfiltered_file = os.path.join(outputdir, prefix + '_qfiltered.fastq')
     if config['qualityFiltering']['qf_use'] == 'Y':
         print_tool_header('Quality filtering [Graf]')
         qual_fil_toks = [
             'java -Xmx4g',
             '-jar %s' % os.path.join(scriptPath, 'FastqQualityFilter.jar'),
-            '-i %s' % rndbc_clipped_file,
+            '-i %s' % adapter_clipped_file,
             '-o %s' % qfiltered_file,
             '-m %s' % config['qualityFiltering']['qf_m'],
             '-q %s' % config['qualityFiltering']['qf_q'],
@@ -240,7 +237,7 @@ def main(inputfile, outputdir, prefix, configfile):
         print_tool_header('Quality filtering [FastX]')
         qual_fil_toks = [
             'fastq_quality_filter',
-            '-i %s' % rndbc_clipped_file,
+            '-i %s' % adapter_clipped_file,
             '-o %s' % qfiltered_file,
             '-q %s' % config['fastxQualityFilter']['fxQ_q'],
             '-p %s' % config['fastxQualityFilter']['fxQ_p'],
@@ -314,6 +311,8 @@ def main(inputfile, outputdir, prefix, configfile):
         '-m %s' % config['bowtie']['bowtie_m'],
         '--best',
         '--strata',
+        '--trim5 %s' % config['bowtie']['bowtie_trim5'],
+        '--trim3 %s' % config['bowtie']['bowtie_trim3'],
         bowtie_index,
         qfiltered_file,
         '> %s' % sam_file,
@@ -373,7 +372,6 @@ def main(inputfile, outputdir, prefix, configfile):
     if config['basic.options']['rmTemp'] == 'Y':
         print('\tLet\'s remove temporary files!')
         _cmd('rm -f %s' % adapter_clipped_file, exit=False)
-        _cmd('rm -f %s' % rndbc_clipped_file, exit=False)
         _cmd('rm -f %s' % sam_file, exit=False)
         _cmd('rm -f %s' % bam_file, exit=False)
         _cmd('rm -f %s' % qfiltered_file, exit=False)
@@ -391,6 +389,8 @@ def run():
     parser.add_argument('outputdir', help='Output directory')
     parser.add_argument('prefix', help='Set prefix for all outputfile')
     parser.add_argument('configfile', help='Config file containing arguments')
+    parser.add_argument('--verbose', '-v', help='more verbose output',
+                        action='store_true')
     args = parser.parse_args()
 
     if not os.path.isfile(args.inputfile):
@@ -399,15 +399,7 @@ def run():
     if not os.path.isfile(args.configfile):
         print('Config file: %r does not exist' % args.configfile)
         sys.exit(1)
-    main(args.inputfile, args.outputdir, args.prefix, args.configfile)
-
-
-def prepare_dir_or_die(dir_path):
-    try:
-        prepare_output_dir(dir_path)
-    except ValueError as e:
-        print('Error while preparing output directories: %s' % e, file=sys.stderr)
-        sys.exit(1)
+    main(args.inputfile, args.outputdir, args.prefix, args.configfile, args.verbose)
 
 
 if __name__ == '__main__':
