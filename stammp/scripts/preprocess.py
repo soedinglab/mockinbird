@@ -25,10 +25,9 @@ import os
 import sys
 import time
 import configparser
-import subprocess
 import glob
 
-from stammp.utils import prepare_output_dir
+from stammp.utils import prepare_output_dir, execute
 
 
 def main(inputfile, outputdir, prefix, configfile, verbose):
@@ -57,27 +56,7 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
         print()
 
     def _cmd(cmd, exit=True, verbose=verbose):
-        try:
-            if isinstance(cmd, list):
-                cmd = ' '.join(cmd)
-
-            if verbose:
-                print()
-                print('\t' + cmd)
-                print()
-
-            proc = subprocess.Popen(args=cmd, shell=True, stderr=subprocess.PIPE,
-                                    stdout=subprocess.PIPE, universal_newlines=True)
-            retcode = proc.wait()
-            stdout, stderr = proc.communicate()
-            if retcode != 0:
-                print(stderr, file=sys.stderr)
-                raise Exception
-            return stdout, stderr
-        except:
-            print('Error at:\n %r \n' % cmd, file=sys.stderr)
-            if exit:
-                sys.exit(1)
+        return execute(cmd, exit, verbose)
 
     def prepare_dir_or_die(dir_path):
         try:
