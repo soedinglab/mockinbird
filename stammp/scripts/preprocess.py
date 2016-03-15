@@ -30,56 +30,55 @@ import subprocess
 import glob
 
 from stammp.utils import native_wordcount as wccount
+from stammp.utils import prepare_output_dir
 
 
 def _cmd(cmd, exit=True):
     try:
-        proc     = subprocess.Popen(args=cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE )
-        retcode  = proc.wait()
-        com      = proc.communicate()
-        #sys.stdout.write(com[0])
+        if isinstance(cmd, list):
+            cmd = ' '.join(cmd)
+
+        proc = subprocess.Popen(args=cmd, shell=True, stderr=subprocess.PIPE,
+                                stdout=subprocess.PIPE, universal_newlines=True)
+        retcode = proc.wait()
+        stdout, stderr = proc.communicate()
         if retcode != 0:
-            sys.stderr.write(str(com[1].decode(encoding="utf-8", errors="strict")))
+            print(stderr, file=sys.stderr)
             raise Exception
     except:
-        sys.stderr.write('Error at:\n  '+cmd+'\n\n')
+        print('Error at:\n %r \n' % cmd, file=sys.stderr)
         if exit:
-            sys.exit(-1)
+            sys.exit(1)
 
-def _printConfig(c):
-    for section in c.sections():
-        print(section)
-        for key in c[section]:
-            print('\t'+key+'\t:'+c[section][key])
 
 def main(inputfile, outputdir, prefix, configfile):
     """
     Wrapper method to run 3rd-party programs necessary to pre-process and convert raw fastq files into pileup files for subsequent analysis steps. Detailed parameter settings for the used programs can be modified in the configuration file (:ref:`ref_pre-processing_config`).
-    
+
     Args:
         inputfile (str): Input fastq file
         outputdir (str): Path to your output directory
         prefix (str): Prefix which is added to all output files e.g. a unique experiment name or protein name
         configfile (str): configuration file where additional options can be set
-    
+
     Can be accessed directly::
-        
+
         $ stammp-preprocess.py /path/to/input.fastq /path/output/ prefix /path/to/configfile
-        
-    
+
+
     """
-    OUTDIR  = outputdir #config['basic.options']['outputdir']
-    PREFIX  = prefix
     config = configparser.ConfigParser(inline_comment_prefixes=';')
     config.read(configfile)
-    #_printConfig(config)
-    scriptPath = os.path.dirname(os.path.realpath(__file__))+'/utils/'
-    #scriptPath = '../utils/'
-    if os.path.exists(OUTDIR) == False:
-        os.makedirs(OUTDIR)
-    fx_Q33 = ''
+
+    cur_dir = os.path.dirname(os.path.realpath(__file__))
+    scriptPath = os.path.join(cur_dir, 'utils')
+
+    prepare_dir_or_die(outputdir)
+
     if config['basic.options']['fx_Q33'] == 'Y':
-       fx_Q33 = ' -Q33'
+        fx_Q33 = ' -Q33'
+    else:
+        fx_Q33 = ''
 
     bowtie_index = config['basic.options']['bowtieindex']
     bt_index_glob = "%s*" % bowtie_index
@@ -95,179 +94,321 @@ def main(inputfile, outputdir, prefix, configfile):
               file=sys.stderr)
         sys.exit(1)
 
-    ##################################################
-    ################################################## FastQC analysis of raw data
-    ##################################################
+    adapter5prime = config['basic.options']['adapter5prime']
+    adapter3prime = config['basic.options']['adapter3prime']
+
+    def print_tool_header(tool):
+        time_format = time.strftime('[%Y-%m-%d %H:%M:%S]')
+        print()
+        print('%s #### %s ####' % (time_format, tool))
+        print()
+
+    # FastQC analysis of raw data
     if config['fastQC']['fqc_use'] == 'Y':
-        print('')
-        print(time.strftime("[%Y-%m-%d %H:%M:%S]"), '##### FastQC analysis of raw data ###########')
-        print('')
-        if os.path.exists(OUTDIR+'/fastQC/raw/') == False or os.path.exists(OUTDIR+'/fastQC/filtered/') == False:
-            os.makedirs(OUTDIR+'/fastQC/raw/')
-            os.makedirs(OUTDIR+'/fastQC/filtered/')
-        fc = open(OUTDIR+'/fastQC/tmp_adapters.txt','w')
-        fc.write('adapter5prime\t'+config['basic.options']['adapter5prime']+'\n')
-        fc.write('adapter3prime\t'+config['basic.options']['adapter3prime'])
-        fc.close()
-        _cmd('fastqc -o '+OUTDIR+'fastQC/raw/ -f fastq --threads '+config['fastQC']['threads']+' --kmers '+config['fastQC']['kmers']+' --adapters '+OUTDIR+'fastQC/tmp_adapters.txt -d '+OUTDIR+'fastQC/raw/ '+inputfile)
-    
-    ##################################################
-    ################################################## FastX-toolkit analysis of raw data
-    ##################################################
+        print_tool_header('FastQC analysis of raw data')
+
+        fastqc_raw_dir = os.path.join(outputdir, 'fastQC/raw')
+        prepare_dir_or_die(fastqc_raw_dir)
+
+        adapter_file = os.path.join(outputdir, 'fastQC/tmp_adapters.txt')
+        with open(adapter_file, 'w') as fc:
+            print('adapter5prime\t %s' % adapter5prime, file=fc)
+            print('adapter3prime\t %s' % adapter3prime, file=fc)
+
+        cmd_tokens = [
+            'fastqc', '-o %s' % fastqc_raw_dir,
+            '-f fastq',
+            '--threads %s' % config['fastQC']['threads'],
+            '--kmers %s' % config['fastQC']['kmers'],
+            '--adapters %s' % adapter_file,
+            '-d %s' % fastqc_raw_dir,  # temp directory
+            inputfile,
+        ]
+        _cmd(cmd_tokens)
+
+    # FastX-toolkit analysis of raw data
     if config['fastXstatistics']['use'] == 'Y':
-        print('')
-        print(time.strftime("[%Y-%m-%d %H:%M:%S]"), '##### FastX toolkit analysis of raw data ###########')
-        print('')
-        if os.path.exists(OUTDIR+'/fastXstats/raw/') == False or os.path.exists(OUTDIR+'/fastXstats/filtered/') == False:
-            os.makedirs(OUTDIR+'/fastXstats/raw/')
-            os.makedirs(OUTDIR+'/fastXstats/filtered/')
-        _cmd('fastx_quality_stats -i '+inputfile+' -o '+OUTDIR+'/fastXstats/raw/fastxstats_raw.txt'+fx_Q33)
-        _cmd('fastq_quality_boxplot_graph.sh -i '+OUTDIR+'/fastXstats/raw/fastxstats_raw.txt -o '+OUTDIR+'/fastXstats/raw/'+PREFIX+'_raw_quality.png -t '+PREFIX)
-        _cmd('fastx_nucleotide_distribution_graph.sh -i '+OUTDIR+'/fastXstats/raw/fastxstats_raw.txt -o '+OUTDIR+'/fastXstats/raw/'+PREFIX+'_raw_nuc.png -t '+PREFIX)
-    
-    ##################################################
-    ################################################## 5prime adapter removal
-    ##################################################
-    print('')
-    print(time.strftime("[%Y-%m-%d %H:%M:%S]"), '##### 5prime adapter removal ###########')
-    print('')
+        print_tool_header('FastX toolkit analysis of raw data')
+
+        fastx_raw_dir = os.path.join(outputdir, 'fastXstats/raw')
+        prepare_dir_or_die(fastx_raw_dir)
+
+        qual_stats_file = os.path.join(fastx_raw_dir, 'fastxstats_raw.txt')
+        qual_stats_toks = [
+            'fastx_quality_stats',
+            '-i %s' % inputfile,
+            '-o %s' % qual_stats_file,
+            fx_Q33,
+        ]
+        _cmd(qual_stats_toks)
+
+        qual_bp_toks = [
+            'fastq_quality_boxplot_graph.sh',
+            '-i %s' % qual_stats_file,
+            '-o %s' % os.path.join(fastx_raw_dir, prefix + '_raw_quality.png'),
+            '-t %s' % prefix,  # title
+        ]
+        _cmd(qual_bp_toks)
+
+        nucdistr_toks = [
+            'fastx_nucleotide_distribution_graph.sh',
+            '-i %s' % qual_stats_file,
+            '-o %s' % os.path.join(fastx_raw_dir, prefix + '_raw_nuc.png'),
+            '-t %s' % prefix,  # title
+        ]
+        _cmd(nucdistr_toks)
+
+    # 5prime adapter removal
+    print_tool_header('5prime adapter removal')
     line_count = wccount(inputfile)
     print('\tTotal raw reads: %s' % (line_count // 4))
-    print('\tReads containing the given 5prime adapter ['+config['basic.options']['adapter5prime']+']: '+subprocess.getoutput(" ".join(['grep', '-c', config['basic.options']['adapter5prime'], inputfile])))
-    cmd_string = 'stammp-remove5primeAdapter '+inputfile+' '+OUTDIR+PREFIX+'_5prime_adapter.clipped --seed '+config['remove5primeAdapter']['rm5_seed']+' --adapter '+config['basic.options']['adapter5prime']+' --barcode '+config['remove5primeAdapter']['rm5_barcode']
+
+    count_5prime_toks = ['grep', '-c', adapter5prime, inputfile]
+    n_5prime_adapter = subprocess.getoutput(' '.join(count_5prime_toks))
+    print('\tReads containing the given 5prime adapter %s: %s'
+          % (adapter5prime, n_5prime_adapter))
+
+    adapter_clipped_file = os.path.join(outputdir, prefix + '_5prime_adapter.clipped')
+    adapter_clip_toks = [
+        'stammp-remove5primeAdapter',
+        inputfile,
+        adapter_clipped_file,
+        '--seed %s' % config['remove5primeAdapter']['rm5_seed'],
+        '--adapter %s' % adapter5prime,
+        '--barcode %s' % config['remove5primeAdapter']['rm5_barcode'],
+    ]
     if config['remove5primeAdapter']['rm5_strict'].upper() == 'Y':
-        cmd_string = cmd_string+' --strict'
+        adapter_clip_toks.append('--strict')
     if config['remove5primeAdapter']['rm5_clipanywhere'].upper() == 'Y':
-        cmd_string = cmd_string+' --clipanywhere'
+        adapter_clip_toks.append('--clipanywhere')
     print('\t5prime adapter sequence is being clipped ...')
-    _cmd(cmd_string)
-    
-    ##################################################
-    ################################################## Random barcode removal
-    ##################################################
-    if config['fastxTrimmer']['fx_use'].upper() == 'Y' and config['removePCRduplicates']['rmPCR_use'].upper() != 'Y':
-        print('')
-        print(time.strftime("[%Y-%m-%d %H:%M:%S]"), '##### Random barcode removal ###########')
-        print('')
-        cmd_string = 'fastx_trimmer -i '+OUTDIR+PREFIX+'_5prime_adapter.clipped -o '+OUTDIR+PREFIX+'_rndBC_clipped.fastq'
+    _cmd(adapter_clip_toks)
+
+    # Random barcode removal
+    rndbc_clipped_file = os.path.join(outputdir, prefix + '_rndBC_clipped.fastq')
+    fx_use = config['fastxTrimmer']['fx_use'].upper()
+    rm_dup = config['removePCRduplicates']['rmPCR_use'].upper()
+    if fx_use == 'Y' and rm_dup != 'Y':
+        print_tool_header('Random barcode removal')
+        trim_toks = [
+            'fastx_trimmer',
+            '-i %s' % adapter_clipped_file,
+            '-o %s' % rndbc_clipped_file,
+        ]
+
         if len(config['fastxTrimmer']['fx_f']) > 0:
-            cmd_string = cmd_string+' -f '+config['fastxTrimmer']['fx_f']
+            trim_toks.append('-f %s' % config['fastxTrimmer']['fx_f'])
         if len(config['fastxTrimmer']['fx_l']) > 0:
-            cmd_string = cmd_string+' -l '+config['fastxTrimmer']['fx_l']
-        #_cmd('fastx_trimmer -i '+OUTDIR+PREFIX+'.5prime_adapter.clipped -o '+OUTDIR+PREFIX+'_rndBC_clipped.fastq '+fx_f+' '+fx_l+' '+fx_Q33)
-        #_cmd(['fastx_trimmer', '-i '+OUTDIR+PREFIX+'.5prime_adapter.clipped', '-o '+OUTDIR+PREFIX+'_rndBC_clipped.fastq', fx_f, fx_l, fx_Q33])
-        _cmd(cmd_string+fx_Q33)
-    
-    ##################################################
-    ################################################## Remove PCR duplicates by the random Barcode
-    ##################################################
-    if config['fastxTrimmer']['fx_use'].upper() != 'Y' and config['removePCRduplicates']['rmPCR_use'].upper() == 'Y':
-        print('')
-        print(time.strftime("[%Y-%m-%d %H:%M:%S]"), '##### Remove PCR duplicates by the random Barcode  ###########')
-        print('')
-        _cmd('stammp-removePCRduplicates '+OUTDIR+PREFIX+'_5prime_adapter.clipped '+OUTDIR+PREFIX+'_rndBC_clipped.fastq')
-    if (config['fastxTrimmer']['fx_use'].upper() == 'Y' and config['removePCRduplicates']['rmPCR_use'].upper() == 'Y') or (config['fastxTrimmer']['fx_use'].upper() != 'Y' and config['removePCRduplicates']['rmPCR_use'].upper() != 'Y'):
-        print('')
-        print(time.strftime("[%Y-%m-%d %H:%M:%S]"), '##### No rnd barcode removal or PCR duplicate removal ###########')
-        print('')
-        os.rename(OUTDIR+PREFIX+'_5prime_adapter.clipped', OUTDIR+PREFIX+'_rndBC_clipped.fastq')
-    
-    ##################################################
-    ################################################## Quality Filtering [Graf]
-    ##################################################
+            trim_toks.append('-l %s' % config['fastxTrimmer']['fx_l'])
+        _cmd(trim_toks)
+
+    # Remove PCR duplicates by the random Barcode
+    clipped_file = os.path.join(outputdir, prefix + '_5prime_adapter.clipped')
+    rndbc_clipped_file = os.path.join(outputdir, prefix + '_rndBC_clipped.fastq')
+    if fx_use != 'Y' and rm_dup == 'Y':
+        print_tool_header('Remove PCR duplicates by the random Barcode')
+        dup_rm_toks = [
+            'stammp-removePCRduplicates',
+            clipped_file,
+            rndbc_clipped_file,
+        ]
+        _cmd(dup_rm_toks)
+    if (fx_use == 'Y' and rm_dup == 'Y') or (fx_use != 'Y' and rm_dup != 'Y'):
+        print_tool_header('No rnd barcode removal or PCR duplicate removal')
+        os.rename(clipped_file, rndbc_clipped_file)
+
+    # Quality Filtering [Graf]
+    qfiltered_file = os.path.join(outputdir, prefix + '_qfiltered.fastq')
     if config['qualityFiltering']['qf_use'] == 'Y':
-        print('')
-        print(time.strftime("[%Y-%m-%d %H:%M:%S]"), '##### Quality filtering [Graf] ###########')
-        print('')
-        cmd_string = 'java -Xmx4g -jar '+scriptPath+'FastqQualityFilter.jar -i '+OUTDIR+PREFIX+'_rndBC_clipped.fastq -o '+OUTDIR+PREFIX+'_qfiltered.fastq -m '+config['qualityFiltering']['qf_m']+' -q '+config['qualityFiltering']['qf_q']
+        print_tool_header('Quality filtering [Graf]')
+        qual_fil_toks = [
+            'java -Xmx4g',
+            '-jar %s' % os.path.join(scriptPath, 'FastqQualityFilter.jar'),
+            '-i %s' % rndbc_clipped_file,
+            '-o %s' % qfiltered_file,
+            '-m %s' % config['qualityFiltering']['qf_m'],
+            '-q %s' % config['qualityFiltering']['qf_q'],
+        ]
         if config['qualityFiltering']['qf_chastity'] == 'Y':
-            cmd_string = cmd_string+' -c Y'
+            qual_fil_toks.append('-c Y')
         if config['qualityFiltering']['qf_n'] == 'Y':
-            cmd_string = cmd_string+' -n'
-        #_cmd('java -Xmx4g -jar '+scriptPath+'FastqQualityFilter.jar -i '+OUTDIR+PREFIX+'_rndBC_clipped.fastq -o '+OUTDIR+PREFIX+'_qfiltered.fastq -m '+config['qualityFiltering']['qf_m']+' -q '+config['qualityFiltering']['qf_q']+' '+qf_n)
-        #_cmd(['java', '-Xmx4g', '-jar', scriptPath+'FastqQualityFilter.jar', '-i '+OUTDIR+PREFIX+'_rndBC_clipped.fastq', '-o '+OUTDIR+PREFIX+'_qfiltered.fastq', '-m '+config['qualityFiltering']['qf_m'], ' -q '+config['qualityFiltering']['qf_q'], qf_n])
-        _cmd(cmd_strig)
-    
-    ##################################################
-    ################################################## Quality Filtering [FastX]
-    ##################################################
+            qual_fil_toks.append('-n')
+        _cmd(qual_fil_toks)
+
+    # Quality Filtering [FastX]
     if config['fastxQualityFilter']['fxQ_use'] == 'Y':
-        print('')
-        print(time.strftime("[%Y-%m-%d %H:%M:%S]"), '##### Quality filtering [FastX] ###########')
-        print('')
-        _cmd('fastq_quality_filter -i '+OUTDIR+PREFIX+'_rndBC_clipped.fastq -o '+OUTDIR+PREFIX+'_qfiltered.fastq -q '+config['fastxQualityFilter']['fxQ_q']+' -p '+config['fastxQualityFilter']['fxQ_p']+fx_Q33)
-    
-    ##################################################
-    ################################################## FastQC analysis of filtered data
-    ##################################################
+        print_tool_header('Quality filtering [FastX]')
+        qual_fil_toks = [
+            'fastq_quality_filter',
+            '-i %s' % rndbc_clipped_file,
+            '-o %s' % qfiltered_file,
+            '-q %s' % config['fastxQualityFilter']['fxQ_q'],
+            '-p %s' % config['fastxQualityFilter']['fxQ_p'],
+            fx_Q33,
+        ]
+        _cmd(qual_fil_toks)
+
+    # FastQC analysis of filtered data
     if config['fastQC']['fqc_use'] == 'Y':
-        print('')
-        print(time.strftime("[%Y-%m-%d %H:%M:%S]"), '##### FastQC analysis of filtered data ###########')
-        print('')
-        _cmd('fastqc -o '+OUTDIR+'fastQC/filtered/ -f fastq --threads '+config['fastQC']['threads']+' --kmers '+config['fastQC']['kmers']+' --adapters '+OUTDIR+'fastQC/tmp_adapters.txt -d '+OUTDIR+'fastQC/filtered/ '+OUTDIR+PREFIX+'_qfiltered.fastq')
-    ##################################################
-    ################################################## FastX-toolkit analysis of filtered data
-    ##################################################
+        print_tool_header('FastQC analysis of filtered data')
+
+        fastqc_filtered_dir = os.path.join(outputdir, 'fastQC/filtered')
+        prepare_dir_or_die(fastqc_filtered_dir)
+
+        fastqc_fil_toks = [
+            'fastqc',
+            '-o %s' % fastqc_filtered_dir,
+            '-f fastq',
+            '--threads %s' % config['fastQC']['threads'],
+            '--kmers %s' % config['fastQC']['kmers'],
+            '--adapters %s' % adapter_file,
+            '-d %s' % fastqc_filtered_dir,
+            qfiltered_file,
+        ]
+        _cmd(fastqc_fil_toks)
+
+    # FastX-toolkit analysis of filtered data
     if config['fastXstatistics']['use'] == 'Y':
-        print('')
-        print(time.strftime("[%Y-%m-%d %H:%M:%S]"), '##### FastX toolkit analysis of filtered data ###########')
-        print('')
-        _cmd('fastx_quality_stats -i '+OUTDIR+PREFIX+'_qfiltered.fastq -o '+OUTDIR+'/fastXstats/filtered/fastxstats_filtered.txt'+fx_Q33)
-        _cmd('fastq_quality_boxplot_graph.sh -i '+OUTDIR+'/fastXstats/filtered/fastxstats_filtered.txt -o '+OUTDIR+'/fastXstats/filtered/'+PREFIX+'_filtered_quality.png -t '+PREFIX)
-        _cmd('fastx_nucleotide_distribution_graph.sh -i '+OUTDIR+'/fastXstats/filtered/fastxstats_filtered.txt -o '+OUTDIR+'/fastXstats/filtered/'+PREFIX+'_filtered_nuc.png -t '+PREFIX)
-    
-    
-    ##################################################
-    ################################################## Bowtie mapping and SAM -> BAM -> mPileup conversion
-    ##################################################
-    print('')
-    print(time.strftime("[%Y-%m-%d %H:%M:%S]"), '##### Mapping filtered reads using Bowtie 1.1.2 #################')
-    print('')
-    if config['bowtie']['bowtie_local'] == 'Y':
-       _cmd(scriptPath+'bowtie-1.1.2/bowtie -t -q -p '+config['bowtie']['bowtie_threads']+' -S -nohead -v '+config['bowtie']['bowtie_v']+' -y -m '+config['bowtie']['bowtie_m']+' --best --strata '+config['basic.options']['bowtieindex']+' '+OUTDIR+PREFIX+'_qfiltered.fastq > '+OUTDIR+PREFIX+'.sam')
-    else:
-        _cmd('bowtie -t -q -p '+config['bowtie']['bowtie_threads']+' -S -nohead -v '+config['bowtie']['bowtie_v']+' -y -m '+config['bowtie']['bowtie_m']+' --best --strata '+config['basic.options']['bowtieindex']+' '+OUTDIR+PREFIX+'_qfiltered.fastq > '+OUTDIR+PREFIX+'.sam')
-    #os.system(scriptPath+'bowtie-1.1.2/bowtie --version')
-    #_cmd('bowtie --version')
-    #sys.exit()
-    print('')
-    print(time.strftime("[%Y-%m-%d %H:%M:%S]"), '##### SAM --> BAM ###################################')
-    _cmd('samtools view -@ 12 -b -T '+config['basic.options']['genomefasta']+' -o '+OUTDIR+PREFIX+'.bam '+OUTDIR+PREFIX+'.sam')
+        print_tool_header('FastX toolkit analysis of filtered data')
 
-    print('')
-    print(time.strftime("[%Y-%m-%d %H:%M:%S]"), '##### Sorting and indexing of BAM file ###########################')
-    _cmd('samtools sort -@ 12 '+OUTDIR+PREFIX+'.bam -o '+OUTDIR+PREFIX+'_sorted.bam')
-    _cmd('samtools index '+OUTDIR+PREFIX+'_sorted.bam')
+        fastx_fil_dir = os.path.join(outputdir, 'fastXstats/filtered')
+        prepare_dir_or_die(fastx_fil_dir)
 
-    print('')
-    print(time.strftime("[%Y-%m-%d %H:%M:%S]"), '##### Generating mPileup ############################')
-    _cmd('samtools mpileup -C 0 -d 100000 -q 0 -Q 0 -f '+config['basic.options']['genomefasta']+' '+OUTDIR+PREFIX+'_sorted.bam > '+OUTDIR+PREFIX+'.mpileup')
+        qual_stats_file = os.path.join(fastx_fil_dir, 'fastxstats_filtered.txt')
+        qual_stats_toks = [
+            'fastx_quality_stats',
+            '-i %s' % qfiltered_file,
+            '-o %s' % qual_stats_file,
+            fx_Q33,
+        ]
+        _cmd(qual_stats_toks)
 
-    print('')
-    print(time.strftime("[%Y-%m-%d %H:%M:%S]"), '##### PreProcess completed ############################')
+        qual_bp_toks = [
+            'fastq_quality_boxplot_graph.sh',
+            '-i %s' % qual_stats_file,
+            '-o %s' % os.path.join(fastx_fil_dir, prefix + '_filtered_quality.png'),
+            '-t %s' % prefix,  # title
+        ]
+        _cmd(qual_bp_toks)
+
+        nucdistr_toks = [
+            'fastx_nucleotide_distribution_graph.sh',
+            '-i %s' % qual_stats_file,
+            '-o %s' % os.path.join(fastx_raw_dir, prefix + '_filtered_nuc.png'),
+            '-t %s' % prefix,  # title
+        ]
+        _cmd(nucdistr_toks)
+
+    # Bowtie mapping and SAM -> BAM -> mPileup conversion
+    print_tool_header('Mapping filtered reads using Bowtie')
+    sam_file = os.path.join(outputdir, prefix + '.sam')
+    bowtie_toks = [
+        'bowtie',
+        '-t',
+        '-q',
+        '--threads %s' % config['bowtie']['bowtie_threads'],
+        '-S',
+        '-nohead',
+        '-v %s' % config['bowtie']['bowtie_v'],
+        '-y',
+        '-m %s' % config['bowtie']['bowtie_m'],
+        '--best',
+        '--strata',
+        bowtie_index,
+        qfiltered_file,
+        '> %s' % sam_file,
+    ]
+    _cmd(bowtie_toks)
+
+    # SAM --> BAM conversion
+    bam_file = os.path.join(outputdir, prefix + '.bam')
+    print_tool_header('SAM --> BAM')
+    sam2bam_toks = [
+        'samtools',
+        'view',
+        '-@ 12',  # number of threads
+        '-b',  # output bam
+        '-T %s' % genome_fasta_path,
+        '-o %s' % bam_file,
+        sam_file,
+    ]
+    _cmd(sam2bam_toks)
+
+    # sorting and indexing of bam file
+    print_tool_header('Sorting and indexing of BAM file')
+    sorted_bam_file = os.path.join(outputdir, prefix + '_sorted.bam')
+    st_sort_toks = [
+        'samtools',
+        'sort',
+        '-@ 12',  # number of threads
+        bam_file,
+        '-o %s' % sorted_bam_file,
+    ]
+    _cmd(st_sort_toks)
+
+    st_index_toks = [
+        'samtools',
+        'index',
+        sorted_bam_file,
+    ]
+    _cmd(st_index_toks)
+
+    # generating pileup file
+    print_tool_header('Generating mPileup')
+    pileup_file = os.path.join(outputdir, prefix + '.mpileup')
+    pileup_toks = [
+        'samtools',
+        'mpileup',
+        '-C 0',  # disable adjust mapping quality
+        '-d 100000',  # max depth
+        '-q 0',  # minimum alignment quality
+        '-Q 0',  # minimum base quality
+        '-f %s' % genome_fasta_path,
+        sorted_bam_file,
+        '> %s' % pileup_file,
+    ]
+    _cmd(pileup_toks)
+
+    print_tool_header('PreProcess completed')
     if config['basic.options']['rmTemp'] == 'Y':
         print('\tLet\'s remove temporary files!')
-        _cmd('rm -f '+OUTDIR+PREFIX+'_5prime_adapter.clipped', exit=False)
-        _cmd('rm -f '+OUTDIR+PREFIX+'_rndBC_clipped.fastq', exit=False)
-        _cmd('rm -f '+OUTDIR+PREFIX+'.sam', exit=False)
-        _cmd('rm -f '+OUTDIR+PREFIX+'.bam', exit=False)
-        _cmd('rm -f '+OUTDIR+PREFIX+'_qfiltered.fastq', exit=False)
+        _cmd('rm -f %s' % adapter_clipped_file, exit=False)
+        _cmd('rm -f %s' % rndbc_clipped_file, exit=False)
+        _cmd('rm -f %s' % sam_file, exit=False)
+        _cmd('rm -f %s' % bam_file, exit=False)
+        _cmd('rm -f %s' % qfiltered_file, exit=False)
+
 
 def run():
-    parser = argparse.ArgumentParser(description='Wrapper to convert raw fastq files from sequencing files to mpileup files. A fastq-file is adapterclipped, qualityfiltered, mapped and converted.', epilog="contact: torkler@genzentrum.lmu.de")
+    parser = argparse.ArgumentParser(
+        description=(
+            'Wrapper to convert raw fastq files from sequencing files to mpileup files. '
+            'A fastq-file is adapterclipped, qualityfiltered, mapped and converted.'
+        ),
+        epilog='contact: torkler@genzentrum.lmu.de'
+    )
     parser.add_argument('inputfile', help='Input fastq file')
     parser.add_argument('outputdir', help='Output directory')
     parser.add_argument('prefix', help='Set prefix for all outputfile')
     parser.add_argument('configfile', help='Config file containing arguments')
-    #parser.add_argument('-v','--verbose', dest='verbose', action="store_true", default=False, help='verbose output')
     args = parser.parse_args()
-    if os.path.isfile(args.inputfile) == False:
-        print('Input fastq file: '+args.inputfile+' does not exist')
-        sys.exit(-1)
-    if os.path.isfile(args.configfile) == False:
-        print('Config file: '+args.configfile+' does not exist')
-        sys.exit(-1)
+
+    if not os.path.isfile(args.inputfile):
+        print('Input fastq file: %r does not exist' % args.inputfile)
+        sys.exit(1)
+    if not os.path.isfile(args.configfile):
+        print('Config file: %r does not exist' % args.configfile)
+        sys.exit(1)
     main(args.inputfile, args.outputdir, args.prefix, args.configfile)
+
+
+def prepare_dir_or_die(dir_path):
+    try:
+        prepare_output_dir(dir_path)
+    except ValueError as e:
+        print('Error while preparing output directories: %s' % e, file=sys.stderr)
+        sys.exit(1)
+
 
 if __name__ == '__main__':
     run()
