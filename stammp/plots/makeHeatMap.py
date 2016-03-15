@@ -71,8 +71,8 @@ def main(parclipfile, gfffile, upstream, downstream, sense, minSize,
             annosize.append(anno.stop[g]-anno.start[g])
     smat = []
     sannosize = []
-    if ybins <= anno.size():
-        print('Warning: --ybins <= entries in '+gfffile)
+    if ybins >= anno.size():
+        print('Warning: --ybins >= entries in '+gfffile)
         ybins = anno.size()
     ystep = round(anno.size()/ybins)
     ystart = 0
@@ -183,7 +183,7 @@ def run():
     + outfile_mat_sense + ' ' + outfile_mat_asense + ' ' + outfile_img_sense \
     + ' ' + outfile_img_asense + ' 0.98 ' \
     + str((args.upstream/(args.upstream+args.downstream)*args.xbins)) + ' ' \
-    + str(args.xpx) + ' ' + str(args.ypx))
+    + str(args.ypx) + ' ' + str(args.xpx))
     
     if args.remove:
         os.remove(outfile_mat_sense)
