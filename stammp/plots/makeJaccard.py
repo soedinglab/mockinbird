@@ -26,7 +26,7 @@ Example::
     $ stammp-makeJaccard parclipA.table parclipB.table outputdir/ nameA nameB -v
     
 
-.. image:: tut_jaccard.png
+.. image:: img/img_jaccard.png
     :align: center
     :width: 500px
     :alt: alternate text

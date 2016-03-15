@@ -40,7 +40,7 @@ Example::
     $ stammp-makeKmerPerPosition parclip.table genome.fa output/ prefix --kmer 4 --start 0 --stop 2000 --width 50 --key occ -r
     
 
-.. image:: tut_kmerPerPosition.png
+.. image:: img/img_kmerPerPosition.png
    :align: center
    :width: 700px
    :alt: alternate text

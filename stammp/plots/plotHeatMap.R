@@ -20,6 +20,10 @@ asense = asense[,2:ncol(asense)]
 asense = asense - min(asense)
 
 q = quantile(cbind(sense,asense), qvalue)
+if(q == 0){
+    cat('Warning: data set seems very sparse. The 0.98 quantile of the matrices is 0. Quantile is set to the maximum of all values!\n')
+    q = max(c(sense,asense))
+}
 
 sense[sense>q] = q
 sense = sense/q

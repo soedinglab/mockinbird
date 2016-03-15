@@ -43,7 +43,7 @@ Example::
     $ stammp-xxmotif parclip.table genome.fa outdir/ prefix --start 0 --stop 1000 --plotPWM 3
     
 
-.. image:: tut_pub1_xxmotif_start0_stop1000_width12_sort_occ_0.png
+.. image:: img/img_pub1_xxmotif_start0_stop1000_width12_sort_occ_0.png
    :align: center
    :width: 700px
    :alt: alternate text

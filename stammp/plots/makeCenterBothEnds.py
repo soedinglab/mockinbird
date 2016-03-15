@@ -46,7 +46,7 @@ Example::
     stammp-makeCenterBothEnds parclip.table outputdirectory/ annotation.gff -d 1000 -u 1000 -g 750 --min 1500 --max 4000 --plotSmooth 20 --labelCenterA TSS --labelBody Gene --labelCenterB pA
     
 
-.. image:: tut_plotCenterBoth.png
+.. image:: img/img_plotCenterBoth.png
     :align: center
     :height: 689px
     :alt: alternate text

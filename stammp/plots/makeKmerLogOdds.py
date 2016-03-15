@@ -50,7 +50,7 @@ Example::
     
     $ stammp-makeKmerLogOdds path/to/parclip.table outputdir/ prefix path/to/genome.fa kmer path/to/negset.table
     
-.. image:: tut_plotKmerLogOdds.png
+.. image:: img/img_plotKmerLogOdds.png
    :align: center
    :width: 341px
    :alt: alternate text
