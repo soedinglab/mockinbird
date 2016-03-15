@@ -426,10 +426,10 @@ def shrinkValues(values, size):
 
 def checkExistence(filename):
     if not os.path.isfile(filename):
-        print('Error: '+filename+' does not exist')
+        print('Error: '+filename+' does not exist.')
         sys.exit()
 
 def checkPath(path):
     if not os.path.isdir(path):
-        print('Warning: '+path+' does not exist and will be generated')
-        os.makedirs(path)
+        print('Error: '+path+' does not exist.')
+        sys.exit()
