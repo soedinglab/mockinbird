@@ -24,6 +24,7 @@ setup(name='stammp',
         'stammp-getProcessingIndex = stammp.scripts.getProcessingIndex:run',
         'stammp-getColocalization = stammp.scripts.getColocalization:run',
         'stammp-makeHeatMap = stammp.plots.makeHeatMap:run',
+        'stammp-makeHeatMapSmall = stammp.plots.makeHeatMapSmall:run',
         'stammp-makeNucleotideProbabilities = stammp.plots.makeNucleotideProbabilities:run']
       },
       packages=find_packages(),

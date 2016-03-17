@@ -52,22 +52,24 @@ def main(parclipfile, gfffile, upstream, downstream, sense, minSize,
          maxSize, verbose, xbins, ybins, vstring=''):
     anno = gff.GFF(gfffile)
     anno.filterSize(minSize, maxSize)
+    totalsize = upstream + maxSize + 1 + downstream
     anno.sort2size()
     pc = parclipsites.ParclipSites('')
     pc.loadFromFile(parclipfile)
     mat = []
     annosize = []
-    totalsize = upstream+downstream+1
     for g in range(anno.size()):
-        tmp = [0]*totalsize
+        tmp = [-1]*totalsize
         if verbose:
             functions.showProgress(g, (anno.size()-1), vstring)
         if anno.strand[g] == '+':
             values = pc.getValues(anno.chr[g], anno.start[g], anno.strand[g], 
-                                  sense, upstream, downstream)
+                                  sense, upstream, 
+                                  (anno.stop[g]-anno.start[g])+downstream)
         else:
             values = pc.getValues(anno.chr[g], anno.stop[g], anno.strand[g], 
-                                  sense, upstream, downstream)
+                                  sense, upstream, 
+                                  (anno.stop[g]-anno.start[g])+downstream)
         if values != None:
             tmp[0:(len(values)-1)] = values
         mat.append(functions.shrinkValues(tmp, xbins))
@@ -99,10 +101,10 @@ def main(parclipfile, gfffile, upstream, downstream, sense, minSize,
     if verbose:
         print('')
 
-def saveMat(outfile, mat, upstream, downstream, annosize, xbins):
+def saveMat(outfile, mat, upstream, downstream, annosize, xbins, totalsize):
     fc = open(outfile, 'w')
     for i in range(len(mat)):
-        fc.write(str(((upstream+annosize[i]) / (upstream+downstream)) * xbins)+'\t')
+        fc.write(str(((upstream+annosize[i]) / totalsize) * xbins)+'\t')
         for j in range(len(mat[i])):
             fc.write(str(mat[i][j])+'\t')
         fc.write('\n')
@@ -148,22 +150,22 @@ def run():
     functions.checkExistence(args.gff)
 #    functions.checkPath(args.outputdir)
     
-    outfile_mat_sense = args.outputdir + args.prefix+'_mat_up' \
+    outfile_mat_sense = args.outputdir + args.prefix+'_mat_sm_up' \
     + str(args.upstream) + '_do' + str(args.downstream) + '_min' \
     + str(args.min) + '_max' + str(args.max) + '_xbins' + str(args.xbins) \
     + '_ybins' + str(args.ybins) + '_sense.table'
 
-    outfile_mat_asense = args.outputdir + args.prefix + '_mat_up' \
+    outfile_mat_asense = args.outputdir + args.prefix + '_mat_sm_up' \
     + str(args.upstream) + '_do' + str(args.downstream) + '_min' \
     + str(args.min) + '_max' + str(args.max) + '_xbins' + str(args.xbins) \
     + '_ybins' + str(args.ybins) + '_asense.table'
 
-    outfile_img_sense = args.outputdir + args.prefix + '_mat_up' \
+    outfile_img_sense = args.outputdir + args.prefix + '_mat_sm_up' \
     + str(args.upstream) + '_do' + str(args.downstream) + '_min' \
     + str(args.min) + '_max' + str(args.max) + '_xbins' + str(args.xbins) \
     + '_ybins' + str(args.ybins) + '_sense.png'
 
-    outfile_img_asense = args.outputdir + args.prefix + '_mat_up' \
+    outfile_img_asense = args.outputdir + args.prefix + '_mat_sm_up' \
     + str(args.upstream) + '_do' + str(args.downstream) + '_min' \
     + str(args.min) + '_max' + str(args.max) + '_xbins' + str(args.xbins) \
     + '_ybins' + str(args.ybins) + '_asense.png'
@@ -176,16 +178,17 @@ def run():
                   args.min, args.max, args.verbose, args.xbins, args.ybins, 
                   'Collecting data from anti-sense strand')
 
+    total = args.upstream + args.max + 1 + args.downstream
     saveMat(outfile_mat_sense, sense[0], args.upstream, args.downstream, 
-            sense[1], args.xbins)
+            sense[1], args.xbins, total)
 
     saveMat(outfile_mat_asense, asense[0], args.upstream, args.downstream, 
-            asense[1], args.xbins)
-
-    os.system('R -q --slave -f ' + scriptPath + 'plotHeatMap.R --args ' \
+            asense[1], args.xbins, total)
+    
+    os.system('R -q --slave -f ' + scriptPath + 'plotHeatMapSmall.R --args ' \
     + outfile_mat_sense + ' ' + outfile_mat_asense + ' ' + outfile_img_sense \
     + ' ' + outfile_img_asense + ' 0.98 ' \
-    + str((args.upstream/(args.upstream+args.downstream)*args.xbins)) + ' ' \
+    + str((args.upstream/total*args.xbins)) + ' ' \
     + str(args.ypx) + ' ' + str(args.xpx))
     
     if args.remove:
