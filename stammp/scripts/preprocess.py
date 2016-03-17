@@ -29,7 +29,6 @@ import configparser
 import subprocess
 import glob
 
-from stammp.utils import native_wordcount as wccount
 from stammp.utils import prepare_output_dir
 
 
@@ -75,6 +74,7 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
             if retcode != 0:
                 print(stderr, file=sys.stderr)
                 raise Exception
+            return stdout, stderr
         except:
             print('Error at:\n %r \n' % cmd, file=sys.stderr)
             if exit:
@@ -86,53 +86,46 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
         except ValueError as e:
             print('Error while preparing output directories: %s' % e, file=sys.stderr)
             sys.exit(1)
+
     config = configparser.ConfigParser(inline_comment_prefixes=';')
     config.read(configfile)
 
     cur_dir = os.path.dirname(os.path.realpath(__file__))
     scriptPath = os.path.join(cur_dir, 'utils')
 
+    general_cfg = config['general']
+    pipeline_cfg = config['pipeline']
+    read_cfg = config['reads']
+
     prepare_dir_or_die(outputdir)
 
-    if config['basic.options']['fx_Q33'] == 'Y':
-        fx_Q33 = ' -Q33'
+    if config.getboolean('reads', 'fx_Q33'):
+        fx_Q33 = '-Q33'
     else:
         fx_Q33 = ''
 
-    bowtie_index = config['basic.options']['bowtieindex']
+    bowtie_index = general_cfg['bowtieindex']
     bt_index_glob = "%s*" % bowtie_index
     if len(glob.glob(bt_index_glob)) == 0:
         print('bowtie index %r does not exist. Please check the configuration file' % bowtie_index,
               file=sys.stderr)
         sys.exit(1)
 
-    genome_fasta_path = config['basic.options']['genomefasta']
+    genome_fasta_path = general_cfg['genomefasta']
     if not os.path.isfile(genome_fasta_path):
         print('genome fasta file %r does not exist. '
               'Please check the configuration file' % genome_fasta_path,
               file=sys.stderr)
         sys.exit(1)
 
-    adapter5prime = config['basic.options']['adapter5prime']
-    adapter3prime = config['basic.options']['adapter3prime']
+    adapter5prime = general_cfg['adapter5prime']
+    adapter3prime = general_cfg['adapter3prime']
 
     # Run pipeline
-
-    # Remove duplicates
-    if config['removePCRduplicates']['rmPCR_use'].upper() == 'Y':
-        fastq_file = os.path.join(outputdir, prefix + '_nodup.fastq')
-        print_tool_header('Remove duplicated reads')
-        dup_rm_toks = [
-            'stammp-removePCRduplicates',
-            inputfile,
-            fastq_file,
-        ]
-        _cmd(dup_rm_toks)
-    else:
-        fastq_file = inputfile
+    fastq_file = inputfile
 
     # FastQC analysis of raw data
-    if config['fastQC']['fqc_use'] == 'Y':
+    if pipeline_cfg.getboolean('fastqc_statistics'):
         print_tool_header('FastQC analysis of raw data')
 
         fastqc_raw_dir = os.path.join(outputdir, 'fastQC/raw')
@@ -144,18 +137,22 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
             print('adapter3prime\t %s' % adapter3prime, file=fc)
 
         cmd_tokens = [
-            'fastqc', '-o %s' % fastqc_raw_dir,
+            'fastqc',
+            '-o %s' % fastqc_raw_dir,
             '-f fastq',
-            '--threads %s' % config['fastQC']['threads'],
+            '--threads %s' % general_cfg['n_threads'],
             '--kmers %s' % config['fastQC']['kmers'],
             '--adapters %s' % adapter_file,
             '-d %s' % fastqc_raw_dir,  # temp directory
             fastq_file,
         ]
+        extra_flags = config['fastQC']['extra_flags'].split(',')
+        cmd_tokens.extend(extra_flags)
+
         _cmd(cmd_tokens)
 
     # FastX-toolkit analysis of raw data
-    if config['fastXstatistics']['use'] == 'Y':
+    if pipeline_cfg.getboolean('fastx_statistics'):
         print_tool_header('FastX toolkit analysis of raw data')
 
         fastx_raw_dir = os.path.join(outputdir, 'fastXstats/raw')
@@ -186,67 +183,137 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
         ]
         _cmd(nucdistr_toks)
 
-    # 5prime adapter removal
-    print_tool_header('5prime adapter removal')
-    line_count = wccount(fastq_file)
-    print('\tTotal raw reads: %s' % (line_count // 4))
+    # Remove duplicates
+    if pipeline_cfg.getboolean('remove_duplicates'):
+        print_tool_header('Remove duplicated reads')
+        rmdup_file = os.path.join(outputdir, prefix + '_nodup.fastq')
+        dup_rm_toks = [
+            'stammp-removePCRduplicates',
+            fastq_file,
+            rmdup_file,
+        ]
+        stdout, stderr = _cmd(dup_rm_toks)
+        print(stdout)
+    else:
+        rmdup_file = fastq_file
 
-    count_5prime_toks = ['grep', '-c', adapter5prime, fastq_file]
-    n_5prime_adapter = subprocess.getoutput(' '.join(count_5prime_toks))
-    print('\tReads containing the given 5prime adapter %s: %s'
-          % (adapter5prime, n_5prime_adapter))
+    # Trim barcodes
+    bc_5prime = read_cfg.getint('bc_5prime')
+    if bc_5prime > 0:
+        print_tool_header('Trim barcode')
+        bc_trim_file = os.path.join(outputdir, prefix + '_trim.fastq')
+        bc_trim_toks = [
+            'fastx_trimmer',
+            '-i %s' % rmdup_file,
+            '-o %s' % bc_trim_file,
+            '-f %s' % (bc_5prime + 1),  # first base to keep
+            bc_trim_file,
+        ]
+        _cmd(bc_trim_toks)
+    else:
+        bc_trim_file = rmdup_file
 
-    adapter_clipped_file = os.path.join(outputdir, prefix + '_5prime_adapter.clipped')
+    # quality trimming
+    qualtrim_file = os.path.join(outputdir, prefix + '_qtrim.fastq')
+    qual_trim_method = pipeline_cfg['quality_trimming']
+
+    # trimming [lafuga]
+    if qual_trim_method == 'lafuga':
+        print_tool_header('Quality trimming [lafuga]')
+        qualtrim_cfg = config['lafugaQualityTrimmer']
+
+        qualtrim_toks = [
+            'java -Xmx4g',
+            '-jar %s' % os.path.join(scriptPath, 'FastqQualityFilter.jar'),
+            '-i %s' % bc_trim_file,
+            '-o %s' % qualtrim_file,
+            '-m %s' % read_cfg['min_len'],
+            '-q %s' % qualtrim_cfg['q'],
+            '-3',
+            '-5',
+        ]
+        _cmd(qualtrim_toks)
+
+    # trimming fastx
+    elif qual_trim_method == 'fastx':
+        print_tool_header('Quality trimming [FastX]')
+        qualfil_cfg = config['fastxQualityTrimmer']
+
+        qualtrim_toks = [
+            'fastq_quality_trimmer',
+            '-i %s' % bc_trim_file,
+            '-o %s' % qualtrim_file,
+            '-t %s' % qualfil_cfg['q'],
+            '-l %s' % read_cfg['min_len'],
+            fx_Q33
+        ]
+        _cmd(qualtrim_toks)
+    else:
+        qualtrim_file = bc_trim_file
+
+    # adapter removal
+    print_tool_header('adapter clipping')
+    clipper_cfg = config['adapterClipper']
+    adapter_clipped_file = os.path.join(outputdir, prefix + '_adapter.clipped')
+
     adapter_clip_toks = [
-        'stammp-remove5primeAdapter',
-        fastq_file,
+        'stammp-adapter_clipper',
+        qualtrim_file,
         adapter_clipped_file,
-        '--seed %s' % config['remove5primeAdapter']['rm5_seed'],
-        '--adapter %s' % adapter5prime,
-        '--barcode %s' % config['remove5primeAdapter']['rm5_barcode'],
+        adapter5prime,
+        adapter3prime,
+        '--clip_len %s' % clipper_cfg['clip_len'],
+        '--min_len %s' % read_cfg['min_len'],
+        '--nt_barcode_5prime %s' % bc_5prime,
+        '--verbose'
     ]
-    if config['remove5primeAdapter']['rm5_strict'].upper() == 'Y':
-        adapter_clip_toks.append('--strict')
-    if config['remove5primeAdapter']['rm5_clipanywhere'].upper() == 'Y':
-        adapter_clip_toks.append('--clipanywhere')
-    print('\t5prime adapter sequence is being clipped ...')
-    _cmd(adapter_clip_toks)
+    if clipper_cfg.getboolean('aggressive'):
+        adapter_clip_toks.append('--aggressive')
+    stdout, stderr = _cmd(adapter_clip_toks)
+    print(stdout)
 
     # Quality filtering
+    qualfil_methods = pipeline_cfg['quality_filtering'].split(',')
     qfiltered_file = os.path.join(outputdir, prefix + '_qfiltered.fastq')
+    if 'lafuga' in qualfil_methods:
+        print_tool_header('Quality filtering [lafuga]')
+        qualfil_lafuga_file = os.path.join(outputdir, prefix + '_qfil_lafuga.fastq')
+        qualfil_cfg = config['lafugaQualityFilter']
 
-    # Quality Filtering [Graf]
-    if config['qualityFiltering']['qf_use'] == 'Y':
-        print_tool_header('Quality filtering [Graf]')
-        qual_fil_toks = [
+        qualfil_toks = [
             'java -Xmx4g',
             '-jar %s' % os.path.join(scriptPath, 'FastqQualityFilter.jar'),
             '-i %s' % adapter_clipped_file,
-            '-o %s' % qfiltered_file,
-            '-m %s' % config['qualityFiltering']['qf_m'],
-            '-q %s' % config['qualityFiltering']['qf_q'],
+            '-o %s' % qualfil_lafuga_file,
+            '-m %s' % read_cfg['min_len'],
+            '-q %s' % qualfil_cfg['q'],
         ]
-        if config['qualityFiltering']['qf_chastity'] == 'Y':
-            qual_fil_toks.append('-c Y')
-        if config['qualityFiltering']['qf_n'] == 'Y':
-            qual_fil_toks.append('-n')
-        _cmd(qual_fil_toks)
+        if qualfil_cfg.getboolean('chastity'):
+            qualfil_toks.append('-c Y')
+        if qualfil_cfg.getboolean('n'):
+            qualfil_toks.append('-n')
+        _cmd(qualfil_toks)
+    else:
+        qualfil_lafuga_file = adapter_clipped_file
 
-    # Quality Filtering [FastX]
-    if config['fastxQualityFilter']['fxQ_use'] == 'Y':
-        print_tool_header('Quality filtering [FastX]')
-        qual_fil_toks = [
+    if 'fastx' in qualfil_methods:
+
+        print_tool_header('Quality filtering [fastx]')
+        qualfil_cfg = config['fastxQualityFilter']
+        qualfil_toks = [
             'fastq_quality_filter',
-            '-i %s' % adapter_clipped_file,
+            '-i %s' % qualfil_lafuga_file,
             '-o %s' % qfiltered_file,
-            '-q %s' % config['fastxQualityFilter']['fxQ_q'],
-            '-p %s' % config['fastxQualityFilter']['fxQ_p'],
+            '-q %s' % qualfil_cfg['q'],
+            '-p %s' % qualfil_cfg['p'],
             fx_Q33,
         ]
-        _cmd(qual_fil_toks)
+        _cmd(qualfil_toks)
+    else:
+        qfiltered_file = qualfil_lafuga_file
 
     # FastQC analysis of filtered data
-    if config['fastQC']['fqc_use'] == 'Y':
+    if pipeline_cfg.getboolean('fastqc_statistics'):
         print_tool_header('FastQC analysis of filtered data')
 
         fastqc_filtered_dir = os.path.join(outputdir, 'fastQC/filtered')
@@ -256,16 +323,18 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
             'fastqc',
             '-o %s' % fastqc_filtered_dir,
             '-f fastq',
-            '--threads %s' % config['fastQC']['threads'],
+            '--threads %s' % general_cfg['n_threads'],
             '--kmers %s' % config['fastQC']['kmers'],
             '--adapters %s' % adapter_file,
             '-d %s' % fastqc_filtered_dir,
             qfiltered_file,
         ]
+        extra_args = config['fastQC']['extra_flags'].split(',')
+        fastqc_fil_toks.extend(extra_args)
         _cmd(fastqc_fil_toks)
 
     # FastX-toolkit analysis of filtered data
-    if config['fastXstatistics']['use'] == 'Y':
+    if pipeline_cfg.getboolean('fastx_statistics'):
         print_tool_header('FastX toolkit analysis of filtered data')
 
         fastx_fil_dir = os.path.join(outputdir, 'fastXstats/filtered')
@@ -298,26 +367,28 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
 
     # Bowtie mapping and SAM -> BAM -> mPileup conversion
     print_tool_header('Mapping filtered reads using Bowtie')
+    bowtie_cfg = config['bowtie']
     sam_file = os.path.join(outputdir, prefix + '.sam')
     bowtie_toks = [
         'bowtie',
         '-t',
         '-q',
-        '--threads %s' % config['bowtie']['bowtie_threads'],
+        '--threads %s' % general_cfg['n_threads'],
         '-S',
         '-nohead',
-        '-v %s' % config['bowtie']['bowtie_v'],
+        '-v %s' % bowtie_cfg['v'],
         '-y',
-        '-m %s' % config['bowtie']['bowtie_m'],
+        '-m %s' % bowtie_cfg['m'],
         '--best',
         '--strata',
-        '--trim5 %s' % config['bowtie']['bowtie_trim5'],
-        '--trim3 %s' % config['bowtie']['bowtie_trim3'],
         bowtie_index,
         qfiltered_file,
         '> %s' % sam_file,
     ]
-    _cmd(bowtie_toks)
+    extra_flags = bowtie_cfg['extra_flags'].split(',')
+    bowtie_toks.extend(extra_flags)
+    stdout, stderr = _cmd(bowtie_toks)
+    print(stderr)
 
     # SAM --> BAM conversion
     bam_file = os.path.join(outputdir, prefix + '.bam')
@@ -325,7 +396,7 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
     sam2bam_toks = [
         'samtools',
         'view',
-        '-@ 12',  # number of threads
+        '-@ %s' % general_cfg['n_threads'],
         '-b',  # output bam
         '-T %s' % genome_fasta_path,
         '-o %s' % bam_file,
@@ -339,7 +410,7 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
     st_sort_toks = [
         'samtools',
         'sort',
-        '-@ 12',  # number of threads
+        '-@ %s' % general_cfg['n_threads'],
         bam_file,
         '-o %s' % sorted_bam_file,
     ]
@@ -369,12 +440,21 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
     _cmd(pileup_toks)
 
     print_tool_header('PreProcess completed')
-    if config['basic.options']['rmTemp'] == 'Y':
+    if general_cfg.getboolean('rmTemp'):
         print('\tLet\'s remove temporary files!')
+        if pipeline_cfg.getboolean('remove_duplicates'):
+            _cmd('rm -f %s' % rmdup_file, exit=False)
+        if bc_5prime:
+            _cmd('rm -f %s' % bc_trim_file, exit=False)
+        if pipeline_cfg['quality_trimming'] in ('lafuga', 'fastx'):
+            _cmd('rm -f %s' % qualtrim_file, exit=False)
         _cmd('rm -f %s' % adapter_clipped_file, exit=False)
+        if 'lafuga' in qualfil_methods:
+            _cmd('rm -f %s' % qualfil_lafuga_file, exit=False)
+        if 'fastx' in qualfil_methods:
+            _cmd('rm -f %s' % qfiltered_file, exit=False)
         _cmd('rm -f %s' % sam_file, exit=False)
         _cmd('rm -f %s' % bam_file, exit=False)
-        _cmd('rm -f %s' % qfiltered_file, exit=False)
 
 
 def run():

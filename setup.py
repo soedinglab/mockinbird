@@ -24,7 +24,10 @@ setup(name='stammp',
         'stammp-getProcessingIndex = stammp.scripts.getProcessingIndex:run',
         'stammp-getColocalization = stammp.scripts.getColocalization:run',
         'stammp-makeHeatMap = stammp.plots.makeHeatMap:run',
-        'stammp-makeNucleotideProbabilities = stammp.plots.makeNucleotideProbabilities:run']
+        'stammp-makeNucleotideProbabilities = stammp.plots.makeNucleotideProbabilities:run',
+        'stammp-adapter_clipper = stammp.scripts.utils.clipper53:main',
+        ]
+
       },
       packages=find_packages(),
       include_package_data=True,
