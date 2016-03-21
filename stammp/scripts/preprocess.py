@@ -1,4 +1,3 @@
-#! /usr/bin/python3
 """
 Wrapper to convert raw fastq files from sequencing files to mpileup files. A
 fastq-file is adapterclipped, qualityfiltered, mapped and converted.
@@ -303,6 +302,25 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
     else:
         adapter_clipped_file = qualtrim_file
 
+    # polyA removal
+    if pipeline_cfg.getboolean('polyA_clipping'):
+        print_tool_header('polyA clipping')
+
+        polyA_clipped_file = os.path.join(outputdir, prefix + '_polyA.clipped')
+        polyA_cfg = config['polyAClipper']
+        polyA_toks = [
+            'java',
+            '-jar %s' % os.path.join(scriptPath, 'ClipPolyA.jar'),
+            '-i %s' % adapter_clipped_file,
+            '-o %s' % polyA_clipped_file,
+            '-c %s' % '/dev/null',  # file of all clipped reads
+            '-s %s' % polyA_cfg['min_len'],
+        ]
+        stdout, stderr = _cmd(polyA_toks)
+        print(stdout)
+    else:
+        polyA_clipped_file = adapter_clipped_file
+
     # Quality filtering
     qualfil_methods = pipeline_cfg['quality_filtering'].split(',')
     qfiltered_file = os.path.join(outputdir, prefix + '_qfiltered.fastq')
@@ -314,7 +332,7 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
         qualfil_toks = [
             'java -Xmx4g',
             '-jar %s' % os.path.join(scriptPath, 'FastqQualityFilter.jar'),
-            '-i %s' % adapter_clipped_file,
+            '-i %s' % polyA_clipped_file,
             '-o %s' % qualfil_lafuga_file,
             '-m %s' % read_cfg['min_len'],
             '-q %s' % qualfil_cfg['q'],
@@ -325,7 +343,7 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
             qualfil_toks.append('-n')
         _cmd(qualfil_toks)
     else:
-        qualfil_lafuga_file = adapter_clipped_file
+        qualfil_lafuga_file = polyA_clipped_file
 
     if 'fastx' in qualfil_methods:
 
@@ -485,6 +503,8 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
             _cmd('rm -f %s' % adapter_clipped_file, exit=False)
         elif clipping_method == 'clippy':
             _cmd('rm -f %s' % adapter_clipped_file, exit=False)
+        if pipeline_cfg.getboolean('polyA_clipping'):
+            _cmd('rm -f %s' % polyA_clipped_file, exit=False)
         if 'lafuga' in qualfil_methods:
             _cmd('rm -f %s' % qualfil_lafuga_file, exit=False)
         if 'fastx' in qualfil_methods:
