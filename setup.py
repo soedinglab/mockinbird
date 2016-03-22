@@ -12,6 +12,7 @@ setup(name='stammp',
         'stammp-bsfinder = stammp.scripts.bsfinder:run',
         'stammp-preprocess = stammp.scripts.preprocess:run',
         'stammp-normalize = stammp.scripts.normalize:run',
+        'stammp-normalizeFake = stammp.scripts.normalizeFake:run',
         'stammp-convert2quantile = stammp.scripts.convert2quantile:run',
         'stammp-makeCenterBothEnds = stammp.plots.makeCenterBothEnds:run',
         'stammp-makeKmerPerPosition = stammp.plots.makeKmerPerPosition:run',
@@ -27,6 +28,8 @@ setup(name='stammp',
         'stammp-makeHeatMapSmall = stammp.plots.makeHeatMapSmall:run',
         'stammp-makeNucleotideProbabilities = stammp.plots.makeNucleotideProbabilities:run',
         'stammp-adapter_clipper = stammp.scripts.utils.clipper53:main',
+        'stammp-selectSitesInside = stammp.scripts.selectSitesInside:run',
+        'stammp-selectSitesAround = stammp.scripts.selectSitesAround:run'
         ]
 
       },

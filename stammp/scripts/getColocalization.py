@@ -29,7 +29,8 @@ def main(parclipA, parclipB, start, stop, width, anno=None, annowidth=100,
                           tmpA.result[i], tmpA.strand[i], tmpA.occ[i])
             count +=1
         else:
-            if anno.isInside(tmpA.chrs[i],tmpA.pos[i],tmpA.strand[i], annowidth)[1]:
+            if anno.isInside(tmpA.chrs[i], tmpA.pos[i], tmpA.strand[i], 
+                             annowidth, annowidth)[1]:
                 dataA.addSite(tmpA.chrs[i], tmpA.pos[i], tmpA.m[i], tmpA.r[i],
                               tmpA.result[i], tmpA.strand[i], tmpA.occ[i])
                 count +=1

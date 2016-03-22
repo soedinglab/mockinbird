@@ -99,7 +99,10 @@ def getkmerLogs(s, g, neg, kmers, start, stop, width):
 def sortAndSave(oddlist, outfile, kmers):
     sortedKmers = []
     for k in range(len(kmers)):
-        sortedKmers.append([kmers[k],(oddlist[0][kmers[k]] + oddlist[1][kmers[k]] + oddlist[2][kmers[k]])])
+        if len(oddlist) > 2:
+            sortedKmers.append([kmers[k],(oddlist[0][kmers[k]] + oddlist[1][kmers[k]] + oddlist[2][kmers[k]])])
+        else:
+            sortedKmers.append([kmers[k], oddlist[0][kmers[k]]])
     sortedKmers = sorted(sortedKmers, key= lambda d: d[1])[::-1]
     
     fc = open(outfile, 'w')

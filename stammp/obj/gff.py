@@ -52,7 +52,10 @@ class GFF:
                     tmp_chr = split[0]
                 index += 1
             line = fc.readline()
-        self.getChromosomePositions()
+        if len(self.chr) > 0:
+            self.getChromosomePositions()
+        else:
+            print('Warning: no lines could be read. Are you sure that you provided a valid GFF file?')
         fc.close()
     
     def getChromosomePositions(self):
@@ -197,7 +200,46 @@ class GFF:
             print('# removed entries: '+str(count))
     
     #wenn das GFF nicht aufsteigend sortiert ist funktioniert das hier alles nicht und self.chrPositions ist dann auch Quatsch
-    def isInside(self, chrname, position, strand, width=0):
+    def isInside(self, chrname, position, strand, upstream=0, downstream=0):
+        """
+        """
+        try:
+            index_min = self.chrPositions[chrname][0]
+            index_max = self.chrPositions[chrname][1]
+            if self.strand[index_min] == '+':
+                start = self.start[index_min] - upstream
+            else:
+                start = self.start[index_min] - downstream
+            if position < start:
+                return [index_min, False]
+            if position > self.stop[index_max] + max([upstream,downstream]):
+                return [index_max, False]
+            while index_min <= index_max:
+                index_mid = index_min + math.trunc((index_max-index_min)/2)
+                #print(str(index_mid)+'\t'+self.chr[index_mid]+'\t'+str(self.start[index_mid])+'\t'+str(self.stop[index_mid])+'\t'+self.strand[index_mid])
+                if self.strand[index_mid] == '+':
+                    start = self.start[index_mid] - upstream
+                    stop = self.stop[index_mid] + downstream
+                else:
+                    start = self.start[index_mid] - downstream
+                    stop = self.stop[index_mid] + upstream
+                if position >= start and position <= stop:
+                    if self.strand[index_mid] == strand:
+                        return [index_mid, True]
+                    else:
+                        return [index_mid, False]
+                if position < start:
+                    index_max = (index_mid-1)
+                else:
+                    index_min = (index_mid+1)
+                    
+            return [index_mid, False]
+        except:
+            return [-1, False]
+
+    #wenn das GFF nicht aufsteigend sortiert ist funktioniert das hier alles nicht und self.chrPositions ist dann auch Quatsch
+    def isAround(self, chrname, position, strand, takeStart=True,
+                 upstream=0, downstream=0):
         """
         """
         try:
@@ -210,12 +252,26 @@ class GFF:
             while index_min <= index_max:
                 index_mid = index_min + math.trunc((index_max-index_min)/2)
                 #print(str(index_mid)+'\t'+self.chr[index_mid]+'\t'+str(self.start[index_mid])+'\t'+str(self.stop[index_mid])+'\t'+self.strand[index_mid])
-                if position >= (self.start[index_mid]-width) and position <= (self.stop[index_mid]+width):
+                if self.strand[index_mid] == '+':
+                    if takeStart:
+                        anno_start = self.start[index_mid] - upstream
+                        anno_stop = self.start[index_mid] + downstream
+                    else:
+                        anno_start = self.stop[index_mid] - upstream
+                        anno_stop = self.stop[index_mid] + downstream
+                else:
+                    if takeStart:
+                        anno_start = self.stop[index_mid] - downstream
+                        anno_stop = self.stop[index_mid] + upstream
+                    else:
+                        anno_start = self.start[index_mid] - downstream
+                        anno_stop = self.start[index_mid] + upstream
+                if position >= anno_start and position <= anno_stop:
                     if self.strand[index_mid] == strand:
                         return [index_mid, True]
                     else:
                         return [index_mid, False]
-                if position < self.start[index_mid]:
+                if position < anno_start:
                     index_max = (index_mid-1)
                 else:
                     index_min = (index_mid+1)
@@ -223,5 +279,3 @@ class GFF:
             return [index_mid, False]
         except:
             return [-1, False]
-
-
