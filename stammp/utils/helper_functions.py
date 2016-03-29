@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 
 
 def native_wordcount(file_path):
@@ -25,3 +26,27 @@ def prepare_output_dir(dir_path):
             os.makedirs(dir_path)
         except:
             raise ValueError('output directory %r cannot be created' % dir_path)
+
+
+def execute(cmd, exit=True, verbose=False):
+    try:
+        if isinstance(cmd, list):
+            cmd = ' '.join(cmd)
+
+        if verbose:
+            print()
+            print('\t' + cmd)
+            print()
+
+        proc = subprocess.Popen(args=cmd, shell=True, stderr=subprocess.PIPE,
+                                stdout=subprocess.PIPE, universal_newlines=True)
+        retcode = proc.wait()
+        stdout, stderr = proc.communicate()
+        if retcode != 0:
+            print(stderr, file=sys.stderr)
+            raise Exception
+        return stdout, stderr
+    except:
+        print('Error at:\n %r \n' % cmd, file=sys.stderr)
+        if exit:
+            sys.exit(1)
