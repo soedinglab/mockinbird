@@ -490,27 +490,32 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
 
     print_tool_header('PreProcess completed')
     if general_cfg.getboolean('rmTemp'):
+
+        def remove_file(path):
+            assert path != fastq_file
+            _cmd('rm -f %s' % path, exit=False)
+
         print('\tLet\'s remove temporary files!')
         if pipeline_cfg.getboolean('remove_duplicates'):
-            _cmd('rm -f %s' % rmdup_file, exit=False)
-        if bc_5prime:
-            _cmd('rm -f %s' % bc_trim_file, exit=False)
+            remove_file(rmdup_file)
+        if bc_5prime > 0:
+            remove_file(bc_trim_file)
         if pipeline_cfg['quality_trimming'] in ('lafuga', 'fastx'):
-            _cmd('rm -f %s' % qualtrim_file, exit=False)
+            remove_file(qualtrim_file)
         if clipping_method == 'lafuga':
             if bc_5prime > 0:
-                _cmd('rm -f %s' % adap_trim_bc_file, exit=False)
-            _cmd('rm -f %s' % adapter_clipped_file, exit=False)
+                remove_file(adap_trim_bc_file)
+            remove_file(adapter_clipped_file)
         elif clipping_method == 'clippy':
-            _cmd('rm -f %s' % adapter_clipped_file, exit=False)
+            remove_file(adapter_clipped_file)
         if pipeline_cfg.getboolean('polyA_clipping'):
-            _cmd('rm -f %s' % polyA_clipped_file, exit=False)
+            remove_file(polyA_clipped_file)
         if 'lafuga' in qualfil_methods:
-            _cmd('rm -f %s' % qualfil_lafuga_file, exit=False)
+            remove_file(qualfil_lafuga_file)
         if 'fastx' in qualfil_methods:
-            _cmd('rm -f %s' % qfiltered_file, exit=False)
-        _cmd('rm -f %s' % sam_file, exit=False)
-        _cmd('rm -f %s' % bam_file, exit=False)
+            remove_file(qfiltered_file)
+        remove_file(sam_file)
+        remove_file(bam_file)
 
 
 def run():
