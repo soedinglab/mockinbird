@@ -6,7 +6,7 @@ Returns the processing index for a pileup and an annotation file.
 
 **Positional arguments:**
   =======               ===========================================
-  parclip               path to the pileup *.mpileup
+  pileup                path to the pileup \*.mpileup
   gff                   GFF file. Stop positions are used for index
                         calculation.
   =======               ===========================================

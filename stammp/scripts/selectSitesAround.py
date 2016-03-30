@@ -1,6 +1,26 @@
 #! /usr/bin/python3
 """
+Select all PAR-CLIP sites that are located around the given GFF start or stop position +/- upstream and downstream.
 
+**Usage:** stammp-selectSitesInside [-h] [--min MIN] [--max MAX]
+                                [--upstream UPSTREAM]
+                                [--downstream DOWNSTREAM]
+                                parclip outputfile gff
+**Positional arguments:**
+  ==========            ======================
+  parclip               PAR-CLIP file \*.table
+  outputfile            PAR-CLIP file \*.table
+  gff                   GFF file
+  ==========            ======================
+
+**Optional arguments:**
+  ======================= =========================================
+  -h, --help              show this help message and exit
+  --min MIN               minium transcript size [default: 0nt]
+  --max MAX               maximum transcript size [default: 5000nt]
+  --upstream UPSTREAM     nt upstream [default: 0nt]
+  --downstream DOWNSTREAM nt downstream [default: 0nt]
+  ======================= =========================================
 """
 import argparse
 from stammp.obj import *
@@ -33,7 +53,7 @@ def main(inputfile, outputfile, gfffile, gffmin, gffmax, takeStop,
 
 def run():
     parser = argparse.ArgumentParser(description='Select all PAR-CLIP sites'
-    + ' that are located within the given GFF', epilog="contact: torkler@genzentrum.lmu.de")
+    + ' that are located around the given GFF start or stop position +/- upstream and downstream', epilog="contact: torkler@genzentrum.lmu.de")
     parser.add_argument('parclip', help='PAR-CLIP file *.table')
     parser.add_argument('outputfile', help='PAR-CLIP file *.table')
     parser.add_argument('gff', help='GFF file')
@@ -41,9 +61,9 @@ def run():
                         default=0, type=int)
     parser.add_argument('--max', help='maximum transcript size [default: 5000nt]', 
                         default=5000, type=int)
-    parser.add_argument('--upstream', help='additional upstream [default: 0nt]', 
+    parser.add_argument('--upstream', help='upstream [default: 0nt]', 
                         default=0, type=int)
-    parser.add_argument('--downstream', help='additional downstream [default: 0nt]', 
+    parser.add_argument('--downstream', help='downstream [default: 0nt]', 
                         default=0, type=int)
     parser.add_argument('--takeStop', dest='takeStop', action="store_true", 
                         default=False, help='center around start or stop position')

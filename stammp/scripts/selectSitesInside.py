@@ -2,24 +2,24 @@
 """
 Select all PAR-CLIP sites that are located within the given GFF
 
-*Usage:* stammp-selectSitesInside [-h] [--min MIN] [--max MAX]
+**Usage:** stammp-selectSitesInside [-h] [--min MIN] [--max MAX]
                                 [--upstream UPSTREAM]
                                 [--downstream DOWNSTREAM]
                                 parclip outputfile gff
-*Positional arguments:*
-  ==========            =====================
-  parclip               PAR-CLIP file *.table
-  outputfile            PAR-CLIP file *.table
+**Positional arguments:**
+  ==========            ======================
+  parclip               PAR-CLIP file \*.table
+  outputfile            PAR-CLIP file \*.table
   gff                   GFF file
-  ==========            =====================
+  ==========            ======================
 
-*Optional arguments:*
+**Optional arguments:**
   ======================= =========================================
   -h, --help              show this help message and exit
   --min MIN               minium transcript size [default: 0nt]
   --max MAX               maximum transcript size [default: 5000nt]
-  --upstream UPSTREAM     additional upstream [default: 0nt]
-  --downstream DOWNSTREAM additional downstream [default: 0nt]
+  --upstream UPSTREAM     additional nt upstream [default: 0nt]
+  --downstream DOWNSTREAM additional nt downstream [default: 0nt]
   ======================= =========================================
 """
 import argparse
@@ -58,9 +58,9 @@ def run():
                         default=0, type=int)
     parser.add_argument('--max', help='maximum transcript size [default: 5000nt]', 
                         default=5000, type=int)
-    parser.add_argument('--upstream', help='additional upstream [default: 0nt]', 
+    parser.add_argument('--upstream', help='additional nt upstream [default: 0nt]', 
                         default=0, type=int)
-    parser.add_argument('--downstream', help='additional downstream [default: 0nt]', 
+    parser.add_argument('--downstream', help='additional nt downstream [default: 0nt]', 
                         default=0, type=int)
     parser.add_argument('-v','--verbose', dest='verbose', 
                         action="store_true", default=False, help='verbose output')

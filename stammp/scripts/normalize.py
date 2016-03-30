@@ -1,8 +1,5 @@
 #! /usr/bin/python3
 """
-Command line:
--------------
-
 **Usage:** stammp-normalize [-h] [-s SWITCH] [-v] [-r SNP]
                         inputfile outputfile rnaseqfiles chrnames
 
@@ -27,6 +24,11 @@ counts by the sum of the coverages.
   -v, --verbose  verbose output
   -r SNP         Remove positions with SNP-ratio > r [Default: 0.75]
   =============  =============================================================
+
+Example::
+    
+    $ stammp-normalize /path/parclipsites.table /path/parclipsites_normalized.table RNAseq1.pileup,...,RNAseqN.pileup chr1,...,chrN -s 0,0
+    
 """
 import argparse
 import os

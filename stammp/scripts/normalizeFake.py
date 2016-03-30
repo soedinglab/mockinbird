@@ -1,14 +1,14 @@
 #! /usr/bin/python3
 """
-Set maximal occupancy to the specified quantile.
+Observed PAR-CLIP mutations are divided by the observed PAR-CLIP coverage.
 
-**Usage:** stammp-convert2quantile [-h] [-q QUANTILE] inputfile outputfile
+**Usage:** stammp-normalizeFake [-h] [-q QUANTILE] inputfile outputfile
 
 **Positional arguments:**
-  ==========   ====================================================
-  inputfile    PAR-CLIP file \*.table [output from stammp-normalize]
-  outputfile   Converted PAR-CLIP file \*.table
-  ==========   ====================================================
+  ==========   ======================================
+  inputfile    PAR-CLIP file \*.table
+  outputfile   Fake normalized PAR-CLIP file \*.table
+  ==========   ======================================
 
 **Optional arguments:**
   ===========  ====================================
@@ -32,9 +32,9 @@ def main(inputfile, outputfile):
     sites.save2File(outputfile)
 
 def run():
-    parser = argparse.ArgumentParser(description='Set maximal occupancy to the specified quantile.', epilog="contact: torkler@genzentrum.lmu.de")
-    parser.add_argument('inputfile', help='PAR-CLIP file *.table [output from stammp-normalize]')
-    parser.add_argument('outputfile', help='Converted PAR-CLIP file *.table')
+    parser = argparse.ArgumentParser(description='Observed PAR-CLIP mutations are divided by the observed PAR-CLIP coverage..', epilog="contact: torkler@genzentrum.lmu.de")
+    parser.add_argument('inputfile', help='PAR-CLIP file *.table')
+    parser.add_argument('outputfile', help='Fake normalized PAR-CLIP file *.table')
     args = parser.parse_args()
     main(args.inputfile, args.outputfile)
 

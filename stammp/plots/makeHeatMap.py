@@ -6,20 +6,20 @@ in the GFF. The data [(start-UPSTREAM),(start+downstream)] is plotted. Note,
 that no binning in y-direction is performed if the value of --ybins is smaller
 compared to the number of entries in the GFF.
 
-*Usage:* stammp-makeHeatMap [-h] [-d DOWNSTREAM] [-u UPSTREAM] [--min MIN]
+**Usage:** stammp-makeHeatMap [-h] [-d DOWNSTREAM] [-u UPSTREAM] [--min MIN]
                             [--max MAX] [--xsize XSIZE] [--ysize YSIZE] [-r]
                             [-v]
                             parclip outputdir prefix gff
 
-*Positional arguments:*
-  =========      ============================
-  parclip        path to the PAR-CLIP *.table
+**Positional arguments:**
+  =========      =============================
+  parclip        path to the PAR-CLIP \*.table
   outputdir      output directory
   prefix         prefix of filenames
   gff            GFF file used for plotting
-  =========      ============================
+  =========      =============================
 
-*Optional arguments:*
+**Optional arguments:**
   =============  ==============================================
   -h, --help     show this help message and exit
   -d DOWNSTREAM  set downstream range [default: 1000nt]
@@ -34,14 +34,14 @@ compared to the number of entries in the GFF.
   -v, --verbose  verbose output
   =============  ==============================================
 
-.. image:: tut_pub1_heatmap_sense.png
+.. image:: img/img_pub1_heatmap_sense.png
     :align: center
-    :height: 500px
+    :height: 250px
     :alt: alternate text
     
-.. image:: tut_pub1_heatmap_asense.png
+.. image:: img/img_pub1_heatmap_asense.png
     :align: center
-    :height: 500px
+    :height: 250px
     :alt: alternate text
 """
 import argparse
@@ -122,9 +122,9 @@ def run():
     parser.add_argument('outputdir', help='output directory')
     parser.add_argument('prefix', help='prefix of filenames')
     parser.add_argument('gff', help='GFF file used for plotting')
-    parser.add_argument('-d', help='set downstream range [default: 1000nt]', 
+    parser.add_argument('-d', help='set downstream range [default: 4000nt]', 
                         dest='downstream', default=4000, type=int)
-    parser.add_argument('-u', help='set upstream range [default: 4000nt]', 
+    parser.add_argument('-u', help='set upstream range [default: 1000nt]', 
                         dest='upstream', default=1000, type=int)
     parser.add_argument('--min', help='minium transcript size [default: 0nt]',  
                         default=0, type=int)

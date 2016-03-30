@@ -1,25 +1,30 @@
 #! /usr/bin/python3
-'''
+"""
 Plots all possible conditional mutation probabilities based on pileup data.
 
-*Usage:* stammp-makeNucleotideProbabilities [-h] [-c COVERAGE] [-v] [-r]
+**Usage:** stammp-makeNucleotideProbabilities [-h] [-c COVERAGE] [-v] [-r]
                                             inputfile outdir prefix
 
-*Positional arguments:*
+**Positional arguments:**
   =========      ====================
-  inputfile      path to the *.pileup
+  inputfile      path to the \*.pileup
   outdir         output directory
   prefix         prefix of filenames
   =========      ====================
 
-*Optional arguments:*
+**Optional arguments:**
   =============  ========================================
   -h, --help     show this help message and exit
   -c COVERAGE    minium coverage [default: 5]
   -v, --verbose  verbose output
   -r, --remove   remove temporary files. [default: false]
   =============  ========================================
-'''
+
+.. image:: img/img_nuc_probabilities.png
+    :align: center
+    :height: 250px
+    :alt: alternate text
+"""
 import argparse
 import math
 import os
