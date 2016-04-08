@@ -52,7 +52,7 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
     def print_tool_header(tool):
         time_format = time.strftime('[%Y-%m-%d %H:%M:%S]')
         print()
-        print('%s #### %s ####' % (time_format, tool))
+        print('%s #### %s ####' % (time_format, tool), flush=True)
         print()
 
     def _cmd(cmd, exit=True, verbose=verbose):
@@ -175,21 +175,57 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
     else:
         rmdup_file = fastq_file
 
-    # Trim barcodes
+    # adapter removal
     bc_5prime = read_cfg.getint('bc_5prime')
-    if bc_5prime > 0:
-        print_tool_header('Trim barcode')
-        bc_trim_file = os.path.join(outputdir, prefix + '_trim.fastq')
-        bc_trim_toks = [
-            'fastx_trimmer',
+    clipping_method = pipeline_cfg['adapter_clipping']
+    adapter_clipped_file = os.path.join(outputdir, prefix + '_adapter.clipped')
+    if clipping_method == 'lafuga':
+        print_tool_header('adapter clipping [lafuga]')
+        clipper_cfg = config['lafugaAdapterClipper']
+        adap_trim_bc_file = os.path.join(outputdir, prefix + '_adapter_bc.clipped')
+        adapter_clip_toks = [
+            'java -Xmx4g',
+            '-jar %s' % os.path.join(scriptPath, 'AdaptorClipper.jar'),
             '-i %s' % rmdup_file,
-            '-o %s' % bc_trim_file,
-            '-f %s' % (bc_5prime + 1),  # first base to keep
-            bc_trim_file,
+            '-o %s' % adap_trim_bc_file,
+            '-a %s,%s' % (adapter5prime, adapter3prime),
+            '-m %s' % (read_cfg.getint('min_len') + bc_5prime),
+            '-seed %s' % clipper_cfg['seed'],
         ]
-        _cmd(bc_trim_toks)
+        stdout, stderr = _cmd(adapter_clip_toks)
+        print(stdout)
+
+        if bc_5prime > 0:
+            bc_trim_toks = [
+                'fastx_trimmer',
+                '-i %s' % adap_trim_bc_file,
+                '-o %s' % adapter_clipped_file,
+                '-f %s' % (bc_5prime + 1),  # first base to keep
+            ]
+            _cmd(bc_trim_toks)
+        else:
+            adapter_clipped_file = adap_trim_bc_file
+
+    elif clipping_method == 'clippy':
+        print_tool_header('adapter clipping [clippy]')
+        clipper_cfg = config['clippyAdapterClipper']
+        adapter_clipped_file = os.path.join(outputdir, prefix + '_adapter.clipped')
+
+        adapter_clip_toks = [
+            'stammp-adapter_clipper',
+            rmdup_file,
+            adapter_clipped_file,
+            adapter5prime,
+            adapter3prime,
+            '--clip_len %s' % clipper_cfg['clip_len'],
+            '--min_len %s' % read_cfg['min_len'],
+            '--nt_barcode_5prime %s' % bc_5prime,
+            '--verbose'
+        ]
+        stdout, stderr = _cmd(adapter_clip_toks)
+        print(stdout)
     else:
-        bc_trim_file = rmdup_file
+        adapter_clipped_file = rmdup_file
 
     # quality trimming
     qualtrim_file = os.path.join(outputdir, prefix + '_qtrim.fastq')
@@ -203,14 +239,15 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
         qualtrim_toks = [
             'java -Xmx4g',
             '-jar %s' % os.path.join(scriptPath, 'FastqQualityFilter.jar'),
-            '-i %s' % bc_trim_file,
+            '-i %s' % adapter_clipped_file,
             '-o %s' % qualtrim_file,
             '-m %s' % read_cfg['min_len'],
             '-q %s' % qualtrim_cfg['q'],
             '-3',
             '-5',
         ]
-        _cmd(qualtrim_toks)
+        stdout, stderr = _cmd(qualtrim_toks)
+        print(stdout)
 
     # trimming fastx
     elif qual_trim_method == 'fastx':
@@ -219,7 +256,7 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
 
         qualtrim_toks = [
             'fastq_quality_trimmer',
-            '-i %s' % bc_trim_file,
+            '-i %s' % adapter_clipped_file,
             '-o %s' % qualtrim_file,
             '-t %s' % qualfil_cfg['q'],
             '-l %s' % read_cfg['min_len'],
@@ -227,59 +264,7 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
         ]
         _cmd(qualtrim_toks)
     else:
-        qualtrim_file = bc_trim_file
-
-    # adapter removal
-    clipping_method = pipeline_cfg['adapter_clipping']
-    adapter_clipped_file = os.path.join(outputdir, prefix + '_adapter.clipped')
-    if clipping_method == 'lafuga':
-        print_tool_header('adapter clipping [lafuga]')
-        clipper_cfg = config['lafugaAdapterClipper']
-        adap_trim_bc_file = os.path.join(outputdir, prefix + '_adapter_bc.clipped')
-        adapter_clip_toks = [
-            'java -Xmx4g',
-            '-jar %s' % os.path.join(scriptPath, 'AdaptorClipper.jar'),
-            '-i %s' % qualtrim_file,
-            '-o %s' % adap_trim_bc_file,
-            '-a %s,%s' % (adapter5prime, adapter3prime),
-            '-m %s' % (read_cfg.getint('min_len') + bc_5prime),
-            '-seed %s' % clipper_cfg['seed'],
-        ]
-        _cmd(adapter_clip_toks)
-        if bc_5prime > 0:
-            bc_trim_toks = [
-                'fastx_trimmer',
-                '-i %s' % adap_trim_bc_file,
-                '-o %s' % adapter_clipped_file,
-                '-f %s' % (bc_5prime + 1),  # first base to keep
-                bc_trim_file,
-            ]
-            _cmd(bc_trim_toks)
-        else:
-            adapter_clipped_file = adap_trim_bc_file
-
-    elif clipping_method == 'clippy':
-        print_tool_header('adapter clipping [clippy]')
-        clipper_cfg = config['clippyAdapterClipper']
-        adapter_clipped_file = os.path.join(outputdir, prefix + '_adapter.clipped')
-
-        adapter_clip_toks = [
-            'stammp-adapter_clipper',
-            qualtrim_file,
-            adapter_clipped_file,
-            adapter5prime,
-            adapter3prime,
-            '--clip_len %s' % clipper_cfg['clip_len'],
-            '--min_len %s' % read_cfg['min_len'],
-            '--nt_barcode_5prime %s' % bc_5prime,
-            '--verbose'
-        ]
-        if clipper_cfg.getboolean('aggressive'):
-            adapter_clip_toks.append('--aggressive')
-        stdout, stderr = _cmd(adapter_clip_toks)
-        print(stdout)
-    else:
-        adapter_clipped_file = qualtrim_file
+        qualtrim_file = adapter_clipped_file
 
     # polyA removal
     if pipeline_cfg.getboolean('polyA_clipping'):
@@ -290,7 +275,7 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
         polyA_toks = [
             'java',
             '-jar %s' % os.path.join(scriptPath, 'ClipPolyA.jar'),
-            '-i %s' % adapter_clipped_file,
+            '-i %s' % qualtrim_file,
             '-o %s' % polyA_clipped_file,
             '-c %s' % '/dev/null',  # file of all clipped reads
             '-s %s' % polyA_cfg['min_len'],
@@ -298,7 +283,7 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
         stdout, stderr = _cmd(polyA_toks)
         print(stdout)
     else:
-        polyA_clipped_file = adapter_clipped_file
+        polyA_clipped_file = qualtrim_file
 
     # Quality filtering
     qualfil_methods = pipeline_cfg['quality_filtering'].split(',')
@@ -477,8 +462,6 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
         print('\tLet\'s remove temporary files!')
         if pipeline_cfg.getboolean('remove_duplicates'):
             remove_file(rmdup_file)
-        if bc_5prime > 0:
-            remove_file(bc_trim_file)
         if pipeline_cfg['quality_trimming'] in ('lafuga', 'fastx'):
             remove_file(qualtrim_file)
         if clipping_method == 'lafuga':
