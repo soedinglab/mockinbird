@@ -13,6 +13,7 @@ def dir_rwx(path):
 
 
 def file_rw(path):
+    path = os.path.abspath(path)
     if not os.path.isfile(path):
         dir_rwx(os.path.dirname(path))
     elif not os.access(path, os.R_OK | os.W_OK):

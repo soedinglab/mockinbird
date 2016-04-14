@@ -82,10 +82,10 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
     else:
         fx_Q33 = ''
 
-    bowtie_index = general_cfg['bowtieindex']
-    bt_index_glob = "%s*" % bowtie_index
-    if len(glob.glob(bt_index_glob)) == 0:
-        print('bowtie index %r does not exist. Please check the configuration file' % bowtie_index,
+    genome_index = general_cfg['genomeindex']
+    genome_index_glob = "%s*" % genome_index
+    if len(glob.glob(genome_index_glob)) == 0:
+        print('genome index %r does not exist. Please check the configuration file' % genome_index,
               file=sys.stderr)
         sys.exit(1)
 
@@ -99,6 +99,15 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
     adapter5prime = general_cfg['adapter5prime']
     adapter3prime = general_cfg['adapter3prime']
 
+    # check if the mapping method is valid
+    if pipeline_cfg['mapper'] not in ['bowtie', 'STAR']:
+        print('unknown mapper %r. Please check the configuration file' % pipeline_cfg['mapper'],
+              file=sys.stderr)
+        sys.exit(1)
+
+    # list of files that can be cleaned up at the end
+    intermediate_files = []
+
     # Run pipeline
     fastq_file = inputfile
 
@@ -110,6 +119,8 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
         prepare_dir_or_die(fastqc_raw_dir)
 
         adapter_file = os.path.join(outputdir, 'fastQC/tmp_adapters.txt')
+        intermediate_files.append(adapter_file)
+
         with open(adapter_file, 'w') as fc:
             print('adapter5prime\t %s' % adapter5prime, file=fc)
             print('adapter3prime\t %s' % adapter3prime, file=fc)
@@ -137,6 +148,8 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
         prepare_dir_or_die(fastx_raw_dir)
 
         qual_stats_file = os.path.join(fastx_raw_dir, 'fastxstats_raw.txt')
+        intermediate_files.append(qual_stats_file)
+
         qual_stats_toks = [
             'fastx_quality_stats',
             '-i %s' % fastq_file,
@@ -165,6 +178,7 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
     if pipeline_cfg.getboolean('remove_duplicates'):
         print_tool_header('Remove duplicated reads')
         rmdup_file = os.path.join(outputdir, prefix + '_nodup.fastq')
+        intermediate_files.append(rmdup_file)
         dup_rm_toks = [
             'stammp-removePCRduplicates',
             fastq_file,
@@ -179,6 +193,8 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
     bc_5prime = read_cfg.getint('bc_5prime')
     clipping_method = pipeline_cfg['adapter_clipping']
     adapter_clipped_file = os.path.join(outputdir, prefix + '_adapter.clipped')
+    intermediate_files.append(adapter_clipped_file)
+
     if clipping_method == 'lafuga':
         print_tool_header('adapter clipping [lafuga]')
         clipper_cfg = config['lafugaAdapterClipper']
@@ -196,6 +212,7 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
         print(stdout)
 
         if bc_5prime > 0:
+            intermediate_files.append(adap_trim_bc_file)
             bc_trim_toks = [
                 'fastx_trimmer',
                 '-i %s' % adap_trim_bc_file,
@@ -209,7 +226,6 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
     elif clipping_method == 'clippy':
         print_tool_header('adapter clipping [clippy]')
         clipper_cfg = config['clippyAdapterClipper']
-        adapter_clipped_file = os.path.join(outputdir, prefix + '_adapter.clipped')
 
         adapter_clip_toks = [
             'stammp-adapter_clipper',
@@ -233,6 +249,7 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
 
     # trimming [lafuga]
     if qual_trim_method == 'lafuga':
+        intermediate_files.append(qualtrim_file)
         print_tool_header('Quality trimming [lafuga]')
         qualtrim_cfg = config['lafugaQualityTrimmer']
 
@@ -251,6 +268,7 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
 
     # trimming fastx
     elif qual_trim_method == 'fastx':
+        intermediate_files.append(qualtrim_file)
         print_tool_header('Quality trimming [FastX]')
         qualfil_cfg = config['fastxQualityTrimmer']
 
@@ -271,6 +289,7 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
         print_tool_header('polyA clipping')
 
         polyA_clipped_file = os.path.join(outputdir, prefix + '_polyA.clipped')
+        intermediate_files.append(polyA_clipped_file)
         polyA_cfg = config['polyAClipper']
         polyA_toks = [
             'java',
@@ -287,10 +306,10 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
 
     # Quality filtering
     qualfil_methods = pipeline_cfg['quality_filtering'].split(',')
-    qfiltered_file = os.path.join(outputdir, prefix + '_qfiltered.fastq')
     if 'lafuga' in qualfil_methods:
         print_tool_header('Quality filtering [lafuga]')
         qualfil_lafuga_file = os.path.join(outputdir, prefix + '_qfil_lafuga.fastq')
+        intermediate_files.append(qualfil_lafuga_file)
         qualfil_cfg = config['lafugaQualityFilter']
 
         qualfil_toks = [
@@ -310,8 +329,9 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
         qualfil_lafuga_file = polyA_clipped_file
 
     if 'fastx' in qualfil_methods:
-
         print_tool_header('Quality filtering [fastx]')
+        qfiltered_file = os.path.join(outputdir, prefix + '_qfiltered.fastq')
+        intermediate_files.append(qfiltered_file)
         qualfil_cfg = config['fastxQualityFilter']
         qualfil_toks = [
             'fastq_quality_filter',
@@ -354,6 +374,7 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
         prepare_dir_or_die(fastx_fil_dir)
 
         qual_stats_file = os.path.join(fastx_fil_dir, 'fastxstats_filtered.txt')
+        intermediate_files.append(qual_stats_file)
         qual_stats_toks = [
             'fastx_quality_stats',
             '-i %s' % qfiltered_file,
@@ -378,56 +399,87 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
         ]
         _cmd(nucdistr_toks)
 
-    # Bowtie mapping and SAM -> BAM -> mPileup conversion
-    print_tool_header('Mapping filtered reads using Bowtie')
-    bowtie_cfg = config['bowtie']
-    sam_file = os.path.join(outputdir, prefix + '.sam')
-    bowtie_toks = [
-        'bowtie',
-        '-t',
-        '-q',
-        '--threads %s' % general_cfg['n_threads'],
-        '-S',
-        '-nohead',
-        '-v %s' % bowtie_cfg['v'],
-        '-y',
-        '-m %s' % bowtie_cfg['m'],
-        '--best',
-        '--strata',
-        bowtie_index,
-        qfiltered_file,
-        '> %s' % sam_file,
-    ]
-    extra_flags = bowtie_cfg['extra_flags'].split(',')
-    bowtie_toks.extend(extra_flags)
-    stdout, stderr = _cmd(bowtie_toks)
-    print(stderr)
-
-    # SAM --> BAM conversion
-    bam_file = os.path.join(outputdir, prefix + '.bam')
-    print_tool_header('SAM --> BAM')
-    sam2bam_toks = [
-        'samtools',
-        'view',
-        '-@ %s' % general_cfg['n_threads'],
-        '-b',  # output bam
-        '-T %s' % genome_fasta_path,
-        '-o %s' % bam_file,
-        sam_file,
-    ]
-    _cmd(sam2bam_toks)
-
-    # sorting and indexing of bam file
-    print_tool_header('Sorting and indexing of BAM file')
     sorted_bam_file = os.path.join(outputdir, prefix + '_sorted.bam')
-    st_sort_toks = [
-        'samtools',
-        'sort',
-        '-@ %s' % general_cfg['n_threads'],
-        bam_file,
-        '-o %s' % sorted_bam_file,
-    ]
-    _cmd(st_sort_toks)
+    if pipeline_cfg['mapper'] == 'bowtie':
+        # Bowtie mapping and SAM -> BAM -> mPileup conversion
+        print_tool_header('Mapping filtered reads [bowtie]')
+        bowtie_cfg = config['bowtie']
+        sam_file = os.path.join(outputdir, prefix + '.sam')
+        intermediate_files.append(sam_file)
+        bowtie_toks = [
+            'bowtie',
+            '-t',
+            '-q',
+            '--threads %s' % general_cfg['n_threads'],
+            '-S',
+            '-nohead',
+            '-v %s' % bowtie_cfg['v'],
+            '-y',
+            '-m %s' % bowtie_cfg['m'],
+            '--best',
+            '--strata',
+            genome_index,
+            qfiltered_file,
+            '> %s' % sam_file,
+        ]
+        extra_flags = bowtie_cfg['extra_flags'].split(',')
+        bowtie_toks.extend(extra_flags)
+        stdout, stderr = _cmd(bowtie_toks)
+        print(stderr)
+
+        # SAM --> BAM conversion
+        bam_file = os.path.join(outputdir, prefix + '.bam')
+        intermediate_files.append(bam_file)
+        print_tool_header('SAM --> BAM')
+        sam2bam_toks = [
+            'samtools',
+            'view',
+            '-@ %s' % general_cfg['n_threads'],
+            '-b',  # output bam
+            '-T %s' % genome_fasta_path,
+            '-o %s' % bam_file,
+            sam_file,
+        ]
+        _cmd(sam2bam_toks)
+
+        # sorting and indexing of bam file
+        print_tool_header('Sorting and indexing of BAM file')
+        st_sort_toks = [
+            'samtools',
+            'sort',
+            '-@ %s' % general_cfg['n_threads'],
+            bam_file,
+            '-o %s' % sorted_bam_file,
+        ]
+        _cmd(st_sort_toks)
+
+    elif pipeline_cfg['mapper'] == 'STAR':
+        print_tool_header('Mapping filtered reads [STAR]')
+        star_output_dir = os.path.join(outputdir, 'STAR_output')
+        if not os.path.exists(star_output_dir):
+            os.makedirs(star_output_dir)
+        star_output_prefix = os.path.join(star_output_dir, prefix + '_')
+        sorted_bam_file = star_output_prefix + 'Aligned.sortedByCoord.out.bam'
+        star_toks = [
+            'STAR',
+            '--readFilesIn %s' % qfiltered_file,
+            '--genomeDir %s' % genome_index,
+            '--outFilterMultimapNmax %s' % 1,
+            '--outFilterMismatchNmax %s' % 1,
+            '--outSAMtype BAM SortedByCoordinate',
+            '--outFileNamePrefix %s' % star_output_prefix,
+            '--runThreadN %s' % general_cfg['n_threads'],
+            # I think we cannot allow local alignments because the reads are generally
+            # rather short. Remaining adapter sequences probably frequently will be
+            # clipped incompletely which leads to mismatched reads.
+            '--alignEndsType EndToEnd',
+            # we do not want to see insertions or deletions
+            '--scoreDelOpen -10000',
+            '--scoreInsOpen -10000',
+            # remark: maybe we should disallow reads with mismatches at the end.
+        ]
+        stdout, stderr = _cmd(star_toks)
+        print(stdout)
 
     st_index_toks = [
         'samtools',
@@ -454,30 +506,10 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
 
     print_tool_header('PreProcess completed')
     if general_cfg.getboolean('rmTemp'):
-
-        def remove_file(path):
-            assert path != fastq_file
-            _cmd('rm -f %s' % path, exit=False)
-
-        print('\tLet\'s remove temporary files!')
-        if pipeline_cfg.getboolean('remove_duplicates'):
-            remove_file(rmdup_file)
-        if pipeline_cfg['quality_trimming'] in ('lafuga', 'fastx'):
-            remove_file(qualtrim_file)
-        if clipping_method == 'lafuga':
-            if bc_5prime > 0:
-                remove_file(adap_trim_bc_file)
-            remove_file(adapter_clipped_file)
-        elif clipping_method == 'clippy':
-            remove_file(adapter_clipped_file)
-        if pipeline_cfg.getboolean('polyA_clipping'):
-            remove_file(polyA_clipped_file)
-        if 'lafuga' in qualfil_methods:
-            remove_file(qualfil_lafuga_file)
-        if 'fastx' in qualfil_methods:
-            remove_file(qfiltered_file)
-        remove_file(sam_file)
-        remove_file(bam_file)
+        print('\tRemoving temporary files...')
+        for tmpfile in intermediate_files:
+            assert tmpfile != fastq_file
+            _cmd('rm -f %s' % tmpfile, exit=False)
 
 
 def run():

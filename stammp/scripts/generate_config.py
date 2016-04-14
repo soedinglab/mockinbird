@@ -5,19 +5,17 @@ import os
 import sys
 
 from stammp.utils import file_rw_or_dir_rwx, file_r
-from stammp.utils import execute
 
 
 def main():
     description = 'Tool to generate a new preprocessing config file'
     parser = argparse.ArgumentParser('stammp-generateConfig', description=description)
-    output_help = 'folder in which the config file should be created'
-    parser.add_argument('output', help=output_help, type=file_rw_or_dir_rwx)
     genome_help = 'path to the genome fasta file'
     parser.add_argument('genome_fasta', help=genome_help, type=file_r)
-    bowtie_help = 'prefix of the bowtie index'
-    parser.add_argument('--bowtie-index', help=bowtie_help)
-    parser.add_argument('--create', action='store_true')
+    output_help = 'folder in which the config file should be created'
+    parser.add_argument('output', help=output_help, type=file_rw_or_dir_rwx)
+    index_help = 'prefix of the genome index'
+    parser.add_argument('--genome-index', help=index_help)
     args = parser.parse_args()
 
     cur_dir = os.path.dirname(os.path.realpath(__file__))
@@ -36,42 +34,21 @@ def main():
     cfg['general']['genomefasta'] = genome_path_abs
 
     print()
-    # does a fasta index exist?
     fasta_ind = genome_path_abs + '.fai'
     if not os.path.isfile(fasta_ind):
-        if args.create:
-            cmd_args = [
-                'samtools',
-                'faidx',
-                genome_path_abs,
-            ]
-            execute(cmd_args)
-            print('[INFO] created %r' % fasta_ind)
-        else:
-            print('[WARNING]: %r does not exist' % (genome_path_abs + '.fai'),
-                  file=sys.stderr)
+        print('[WARNING]: %r does not exist' % (genome_path_abs + '.fai'),
+              file=sys.stderr)
 
-    if args.bowtie_index:
-        bowtie_index_abs = os.path.abspath(args.bowtie_index)
-        bt_index_glob = "%s*" % bowtie_index_abs
-        if len(glob.glob(bt_index_glob)) == 0:
-            if args.create:
-                index_dir = os.path.dirname(bt_index_glob)
-                os.makedirs(index_dir)
-                cmd_args = [
-                    'bowtie-build',
-                    args.genome_fasta,
-                    args.bowtie_index,
-                ]
-                execute(cmd_args)
-                print('[INFO] created bowtie index %r' % args.bowtie_index)
-            else:
-                print('[WARNING]: %r is not a prefix to an existing bowtie index'
-                      % bowtie_index_abs, file=sys.stderr)
-        cfg['general']['bowtieindex'] = bowtie_index_abs
+    if args.genome_index:
+        genome_index_abs = os.path.abspath(args.genome_index)
+        genome_index_glob = "%s*" % genome_index_abs
+        if len(glob.glob(genome_index_glob)) == 0:
+            print('[WARNING]: %r is not a prefix to an existing genome index'
+                  % genome_index_abs, file=sys.stderr)
+        cfg['general']['genomeindex'] = genome_index_abs
     else:
         msg = (
-            '[WARNING]: no bowtie index specified. '
+            '[WARNING]: no genome index specified. '
             'You have to edit the config by hand and set this path.'
         )
         print(msg, file=sys.stderr)
