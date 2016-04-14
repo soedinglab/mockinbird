@@ -42,6 +42,7 @@ class Genome:
                     line = line.replace('\n', '')
                     seq  = seq+line.upper()
                 line = fc.readline()
+            self.genome[tmp_name] = seq
             fc.close()
         else:
             sys.stderr.write('No file or directory. Exit')

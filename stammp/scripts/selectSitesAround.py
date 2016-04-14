@@ -14,13 +14,15 @@ Select all PAR-CLIP sites that are located around the given GFF start or stop po
   ==========            ======================
 
 **Optional arguments:**
-  ======================= =========================================
+  ======================= =====================================================
   -h, --help              show this help message and exit
-  --min MIN               minium transcript size [default: 0nt]
-  --max MAX               maximum transcript size [default: 5000nt]
-  --upstream UPSTREAM     nt upstream [default: 0nt]
-  --downstream DOWNSTREAM nt downstream [default: 0nt]
-  ======================= =========================================
+  --min INT               minium transcript size [default: 0nt]
+  --max INT               maximum transcript size [default: 5000nt]
+  --upstream INT          nt upstream [default: 0nt]
+  --downstream INT        nt downstream [default: 0nt]
+  --takeStop              center around start or stop position [default: false]
+  -v, -verbose            verbose output
+  ======================= =====================================================
 """
 import argparse
 from stammp.obj import *
@@ -59,7 +61,7 @@ def run():
     parser.add_argument('gff', help='GFF file')
     parser.add_argument('--min', help='minium transcript size [default: 0nt]',  
                         default=0, type=int)
-    parser.add_argument('--max', help='maximum transcript size [default: 5000nt]', 
+    parser.add_argument('--max', help='amaximum transcript size [default: 5000nt]', 
                         default=5000, type=int)
     parser.add_argument('--upstream', help='upstream [default: 0nt]', 
                         default=0, type=int)
@@ -67,7 +69,7 @@ def run():
                         default=0, type=int)
     parser.add_argument('--takeStop', dest='takeStop', action="store_true", 
                         default=False, help='center around start or stop position')
-    parser.add_argument('-v','--verbose', dest='verbose', 
+    parser.add_argument('-v','-verbose', dest='verbose', 
                         action="store_true", default=False, help='verbose output')
     args = parser.parse_args()
     functions.checkExistence(args.parclip)

@@ -16,10 +16,11 @@ Select all PAR-CLIP sites that are located within the given GFF
 **Optional arguments:**
   ======================= =========================================
   -h, --help              show this help message and exit
-  --min MIN               minium transcript size [default: 0nt]
-  --max MAX               maximum transcript size [default: 5000nt]
-  --upstream UPSTREAM     additional nt upstream [default: 0nt]
-  --downstream DOWNSTREAM additional nt downstream [default: 0nt]
+  --min INT               minium transcript size [default: 0nt]
+  --max INT               maximum transcript size [default: 5000nt]
+  --upstream INT          additional nt upstream [default: 0nt]
+  --downstream INT        additional nt downstream [default: 0nt]
+  -v, --verbose           verbose output
   ======================= =========================================
 """
 import argparse
@@ -54,13 +55,13 @@ def run():
     parser.add_argument('parclip', help='PAR-CLIP file *.table')
     parser.add_argument('outputfile', help='PAR-CLIP file *.table')
     parser.add_argument('gff', help='GFF file')
-    parser.add_argument('--min', help='minium transcript size [default: 0nt]',  
+    parser.add_argument('--min', help='minium transcript size [default: 0nt]',
                         default=0, type=int)
-    parser.add_argument('--max', help='maximum transcript size [default: 5000nt]', 
+    parser.add_argument('--max', help='maximum transcript size [default: 5000nt]',
                         default=5000, type=int)
-    parser.add_argument('--upstream', help='additional nt upstream [default: 0nt]', 
+    parser.add_argument('--upstream', help='additional nt upstream [default: 0nt]',
                         default=0, type=int)
-    parser.add_argument('--downstream', help='additional nt downstream [default: 0nt]', 
+    parser.add_argument('--downstream', help='additional nt downstream [default: 0nt]',
                         default=0, type=int)
     parser.add_argument('-v','--verbose', dest='verbose', 
                         action="store_true", default=False, help='verbose output')

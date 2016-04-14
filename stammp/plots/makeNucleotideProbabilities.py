@@ -1,6 +1,6 @@
 #! /usr/bin/python3
 """
-Plots all possible conditional mutation probabilities based on pileup data.
+Plot all possible conditional mutation probabilities based on pileup data.
 
 **Usage:** stammp-makeNucleotideProbabilities [-h] [-c COVERAGE] [-v] [-r]
                                             inputfile outdir prefix
@@ -15,7 +15,7 @@ Plots all possible conditional mutation probabilities based on pileup data.
 **Optional arguments:**
   =============  ========================================
   -h, --help     show this help message and exit
-  -c COVERAGE    minium coverage [default: 5]
+  -c INT         minium coverage [default: 5]
   -v, --verbose  verbose output
   -r, --remove   remove temporary files. [default: false]
   =============  ========================================
@@ -47,14 +47,15 @@ def getCountMat(file_pileup, minCoverage,verbose):
     while(line):
         count += 1
         split = line.split('\t')
-        
-        tmp_counts = functions.getCounts(split[4], forward=True)
-        if tmp_counts[0] >= minCoverage:
-            for c in alphabet:
-                if c == split[2]:
-                    mat[translate[split[2]]][translate[c]] += tmp_counts[0]-tmp_counts[2]
-                else:
-                    mat[translate[split[2]]][translate[c]] += tmp_counts[1][c]
+        nuc = split[2].upper()
+        if nuc != 'N':
+            tmp_counts = functions.getCounts(split[4], forward=True)
+            if tmp_counts[0] >= minCoverage:
+                for c in alphabet:
+                    if c == nuc:
+                        mat[translate[nuc]][translate[c]] += tmp_counts[0]-tmp_counts[2]
+                    else:
+                        mat[translate[nuc]][translate[c]] += tmp_counts[1][c]
         if verbose:
             percent_new = math.trunc((count/lines)*100)
             if(percent_new > percent_old):
