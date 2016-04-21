@@ -479,6 +479,10 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
             '--scoreDelOpen -10000',
             '--scoreInsOpen -10000',
             # remark: maybe we should disallow reads with mismatches at the end.
+            # with all the unmappable reads it's way too risky to call new junctions
+            '--alignSJoverhangMin 10000',
+            # it is not allowed to use mismatches to build splice sites
+            '--alignSJstitchMismatchNmax 0 0 0 0',
         ]
         stdout, stderr = _cmd(star_toks)
         print(stdout)
