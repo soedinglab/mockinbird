@@ -28,6 +28,8 @@ import configparser
 import glob
 
 from stammp.utils import prepare_output_dir, execute
+from stammp.scripts.utils.plot_mutation_statistics import create_transition_plots
+from stammp.scripts.filter_edge_mutations import filter_edge_mutations
 
 
 def main(inputfile, outputdir, prefix, configfile, verbose):
@@ -481,12 +483,38 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
         stdout, stderr = _cmd(star_toks)
         print(stdout)
 
+    intermediate_files.append(sorted_bam_file)
+
+    calmd_bam_file = os.path.join(outputdir, prefix + '_calmd.bam')
+    calmd_toks = [
+        'samtools',
+        'calmd',
+        sorted_bam_file,
+        genome_fasta_path,
+        '-b',
+        '> %s' % calmd_bam_file
+    ]
+    _cmd(calmd_toks)
+
     st_index_toks = [
         'samtools',
         'index',
-        sorted_bam_file,
+        calmd_bam_file,
     ]
     _cmd(st_index_toks)
+
+    # filter mutations at the 5' and 3' end of the read
+    edge_bp = read_cfg.getint('ignore_edge_mut_bp')
+    if edge_bp > 0:
+        calmd_mutfil_file = os.path.join(outputdir, prefix + '_fil%s.bam' % edge_bp)
+        filter_edge_mutations(calmd_bam_file, calmd_mutfil_file, edge_bp)
+        intermediate_files.append(calmd_bam_file)
+    else:
+        calmd_mutfil_file = calmd_bam_file
+
+    # plot transition profiles
+    tr_plot_dir = os.path.join(outputdir, 'mapping_plots')
+    create_transition_plots(calmd_bam_file, tr_plot_dir)
 
     # generating pileup file
     print_tool_header('Generating mPileup')
