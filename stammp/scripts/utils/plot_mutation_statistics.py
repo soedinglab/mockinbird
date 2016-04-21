@@ -64,6 +64,7 @@ def create_transition_plots(calmd_bam_file, output_dir):
 
     df = pd.DataFrame(data_dic)
 
+    # read size histogram
     max_len = np.max(lengths)
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.hist(lengths, bins=np.arange(max_len) + 1)
@@ -73,6 +74,17 @@ def create_transition_plots(calmd_bam_file, output_dir):
     maplen_plot = os.path.join(output_dir, 'mapped_lengths.png')
     plt.savefig(maplen_plot)
 
+    # mismatch position histogram
+    mm_df = df[df.length == df.length.max()]
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.hist(mm_df.mm_pos, bins=np.arange(df.length.max()) + 1)
+    fig.suptitle('Mismatch frequency distribution of mapped reads', fontsize=20)
+    ax.set_xlabel('Read position', fontsize=16)
+
+    mismatch_freq_plot = os.path.join(output_dir, 'mismatch_freq.png')
+    plt.savefig(mismatch_freq_plot)
+
+    # transition frequency plot
     colors = [
         '#a6cee3',
         '#1f78b4',
