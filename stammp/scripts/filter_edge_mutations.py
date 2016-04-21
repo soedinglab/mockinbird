@@ -13,7 +13,7 @@ def create_parser():
 
 
 def filter_edge_mutations(input_bam, output_bam, nbases):
-    mm_pat = re.compile('([0-9]+)[ACGT][0-9]+')
+    mm_pat = re.compile('([0-9]+)[ACGT][0-9]+', re.IGNORECASE)
     with pysam.AlignmentFile(input_bam, 'rb') as infile:
         with pysam.AlignmentFile(output_bam, 'wb', template=infile) as outfile:
             for entry in infile:

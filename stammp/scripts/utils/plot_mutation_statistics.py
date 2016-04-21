@@ -51,8 +51,8 @@ def create_transition_plots(calmd_bam_file, output_dir):
                 raise ValueError('MD field not found')
             hit = mm_pat.match(tag_dict['MD'])
             mm_pos = int(hit.group(1)) + 1
-            ref_nuc = hit.group(2)
-            mm_nuc = entry.seq[mm_pos - 1]
+            ref_nuc = hit.group(2).upper()
+            mm_nuc = entry.seq[mm_pos - 1].upper()
             if entry.is_reverse:
                 transition = nuc_compl[ref_nuc] + nuc_compl[mm_nuc]
             else:
@@ -63,7 +63,6 @@ def create_transition_plots(calmd_bam_file, output_dir):
             data_dic['mm_pos'].append(mm_pos)
 
     df = pd.DataFrame(data_dic)
-
 
     max_len = np.max(lengths)
     fig, ax = plt.subplots(figsize=(10, 6))
