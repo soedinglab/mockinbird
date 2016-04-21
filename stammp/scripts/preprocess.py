@@ -506,6 +506,7 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
     # filter mutations at the 5' and 3' end of the read
     edge_bp = read_cfg.getint('ignore_edge_mut_bp')
     if edge_bp > 0:
+        print_tool_header('Filtering outermost mutations')
         calmd_mutfil_file = os.path.join(outputdir, prefix + '_fil%s.bam' % edge_bp)
         filter_edge_mutations(calmd_bam_file, calmd_mutfil_file, edge_bp)
         intermediate_files.append(calmd_bam_file)
@@ -513,7 +514,10 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
         calmd_mutfil_file = calmd_bam_file
 
     # plot transition profiles
+    print_tool_header('Analyzing mutation profiles')
     tr_plot_dir = os.path.join(outputdir, 'mapping_plots')
+    if not os.path.exists(tr_plot_dir):
+        os.makedirs(tr_plot_dir)
     create_transition_plots(calmd_bam_file, tr_plot_dir)
 
     # generating pileup file
@@ -527,7 +531,7 @@ def main(inputfile, outputdir, prefix, configfile, verbose):
         '-q 0',  # minimum alignment quality
         '-Q 0',  # minimum base quality
         '-f %s' % genome_fasta_path,
-        sorted_bam_file,
+        calmd_mutfil_file,
         '> %s' % pileup_file,
     ]
     _cmd(pileup_toks)
