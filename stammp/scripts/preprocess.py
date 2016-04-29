@@ -26,13 +26,12 @@ import sys
 import configparser
 import glob
 import logging
-from collections import namedtuple
-import re
-from operator import attrgetter
 from functools import partial
 
 from stammp import LOG_DEFAULT_FORMAT, LOG_LEVEL_MAP
-from stammp.utils import prepare_output_dir, execute
+from stammp.utils import prepare_output_dir
+from stammp.utils import config_validation as cv
+from stammp.utils import pipeline as pl
 
 logger = logging.getLogger()
 cur_dir = os.path.dirname(os.path.realpath(__file__))
@@ -65,10 +64,11 @@ def main(inputfile, outputdir, prefix, configfile):
 
     """
 
-    config = configparser.ConfigParser(inline_comment_prefixes=';')
+    config = configparser.ConfigParser(
+        inline_comment_prefixes=';',
+        interpolation=configparser.ExtendedInterpolation()
+    )
     config.read(configfile)
-
-    Annot = namedtuple('Annotation', ['type', 'default', 'converter'])
 
     def mapindex_validator(genome_index):
         genome_index_glob = "%s*" % genome_index
@@ -81,128 +81,84 @@ def main(inputfile, outputdir, prefix, configfile):
             raise ValueError('genome fasta file %r does not exist' % genome_fasta)
         return genome_fasta
 
-    def nucstr_validator(nucleotide_string):
-        nuc_pat = re.compile('[ACTGactg]+')
-        if not nuc_pat.match(nucleotide_string):
-            raise ValueError('adaptor sequence %r is invalid. Adaptor sequences may only '
-                             'contain A, C, G or T nucleotides.' % nucleotide_string)
-        return nucleotide_string
+    mapper_validator = partial(cv.in_set_validator, item_set=set(['STAR']))
 
-    def nonneg_integer(integer):
-        if integer < 0:
-            raise ValueError('Non-negative integer expected. Got %s.' % integer)
-        return integer
+    def rel_file_r_validator(path):
+        if not os.path.isabs(path):
+            parent_path = os.path.dirname(configfile)
+            path = os.path.join(os.path.abspath(parent_path), path)
+        return cv.file_r_validator(path)
 
-    def in_set_validator(item, item_set):
-        if item not in item_set:
-            raise ValueError('%r is not in set %r' % (item, item_set))
-        return item
-
-    def is_subset_validator(item_str, item_set):
-        items = []
-        for item in item_str.split(','):
-            in_set_validator(item)
-            items.append(item)
-        return items
-
-    def comma_sep_args(item_str):
-        if item_str.strip() == '':
-            return []
-        else:
-            return item_str.split(',')
-
-    trivial_converter = lambda x: x
-    mapper_validator = partial(in_set_validator, item_set=set(['STAR']))
-
-    config_format = {
+    cfg_format = {
         'general': {
-            'adapter5prime': Annot(str, None, nucstr_validator),
-            'adapter3prime': Annot(str, None, nucstr_validator),
-            'genomeindex': Annot(str, None, mapindex_validator),
-            'genomefasta': Annot(str, None, genomefasta_validator),
-            'rmTemp': Annot(bool, True, trivial_converter),
-            'n_threads': Annot(int, 2, trivial_converter),
+            'adapter5prime': cv.Annot(str, None, cv.dnastr_validator),
+            'adapter3prime': cv.Annot(str, None, cv.dnastr_validator),
+            'genomeindex': cv.Annot(str, None, mapindex_validator),
+            'genomefasta': cv.Annot(str, None, genomefasta_validator),
+            'rnaseq_pileup': cv.Annot(str, None, rel_file_r_validator),
+            'rmTemp': cv.Annot(bool, True, cv.id_converter),
+            'n_threads': cv.Annot(int, 2, cv.id_converter),
         },
         'reads': {
-            'fx_Q33': Annot(bool, True, trivial_converter),
-            'bc_5prime': Annot(int, 0, nonneg_integer),
-            'bc_3prime': Annot(int, 0, nonneg_integer),
-            'min_len': Annot(int, 15, nonneg_integer),
+            'fx_Q33': cv.Annot(bool, True, cv.id_converter),
+            'bc_5prime': cv.Annot(int, 0, cv.nonneg_integer),
+            'bc_3prime': cv.Annot(int, 0, cv.nonneg_integer),
+            'min_len': cv.Annot(int, 15, cv.nonneg_integer),
         },
         'pipeline': {
-            'remove_duplicates': Annot(bool, True, trivial_converter),
-            'fastqc_statistics': Annot(bool, True, trivial_converter),
-            'quality_trimming': Annot(bool, False, trivial_converter),
-            'adapter_clipping': Annot(bool, True, trivial_converter),
-            'quality_filtering': Annot(bool, True, trivial_converter),
-            'mapping': Annot(str, 'STAR', mapper_validator),
+            'remove_duplicates': cv.Annot(bool, True, cv.id_converter),
+            'fastqc_statistics': cv.Annot(bool, True, cv.id_converter),
+            'quality_trimming': cv.Annot(bool, False, cv.id_converter),
+            'adapter_clipping': cv.Annot(bool, True, cv.id_converter),
+            'quality_filtering': cv.Annot(bool, True, cv.id_converter),
+            'mapping': cv.Annot(str, 'STAR', mapper_validator),
         },
         'fastQC': {
-            'kmer_length': Annot(int, 7, nonneg_integer),
-            'extra_flags': Annot(str, [], comma_sep_args),
+            'kmer_length': cv.Annot(int, 7, cv.nonneg_integer),
+            'extra_flags': cv.Annot(str, [], cv.comma_sep_args),
         },
         'clippyAdapterClipper': {
-            'clip_len': Annot(int, 10, nonneg_integer),
+            'clip_len': cv.Annot(int, 10, cv.nonneg_integer),
         },
         'fastxQualityTrimmer': {
-            'quality_cutoff': Annot(int, 30, nonneg_integer),
+            'quality_cutoff': cv.Annot(int, 30, cv.nonneg_integer),
         },
         'lafugaQualityFilter': {
-            'quality_cutoff': Annot(int, 30, nonneg_integer),
-            'chastity': Annot(bool, False, trivial_converter),
-            'remove_n': Annot(bool, True, trivial_converter),
+            'quality_cutoff': cv.Annot(int, 30, cv.nonneg_integer),
+            'chastity': cv.Annot(bool, False, cv.id_converter),
+            'remove_n': cv.Annot(bool, True, cv.id_converter),
         },
         'STAR': {
-            'n_mismatch': Annot(int, 1, nonneg_integer),
-            'n_multimap': Annot(int, 1, nonneg_integer),
-            'extra_flags': Annot(str, [], comma_sep_args),
-            'allow_soft_clipping': Annot(bool, True, trivial_converter),
+            'n_mismatch': cv.Annot(int, 1, cv.nonneg_integer),
+            'n_multimap': cv.Annot(int, 1, cv.nonneg_integer),
+            'extra_flags': cv.Annot(str, [], cv.comma_sep_args),
+            'allow_soft_clipping': cv.Annot(bool, True, cv.id_converter),
         },
         'PostProcessing': {
-            'plot_transition_profiles': Annot(bool, True, trivial_converter),
-            'remove_n_edge_mut': Annot(int, 0, nonneg_integer),
-            'max_mut_per_read': Annot(int, 1, nonneg_integer),
-        }
+            'plot_transition_profiles': cv.Annot(bool, True, cv.id_converter),
+            'remove_n_edge_mut': cv.Annot(int, 0, cv.nonneg_integer),
+            'max_mut_per_read': cv.Annot(int, 1, cv.nonneg_integer),
+        },
+        'bsfinder': {
+            'pval_threshold': cv.Annot(float, 0.005, cv.id_converter),
+            'min_cov': cv.Annot(int, 2, cv.nonneg_integer),
+            'ref_nuc': cv.Annot(str, 'T', cv.dnanuc_validator),
+            'mut_nuc': cv.Annot(str, 'C', cv.dnanuc_validator),
+        },
+        'normalizer': {
+            'mut_snp_ratio': cv.Annot(float, 0.75, cv.id_converter),
+        },
+        'max_quantile': {
+            'max_quantile': cv.Annot(float, 0.95, cv.id_converter),
+        },
     }
 
-    type_getter = {
-        int: attrgetter('getint'),
-        str: attrgetter('get'),
-        float: attrgetter('getfloat'),
-        bool: attrgetter('getboolean'),
-    }
-    cfg_dict = {}
-    for section, fields_dict in config_format.items():
-        if section not in config:
-            logger.warn('config section %r missing.', section)
-            config.add_section(section)
-        cfg_sec = config[section]
-        sec_dict = {}
-        for key, annot in fields_dict.items():
-            if key not in cfg_sec:
-                if annot.default is not None:
-                    logger.warn('key %r missing in section %r. '
-                                'Using default value %r.', key, section, annot.default)
-                    sec_dict[key] = annot.default
-                else:
-                    logger.error('mandatory configuration key %r missing in section %r.',
-                                 key, section)
-                    sys.exit(1)
-            else:
-                try:
-                    cfg_getter = type_getter[annot.type]
-                    raw_data = cfg_getter(cfg_sec)(key)
-                    sec_dict[key] = annot.converter(raw_data)
-                    logger.debug('section %r: set %r to %r', section,
-                                 key, raw_data)
-                except ValueError as ex:
-                    logger.error('invalid value for key %r in section %r', key, section)
-                    logger.error(str(ex))
-                    sys.exit(1)
-        cfg_dict[section] = sec_dict
+    try:
+        cfg_dict = cv.mand_config(config, cfg_format)
+    except cv.ConfigError:
+        sys.exit(1)
 
-    pipeline = Pipeline()
-    pipeline.schedule(DummyModule(inputfile))
+    pipeline = pl.Pipeline(inputfile)
     pipeline_cfg = cfg_dict['pipeline']
 
     # star pipeline
@@ -283,6 +239,24 @@ def main(inputfile, outputdir, prefix, configfile):
         pileup_mod.msg = 'started generating the pileup file'
         pipeline.schedule(pileup_mod)
 
+        # finding potential binding sites
+        finder = BSFinderModule()
+        finder.prepare(pipeline.cur_output(), outputdir, prefix, cfg_dict)
+        finder.msg = 'scanning for potential binding sites'
+        pipeline.schedule(finder)
+
+        # calculate occupancies
+        norm_mod = NormalizationModule(remove_files=False)
+        norm_mod.prepare(pipeline.cur_output(), outputdir, prefix, cfg_dict)
+        norm_mod.msg = 'started normalizing with RNAseq data'
+        pipeline.schedule(norm_mod)
+
+        # set maximum to quantile
+        quantile_mod = MaxQuantileModule(remove_files=False)
+        quantile_mod.prepare(pipeline.cur_output(), outputdir, prefix, cfg_dict)
+        quantile_mod.msg = 'setting maximum quantile'
+        pipeline.schedule(quantile_mod)
+
     for job in pipeline:
         if hasattr(job, 'msg'):
             logger.info(job.msg)
@@ -339,50 +313,7 @@ def run():
     main(args.inputfile, args.outputdir, args.prefix, args.configfile)
 
 
-class PipelineModule:
-
-    def __init__(self):
-        self._data = {}
-
-    def prepare(self):
-        pass
-
-    def execute(self):
-        pass
-
-    def cleanup(self):
-        pass
-
-    def get(self, key='output', default=None):
-        return self._data.get(key, default)
-
-
-class CmdPipelineModule(PipelineModule):
-
-    def __init__(self, remove_files=True):
-        super().__init__()
-        self._remove_files = remove_files
-        self._data['files'] = []
-        self._cmds = []
-
-    def execute(self):
-        for cmd in self._cmds:
-            yield execute(cmd)
-
-    def cleanup(self):
-        if self._remove_files:
-            for rm_file in self._data['files']:
-                execute('rm -rf %s' % rm_file, exit=False)
-
-
-class DummyModule(PipelineModule):
-
-    def __init__(self, infile):
-        super().__init__()
-        self._data['output'] = infile
-
-
-class STARMapModule(CmdPipelineModule):
+class STARMapModule(pl.CmdPipelineModule):
 
     def prepare(self, fastq_file, output_dir, prefix, params):
         star_cfg = params['STAR']
@@ -428,7 +359,7 @@ class STARMapModule(CmdPipelineModule):
         self._cmds.append(index_cmd)
 
 
-class FastQCModule(CmdPipelineModule):
+class FastQCModule(pl.CmdPipelineModule):
 
     def prepare(self, fastq_file, output_dir, prefix, params):
         general_cfg = params['general']
@@ -456,7 +387,7 @@ class FastQCModule(CmdPipelineModule):
         self._cmds.append(cmd)
 
 
-class FastXStatisticsModule(CmdPipelineModule):
+class FastXStatisticsModule(pl.CmdPipelineModule):
 
     def prepare(self, fastq_file, output_dir, prefix, params):
         read_cfg = params['reads']
@@ -491,7 +422,7 @@ class FastXStatisticsModule(CmdPipelineModule):
         self._cmds.extend(cmds)
 
 
-class DuplicateRemovalModule(CmdPipelineModule):
+class DuplicateRemovalModule(pl.CmdPipelineModule):
 
     def prepare(self, fastq_file, output_dir, prefix, params):
         rmdup_file = os.path.join(output_dir, prefix + '_nodup.fastq')
@@ -507,7 +438,7 @@ class DuplicateRemovalModule(CmdPipelineModule):
         self._cmds.append(cmd)
 
 
-class ClippyAdapterClippingModule(CmdPipelineModule):
+class ClippyAdapterClippingModule(pl.CmdPipelineModule):
 
     def prepare(self, fastq_file, output_dir, prefix, params):
         general_cfg = params['general']
@@ -533,7 +464,7 @@ class ClippyAdapterClippingModule(CmdPipelineModule):
         self._data['output'] = adapter_clipped_file
 
 
-class LafugaAdapterClippingModule(CmdPipelineModule):
+class LafugaAdapterClippingModule(pl.CmdPipelineModule):
 
     def prepare(self, fastq_file, output_dir, prefix, params):
         general_cfg = params['general']
@@ -573,7 +504,7 @@ class LafugaAdapterClippingModule(CmdPipelineModule):
             self._data['output'] = adapter_clipped_bc_file
 
 
-class LafugaQualityTrimmingModule(CmdPipelineModule):
+class LafugaQualityTrimmingModule(pl.CmdPipelineModule):
 
     def prepare(self, fastq_file, output_dir, prefix, params):
         read_cfg = params['reads']
@@ -596,7 +527,7 @@ class LafugaQualityTrimmingModule(CmdPipelineModule):
         self._data['output'] = qualtrim_file
 
 
-class FastxQualityTrimmingModule(CmdPipelineModule):
+class FastxQualityTrimmingModule(pl.CmdPipelineModule):
 
     def prepare(self, fastq_file, output_dir, prefix, params):
         qt_cfg = params['fastxQualityTrimmer']
@@ -618,7 +549,7 @@ class FastxQualityTrimmingModule(CmdPipelineModule):
         self._data['output'] = qualtrim_file
 
 
-class LafugaQualityFilterModule(CmdPipelineModule):
+class LafugaQualityFilterModule(pl.CmdPipelineModule):
 
     def prepare(self, fastq_file, output_dir, prefix, params):
         read_cfg = params['reads']
@@ -643,7 +574,7 @@ class LafugaQualityFilterModule(CmdPipelineModule):
         self._data['output'] = qualfil_lafuga_file
 
 
-class SortIndexModule(CmdPipelineModule):
+class SortIndexModule(pl.CmdPipelineModule):
 
     def prepare(self, bam_file, output_dir, prefix):
         bam_sorted = os.path.join(output_dir, prefix + '_sorted.bam')
@@ -666,11 +597,12 @@ class SortIndexModule(CmdPipelineModule):
         self._data['output'] = bam_sorted
 
 
-class PileupModule(CmdPipelineModule):
+class PileupModule(pl.CmdPipelineModule):
 
     def prepare(self, bam_file, output_dir, prefix, cfg_dict):
         general_cfg = cfg_dict['general']
         pileup_file = os.path.join(output_dir, prefix + '.mpileup')
+        self._data['output'] = pileup_file
         pileup_cmd = [
             'samtools',
             'mpileup',
@@ -685,7 +617,7 @@ class PileupModule(CmdPipelineModule):
         self._cmds.append(pileup_cmd)
 
 
-class BamPPModule(CmdPipelineModule):
+class BamPPModule(pl.CmdPipelineModule):
 
     def prepare(self, bam_file, output_dir, prefix, cfg_dict):
         read_cfg = cfg_dict['reads']
@@ -710,7 +642,7 @@ class BamPPModule(CmdPipelineModule):
         self._data['output'] = out_bam_file
 
 
-class SoftclipAnalysisModule(CmdPipelineModule):
+class SoftclipAnalysisModule(pl.CmdPipelineModule):
 
     def prepare(self, bam_file, output_dir, prefix, cfg_dict):
         pp_plot_dir = os.path.join(output_dir, 'bam_analysis')
@@ -725,31 +657,56 @@ class SoftclipAnalysisModule(CmdPipelineModule):
         self._cmds.append(cmd)
 
 
-class Pipeline:
+class BSFinderModule(pl.CmdPipelineModule):
 
-    def __init__(self):
-        self._jobs = []
-        self._current = 0
+    def prepare(self, pileup_file, outdir, prefix, cfg_dict):
+        cfg = cfg_dict['bsfinder']
+        table_file = os.path.join(outdir, prefix + '.table')
+        self._data['output'] = table_file
+        self._data['files'].append(table_file)
+        cmd = [
+            'stammp-bsfinder',
+            '-p %s' % cfg['pval_threshold'],
+            '-c %s' % cfg['min_cov'],
+            '-r %s' % cfg['ref_nuc'],
+            '-m %s' % cfg['mut_nuc'],
+            pileup_file,
+            table_file
+        ]
+        self._cmds.append(cmd)
 
-    def schedule(self, module):
-        self._jobs.append(module)
 
-    def __iter__(self):
-        self._current = 0
-        return self
+class NormalizationModule(pl.CmdPipelineModule):
 
-    def __next__(self):
-        if self._current < len(self._jobs):
-            self._current += 1
-            return self._jobs[self._current - 1]
-        else:
-            raise StopIteration
+    def prepare(self, table_file, outdir, prefix, cfg_dict):
+        cfg = cfg_dict['normalizer']
+        normed_table_file = os.path.join(outdir, prefix + '.normed_table')
+        self._data['output'] = normed_table_file
+        self._data['files'].append(normed_table_file)
+        cmd = [
+            'stammp-normalize',
+            table_file,
+            normed_table_file,
+            cfg_dict['general']['rnaseq_pileup'],
+            '--mut_snp_ratio %s' % cfg['mut_snp_ratio'],
+        ]
+        self._cmds.append(cmd)
 
-    def cur_output(self):
-        for job in self._jobs[::-1]:
-            if job.get() is not None:
-                return job.get()
-        return None
+
+class MaxQuantileModule(pl.CmdPipelineModule):
+
+    def prepare(self, norm_table_file, outdir, prefix, cfg_dict):
+        cfg = cfg_dict['max_quantile']
+        maxq_file = os.path.join(outdir, prefix + '.qtable')
+        self._data['output'] = maxq_file
+        self._data['files'].append(maxq_file)
+        cmd = [
+            'stammp-convert2quantile',
+            norm_table_file,
+            maxq_file,
+            '-q %s' % cfg['max_quantile'],
+        ]
+        self._cmds.append(cmd)
 
 
 if __name__ == '__main__':

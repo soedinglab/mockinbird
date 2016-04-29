@@ -1,4 +1,3 @@
-#! /usr/bin/python3
 """
 Plot PAR-CLIP data in senseand anti-sense direction as heat maps based on
 annotations of a GFF file. The plot is centered at the start coordinate given
@@ -38,7 +37,7 @@ compared to the number of entries in the GFF.
     :align: center
     :height: 250px
     :alt: alternate text
-    
+
 .. image:: img/img_pub1_heatmap_asense.png
     :align: center
     :height: 250px
@@ -46,151 +45,161 @@ compared to the number of entries in the GFF.
 """
 import argparse
 import os
-from stammp.obj import *
 
-def main(parclipfile, gfffile, upstream, downstream, sense, minSize, 
+from stammp.utils import argparse_helper as aph
+from stammp.utils import execute
+from stammp.obj import functions, gff, parclipsites
+
+
+def main(parclipfile, gfffile, upstream, downstream, sense, minSize,
          maxSize, verbose, xbins, ybins, vstring=''):
     anno = gff.GFF(gfffile)
     anno.filterSize(minSize, maxSize)
     anno.sort2size()
-    pc = parclipsites.ParclipSites('')
+    pc = parclipsites.ParclipSites()
     pc.loadFromFile(parclipfile)
     mat = []
     annosize = []
-    totalsize = upstream+downstream+1
+    totalsize = upstream + downstream + 1
     for g in range(anno.size()):
-        tmp = [0]*totalsize
+        tmp = [0] * totalsize
         if verbose:
-            functions.showProgress(g, (anno.size()-1), vstring)
+            functions.showProgress(g, (anno.size() - 1), vstring)
         if anno.strand[g] == '+':
-            values = pc.getValues(anno.chr[g], anno.start[g], anno.strand[g], 
+            values = pc.getValues(anno.chr[g], anno.start[g], anno.strand[g],
                                   sense, upstream, downstream)
         else:
-            values = pc.getValues(anno.chr[g], anno.stop[g], anno.strand[g], 
+            values = pc.getValues(anno.chr[g], anno.stop[g], anno.strand[g],
                                   sense, upstream, downstream)
-        if values != None:
-            tmp[0:(len(values)-1)] = values
+        if values is not None:
+            tmp[0:(len(values) - 1)] = values
         mat.append(functions.shrinkValues(tmp, xbins))
-        annosize.append(anno.stop[g]-anno.start[g])
+        annosize.append(anno.stop[g] - anno.start[g])
     smat = []
     sannosize = []
     if ybins >= anno.size():
-        print('Warning: --ybins >= entries in '+gfffile)
+        print('Warning: --ybins >= entries in ' + gfffile)
         ybins = anno.size()
-    ystep = round(anno.size()/ybins)
+    ystep = round(anno.size() / ybins)
     ystart = 0
-    ystop = ystep    
+    ystop = ystep
     while ystop < anno.size():
-        tmp = [0]*xbins
+        tmp = [0] * xbins
         for i in range(xbins):
             count = 0
             tmpanno = 0
-            for j in range(ystart,ystop):
-                tmp[i] += mat[j][i] #[row][col]
+            for j in range(ystart, ystop):
+                tmp[i] += mat[j][i]  # [row][col]
                 tmpanno += annosize[j]
                 count += 1
-            tmp[i] = tmp[i]/count
-            tmpanno = tmpanno/count
+            tmp[i] = tmp[i] / count
+            tmpanno = tmpanno / count
         smat.append(tmp)
         sannosize.append(tmpanno)
         ystart = ystop
         ystop += ystep
-    return(smat, sannosize)
+    return smat, sannosize
     if verbose:
-        print('')
+        print()
+
 
 def saveMat(outfile, mat, upstream, downstream, annosize, xbins):
-    fc = open(outfile, 'w')
-    for i in range(len(mat)):
-        fc.write(str(((upstream+annosize[i]) / (upstream+downstream)) * xbins)+'\t')
-        for j in range(len(mat[i])):
-            fc.write(str(mat[i][j])+'\t')
-        fc.write('\n')
-    fc.close()
+    with open(outfile, 'w') as fc:
+        for i in range(len(mat)):
+            fc.write(str(((upstream + annosize[i]) / (upstream + downstream)) * xbins) + '\t')
+            for j in range(len(mat[i])):
+                fc.write(str(mat[i][j]) + '\t')
+            fc.write('\n')
+
 
 def run():
     scriptPath = os.path.dirname(os.path.realpath(__file__))
-    scriptPath = scriptPath+'/'
-    parser = argparse.ArgumentParser(description='Plot PAR-CLIP data in sense'
-    + 'and anti-sense direction as heat maps based on annotations of a GFF file. The'
-    + ' plot is centered at the start coordinate given in the GFF. The data'
-    + ' [(start-UPSTREAM),(start+downstream)] is plotted. Note, that no binning'
-    + ' in y-direction is performed if the value of --ybins is smaller'
-    + ' compared to the number of entries in the GFF.', 
-    epilog="contact: torkler@genzentrum.lmu.de")
-    parser.add_argument('parclip', help='path to the PAR-CLIP *.table')
-    parser.add_argument('outputdir', help='output directory')
+    plot_script = os.path.join(scriptPath, 'plotHeatMap.R')
+    parser = argparse.ArgumentParser(
+        description=(
+            'Plot PR-CLIP data in sense and anti-sense direction as heat maps '
+            'based on annotations of a GFF file. The plot is centered at the '
+            'start coordinate given in the GFF. The data '
+            '[(start-UPSTREAM),(start+downstream)] is plotted. Note, '
+            'that no binning in y-direction is performed if the value of --ybins '
+            'is smaller compared to the number of entries in the GFF.'
+        )
+    )
+    parser.add_argument('parclip', help='path to the PAR-CLIP *.table', type=aph.file_r)
+    parser.add_argument('outputdir', help='output directory', type=aph.dir_rwx)
     parser.add_argument('prefix', help='prefix of filenames')
-    parser.add_argument('gff', help='GFF file used for plotting')
-    parser.add_argument('-d', help='set downstream range [default: 4000nt]', 
+    parser.add_argument('gff', help='GFF file used for plotting', type=aph.file_r)
+    parser.add_argument('-d', help='set downstream range [default: 4000nt]',
                         dest='downstream', default=4000, type=int)
-    parser.add_argument('-u', help='set upstream range [default: 1000nt]', 
+    parser.add_argument('-u', help='set upstream range [default: 1000nt]',
                         dest='upstream', default=1000, type=int)
-    parser.add_argument('--min', help='minium transcript size [default: 0nt]',  
+    parser.add_argument('--min', help='minium transcript size [default: 0nt]',
                         default=0, type=int)
-    parser.add_argument('--max', help='maximum transcript size [default: 5000nt]', 
+    parser.add_argument('--max', help='maximum transcript size [default: 5000nt]',
                         default=5000, type=int)
-    parser.add_argument('--xbins', help='number of bins in x direction [default: 500]',  
+    parser.add_argument('--xbins', help='number of bins in x direction [default: 500]',
                         default=500, type=int)
-    parser.add_argument('--ybins', help='number of bins in y direction [default: 500]',  
+    parser.add_argument('--ybins', help='number of bins in y direction [default: 500]',
                         default=500, type=int)
-    parser.add_argument('--xpx', help='width of final plot in px [default: 500]',  
+    parser.add_argument('--xpx', help='width of final plot in px [default: 500]',
                         default=500, type=int)
-    parser.add_argument('--ypx', help='height of final plot in px [default: 500]',  
+    parser.add_argument('--ypx', help='height of final plot in px [default: 500]',
                         default=500, type=int)
-    parser.add_argument('-r','--remove', dest='remove', action="store_true", 
-                        default=False, help='remove temporary text files. [default: false]')
-    parser.add_argument('-v','--verbose', dest='verbose', action="store_true", 
-                        default=False, help='verbose output')
-    args = parser.parse_args()    
+    parser.add_argument('-r', '--remove', dest='remove', action='store_true',
+                        help='remove temporary text files. [default: false]')
+    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
+                        help='verbose output')
+    args = parser.parse_args()
 
     functions.checkExistence(args.parclip)
     functions.checkExistence(args.gff)
-#    functions.checkPath(args.outputdir)
-    
-    outfile_mat_sense = args.outputdir + args.prefix+'_mat_up' \
-    + str(args.upstream) + '_do' + str(args.downstream) + '_min' \
-    + str(args.min) + '_max' + str(args.max) + '_xbins' + str(args.xbins) \
-    + '_ybins' + str(args.ybins) + '_sense.table'
 
-    outfile_mat_asense = args.outputdir + args.prefix + '_mat_up' \
-    + str(args.upstream) + '_do' + str(args.downstream) + '_min' \
-    + str(args.min) + '_max' + str(args.max) + '_xbins' + str(args.xbins) \
-    + '_ybins' + str(args.ybins) + '_asense.table'
+    prefix_pattern = '%s_mat_up%s_do%s_min%s_max%s_xbins%s_ybins%s'
+    out_prefix = prefix_pattern % (args.prefix, args.upstream, args.downstream,
+                                   args.min, args.max, args.xbins, args.ybins)
 
-    outfile_img_sense = args.outputdir + args.prefix + '_mat_up' \
-    + str(args.upstream) + '_do' + str(args.downstream) + '_min' \
-    + str(args.min) + '_max' + str(args.max) + '_xbins' + str(args.xbins) \
-    + '_ybins' + str(args.ybins) + '_sense.png'
+    outfile_mat_sense = os.path.join(args.outputdir, out_prefix + '_sense.table')
+    outfile_mat_asense = os.path.join(args.outputdir, out_prefix + '_asense.table')
+    outfile_img_sense = os.path.join(args.outputdir, out_prefix + '_sense.png')
+    outfile_img_asense = os.path.join(args.outputdir, out_prefix + '_asense.png')
 
-    outfile_img_asense = args.outputdir + args.prefix + '_mat_up' \
-    + str(args.upstream) + '_do' + str(args.downstream) + '_min' \
-    + str(args.min) + '_max' + str(args.max) + '_xbins' + str(args.xbins) \
-    + '_ybins' + str(args.ybins) + '_asense.png'
-
-    sense = main(args.parclip, args.gff, args.upstream, args.downstream, True, 
-                 args.min, args.max, args.verbose, args.xbins, args.ybins, 
+    sense = main(args.parclip, args.gff, args.upstream, args.downstream, True,
+                 args.min, args.max, args.verbose, args.xbins, args.ybins,
                  'Collecting data from sense strand')
-                 
+
     asense = main(args.parclip, args.gff, args.upstream, args.downstream, False,
-                  args.min, args.max, args.verbose, args.xbins, args.ybins, 
+                  args.min, args.max, args.verbose, args.xbins, args.ybins,
                   'Collecting data from anti-sense strand')
 
-    saveMat(outfile_mat_sense, sense[0], args.upstream, args.downstream, 
+    saveMat(outfile_mat_sense, sense[0], args.upstream, args.downstream,
             sense[1], args.xbins)
 
-    saveMat(outfile_mat_asense, asense[0], args.upstream, args.downstream, 
+    saveMat(outfile_mat_asense, asense[0], args.upstream, args.downstream,
             asense[1], args.xbins)
 
-    os.system('R -q --slave -f ' + scriptPath + 'plotHeatMap.R --args ' \
-    + outfile_mat_sense + ' ' + outfile_mat_asense + ' ' + outfile_img_sense \
-    + ' ' + outfile_img_asense + ' 0.98 ' \
-    + str((args.upstream/(args.upstream+args.downstream)*args.xbins)) + ' ' \
-    + str(args.ypx) + ' ' + str(args.xpx))
-    
+    start = args.upstream / (args.upstream + args.downstream) * args.xbins
+
+    cmd = [
+        'R',
+        '-q',
+        '--slave',
+        '-f %r' % plot_script,
+        '--args',
+        '%r' % outfile_mat_sense,
+        '%r' % outfile_mat_asense,
+        '%r' % outfile_img_sense,
+        '%r' % outfile_img_asense,
+        0.98,  # hard-coded qvalue
+        start,
+        args.ypx,
+        args.xpx,
+    ]
+    execute(cmd)
+
     if args.remove:
         os.remove(outfile_mat_sense)
         os.remove(outfile_mat_asense)
+
 
 if __name__ == '__main__':
     run()

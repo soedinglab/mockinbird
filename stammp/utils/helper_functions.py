@@ -33,8 +33,8 @@ def prepare_output_dir(dir_path):
 
 def execute(cmd, exit=True):
     if isinstance(cmd, list):
-        cmd = ' '.join(cmd)
-    logger.debug('executing command %r' % cmd)
+        cmd = ' '.join(str(c) for c in cmd)
+    logger.debug('executing command: %s', cmd)
     try:
         proc = subprocess.Popen(args=cmd, shell=True, stderr=subprocess.PIPE,
                                 stdout=subprocess.PIPE, universal_newlines=True)

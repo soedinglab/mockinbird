@@ -13,6 +13,7 @@ setup(
         'console_scripts': [
             'stammp-bsfinder = stammp.scripts.bsfinder:run',
             'stammp-preprocess = stammp.scripts.preprocess:run',
+            'stammp-postprocess = stammp.scripts.postprocess:main',
             'stammp-normalize = stammp.scripts.normalize:run',
             'stammp-normalizeFake = stammp.scripts.normalizeFake:run',
             'stammp-convert2quantile = stammp.scripts.convert2quantile:run',

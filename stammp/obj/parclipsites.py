@@ -14,7 +14,7 @@ class ParclipSites:
             >>> from stammp.obj import parclipsites
             >>> sites = parclipsites.ParclipSites('name')
     """
-    def __init__(self, name):
+    def __init__(self, name=''):
         self.chrs = []
         self.pos = []
         self.m = []
@@ -62,7 +62,10 @@ class ParclipSites:
                 self.occ.append(float(split[6]))
             line = fc.readline()
         fc.close()
-        self.getChromosomePositions()
+        if len(self.chrs) == 0:
+            return
+        else:
+            self.getChromosomePositions()
 
     def save2File(self, filename):
         """

@@ -1,4 +1,3 @@
-#! /usr/bin/python3
 """
 Plot PAR-CLIP data in sense and anti-sense direction around start and stop
 positions given in the GFF file. Outputfilename is constructed from
@@ -42,9 +41,9 @@ Blue color represents PAR-CLIP signal on the sense strand, green color represent
   ==================    ======================================================
 
 Example::
-    
+
     stammp-makeCenterBothEnds parclip.table outputdirectory/ annotation.gff -d 1000 -u 1000 -g 750 --min 1500 --max 4000 --plotSmooth 20 --labelCenterA TSS --labelBody Gene --labelCenterB pA
-    
+
 
 .. image:: img/img_plotCenterBoth.png
     :align: center
@@ -53,78 +52,131 @@ Example::
 """
 import argparse
 import os
-import sys
-from stammp.obj import *
+from itertools import chain
 import datetime
 
-def main(parclipfile, outputfile, gfffile, downstream, upstream, gene, sense, minSize, maxSize, verbose, vstring=''):
+from stammp.obj import functions, gff, parclipsites
+from stammp.utils import execute
+from stammp.utils.argparse_helper import file_r, dir_rwx
+
+
+def main(parclipfile, outputfile, gfffile, downstream, upstream, gene, sense, minSize,
+         maxSize, verbose, vstring=''):
     anno = gff.GFF(gfffile)
     anno.filterSize(minSize, maxSize)
     pc = parclipsites.ParclipSites('')
     pc.loadFromFile(parclipfile)
-    fc_out = open(outputfile, 'w')
-    for g in range(anno.size()):
+    with open(outputfile, 'w') as fc_out:
+        for g in range(anno.size()):
+            if verbose:
+                functions.showProgress(g, (anno.size() - 1), vstring)
+            if anno.strand[g] == '+':
+                values_upstream = pc.getValues(anno.chr[g], anno.start[g], anno.strand[g],
+                                               sense, upstream, gene)
+                values_dostream = pc.getValues(anno.chr[g], anno.stop[g], anno.strand[g],
+                                               sense, gene, downstream)
+            else:
+                values_upstream = pc.getValues(anno.chr[g], anno.stop[g], anno.strand[g],
+                                               sense, upstream, gene)
+                values_dostream = pc.getValues(anno.chr[g], anno.start[g], anno.strand[g],
+                                               sense, gene, downstream)
+            if values_upstream is not None and values_dostream is not None:
+                print(*chain(values_upstream, values_dostream), sep='\t', file=fc_out)
         if verbose:
-            functions.showProgress(g, (anno.size()-1), vstring)
-        if anno.strand[g] == '+':
-            values_upstream = pc.getValues(anno.chr[g], anno.start[g], anno.strand[g], sense, upstream, gene)
-            values_dostream = pc.getValues(anno.chr[g], anno.stop[g], anno.strand[g], sense, gene, downstream)
-        else:
-            values_upstream = pc.getValues(anno.chr[g], anno.stop[g], anno.strand[g], sense, upstream, gene)
-            values_dostream = pc.getValues(anno.chr[g], anno.start[g], anno.strand[g], sense, gene, downstream)
-        if values_upstream != None and values_dostream != None:
-            for v in values_upstream:
-                fc_out.write(str(v)+'\t')
-            for v in values_dostream:
-                fc_out.write(str(v)+'\t')
-            fc_out.write('\n')
-    fc_out.close()
-    if verbose:
-        print('')
+            print()
+
 
 def run():
     scriptPath = os.path.dirname(os.path.realpath(__file__))
-    scriptPath = scriptPath+'/'
-    parser = argparse.ArgumentParser(description='Plot PAR-CLIP data in sense and anti-sense direction around start and stop positions given in the GFF file. Outputfilename is constructed from parameters: outputdir/prefix+u+g+d+min+max+labelCenterA+labelBody+labelCenterB+plotSmooth.pdf', epilog="contact: torkler@genzentrum.lmu.de")
-    parser.add_argument('parclip', help='path to the PAR-CLIP *.table')
-    parser.add_argument('outputdir', help='output directory')
+    plot_script = os.path.join(scriptPath, 'plotCenterBothEnds.R')
+    parser = argparse.ArgumentParser(
+        description=(
+            'Plot PAR-CLIP data in sense and anti-sense direction around start '
+            'and stop positions given in the GFF file. Outputfilename is constructed '
+            'from parameters: outputdir/prefix+u+g+d+min+max+labelCenterA+labelBody+'
+            'labelCenterB+plotSmooth.pdf'
+        )
+    )
+    parser.add_argument('parclip', help='path to the PAR-CLIP *.table', type=file_r)
+    parser.add_argument('outputdir', help='output directory', type=dir_rwx)
     parser.add_argument('prefix', help='prefix of filenames')
-    parser.add_argument('gff', help='GFF file used for plotting')
-    parser.add_argument('-d', help='set downstream range [default: 1000nt]', dest='downstream', default=1000, type=int)
-    parser.add_argument('-u', help='set upstream range [default: 1000nt]', dest='upstream', default=1000, type=int)
-    parser.add_argument('-g', help='set gene range [default: 750nt]', dest='gene', default=750, type=int)
-    parser.add_argument('--min', help='minium transcript size [default: 0nt]',  default=0, type=int)
-    parser.add_argument('--max', help='maximum transcript size [default: 5000nt]', default=5000, type=int)
-    parser.add_argument('--plotSmooth', help='half of the window size used for the running mean [default: 20nt]', default=20, type=int)
-    parser.add_argument('--labelCenterA', help='plot label for the first center position [default: TSS]', default='TSS')
-    parser.add_argument('--labelBody', help='plot label for body (between A and B) [default: gene]', default='gene')
-    parser.add_argument('--labelCenterB', help='plot label for the second center position [default: pA]', default='pA')
-    parser.add_argument('-r','--remove', dest='remove', action="store_true", default=False, help='remove temporary text files. [default: false]')
-    parser.add_argument('-v','--verbose', dest='verbose', action="store_true", default=False, help='verbose output')
+    parser.add_argument('gff', help='GFF file used for plotting', type=file_r)
+    parser.add_argument('-d', help='set downstream range [default: 1000nt]',
+                        dest='downstream', default=1000, type=int)
+    parser.add_argument('-u', help='set upstream range [default: 1000nt]',
+                        dest='upstream', default=1000, type=int)
+    parser.add_argument('-g', help='set gene range [default: 750nt]', dest='gene',
+                        default=750, type=int)
+    parser.add_argument('--min', help='minimum transcript size [default: 0nt]',
+                        default=0, type=int)
+    parser.add_argument('--max', help='maximum transcript size [default: 5000nt]',
+                        default=5000, type=int)
+    smooth_help = 'half of the window size used for the running mean [default: 20nt]'
+    parser.add_argument('--plotSmooth', help=smooth_help, default=20, type=int)
+    label_cenA_help = 'plot label for the first center position [default: TSS]'
+    parser.add_argument('--labelCenterA', help=label_cenA_help, default='TSS')
+    parser.add_argument('--labelBody', help='for body (between A and B) [default: gene]',
+                        default='gene')
+    label_cenB_help = 'plot label for the second center position [default: pA]'
+    parser.add_argument('--labelCenterB', help=label_cenB_help, default='pA')
+    parser.add_argument('-r', '--remove', action='store_true',
+                        help='remove temporary files. [default: false]')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='verbose output')
     args = parser.parse_args()
-    outfile_sense = args.outputdir+args.prefix+'_centerBoth_up'+str(args.upstream)+'_gene'+str(args.gene)+'_do'+str(args.downstream)+'_min'+str(args.min)+'_max'+str(args.max)+'_'+str(args.labelCenterA)+'_'+str(args.labelBody)+'_'+str(args.labelCenterB)+'_sense.table'
-    outfile_asense = args.outputdir+args.prefix+'_centerBoth_up'+str(args.upstream)+'_gene'+str(args.gene)+'_do'+str(args.downstream)+'_min'+str(args.min)+'_max'+str(args.max)+'_'+str(args.labelCenterA)+'_'+str(args.labelBody)+'_'+str(args.labelCenterB)+'_asense.table'
-    outfile_pdf = args.outputdir+args.prefix+'_centerBoth_up'+str(args.upstream)+'_gene'+str(args.gene)+'_do'+str(args.downstream)+'_min'+str(args.min)+'_max'+str(args.max)+'_'+str(args.labelCenterA)+'_'+str(args.labelBody)+'_'+str(args.labelCenterB)+'_sm'+str(args.plotSmooth)+'.pdf'
-    
+
+    prefix_fmt = '%s_centerBoth_up%s_gene%s_do%s_min%s_max%s'
+    fmt_args = (
+        args.prefix,
+        args.upstream,
+        args.gene,
+        args.downstream,
+        args.min,
+        args.max,
+    )
+    fn_prefix = prefix_fmt % fmt_args
+    outfile_sense = os.path.join(args.outputdir, fn_prefix + '_sense.table')
+    outfile_asense = os.path.join(args.outputdir, fn_prefix + '_asense.table')
+    outfile_pdf = os.path.join(args.outputdir, fn_prefix + '_sm%s.pdf' % args.plotSmooth)
+
+    start_time = datetime.datetime.now()
+
+    main(args.parclip, outfile_sense, args.gff, args.downstream, args.upstream,
+         args.gene, True, args.min, args.max, args.verbose,
+         'Collecting PAR-CLIP sense data')
+    main(args.parclip, outfile_asense, args.gff, args.downstream, args.upstream,
+         args.gene, False, args.min, args.max, args.verbose,
+         'Collecting PAR-CLIP anti-sense data')
+
     if args.verbose:
-        a = datetime.datetime.now()
-    main(args.parclip, outfile_sense, args.gff, args.downstream, args.upstream, args.gene, True, args.min, args.max, args.verbose, 'Collecting PAR-CLIP sense data')
-    main(args.parclip, outfile_asense, args.gff, args.downstream, args.upstream, args.gene, False, args.min, args.max, args.verbose, 'Collecting PAR-CLIP anti-sense data')
-    if args.verbose:
-        b = datetime.datetime.now()
-        c = b - a
-        print('')
-        print('time: '+str(c.seconds)+' seconds')
-    
-    os.system('R -q --slave -f '+scriptPath+'plotCenterBothEnds.R --args '+outfile_sense+' '+outfile_asense+' '+outfile_pdf+' '+args.prefix+' '+str(args.upstream)+' '+str(args.downstream)+' '+str(args.gene)+' '+str(args.plotSmooth)+' '+str(args.labelCenterA)+' '+str(args.labelBody)+' '+str(args.labelCenterB))
+        end_time = datetime.datetime.now()
+        run_time = end_time - start_time
+        print()
+        print('time: %s seconds' % run_time.seconds)
+
+    plot_cmd = [
+        'R',
+        '-q',
+        '--slave',
+        '-f %r' % plot_script,
+        '--args',
+        '%r' % outfile_sense,
+        '%r' % outfile_asense,
+        '%r' % outfile_pdf,
+        args.prefix,
+        args.upstream,
+        args.downstream,
+        args.gene,
+        args.plotSmooth,
+        '%r' % args.labelCenterA,
+        '%r' % args.labelBody,
+        '%r' % args.labelCenterB,
+    ]
+    execute(plot_cmd)
     if args.remove:
         os.remove(outfile_sense)
         os.remove(outfile_asense)
 
+
 if __name__ == '__main__':
     run()
-
-
-
-
-

@@ -24,13 +24,15 @@ from stammp.obj import *
 def main(inputfile, outputfile, q):
     if os.path.isfile(inputfile) == False:
         print('Inputfile: '+inputfile+' does not exist')
-        sys.exit(-1)
+        sys.exit(1)
     if q < 0 or q > 1.0:
         print('q: '+str(q)+' must between [0,1]')
-        sys.exit(-1)
-    sites = parclipsites.ParclipSites('')
+        sys.exit(1)
+    sites = parclipsites.ParclipSites()
     sites.loadFromFile(inputfile)
-    maxocc = functions.getQuantile(sites.occ, q)
+    # dirty hack to avoid errors on empty files
+    if len(sites.chrs) > 0:
+        maxocc = functions.getQuantile(sites.occ, q)
     
     for i in range(sites.size()):
         if sites.occ[i] > maxocc:
