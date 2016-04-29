@@ -33,6 +33,8 @@ setup(
             'stammp-selectSitesInside = stammp.scripts.selectSitesInside:run',
             'stammp-selectSitesAround = stammp.scripts.selectSitesAround:run',
             'stammp-generateConfig = stammp.scripts.generate_config:main',
+            'stammp-bam_postprocess = stammp.scripts.bam_postprocessing:main',
+            'stammp-softclip_analyzer = stammp.scripts.utils.clipped_seq:main',
         ]
     },
     packages=find_packages(),

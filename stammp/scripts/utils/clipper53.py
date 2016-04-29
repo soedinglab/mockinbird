@@ -10,6 +10,7 @@ def create_parser():
     parser.add_argument('--clip_len', type=int, default=12)
     parser.add_argument('--min_len', type=int, default=1)
     parser.add_argument('--nt_barcode_5prime', type=int, default=0)
+    parser.add_argument('--nt_barcode_3prime', type=int, default=0)
     parser.add_argument('--verbose', action='store_true')
     return parser
 
@@ -20,7 +21,8 @@ def main():
 
     clip_len = args.clip_len
     min_len = args.min_len
-    bc_len = args.nt_barcode_5prime
+    bc5_len = args.nt_barcode_5prime
+    bc3_len = args.nt_barcode_3prime
 
     prim5_string = args.prime5_adapter[-clip_len:]
     prim3_string = args.prime3_adapter[:clip_len]
@@ -41,8 +43,8 @@ def main():
                 left_hit = nt_seq.rfind(prim5_string)
                 right_hit = nt_seq.find(prim3_string)
 
-                read_start = bc_len if left_hit < 0 else left_hit + len(prim5_string) + bc_len
-                read_end = len(nt_seq) if right_hit < 0 else right_hit
+                read_start = bc5_len if left_hit < 0 else left_hit + len(prim5_string) + bc5_len
+                read_end = len(nt_seq) if right_hit < 0 else right_hit - bc3_len
 
                 if read_end - read_start >= min_len:
                     print(read_buffer[0], file=outfile)

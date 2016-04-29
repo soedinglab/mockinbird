@@ -1,6 +1,9 @@
 import os
 import subprocess
 import sys
+import logging
+
+logger = logging.getLogger()
 
 
 def native_wordcount(file_path):
@@ -28,25 +31,20 @@ def prepare_output_dir(dir_path):
             raise ValueError('output directory %r cannot be created' % dir_path)
 
 
-def execute(cmd, exit=True, verbose=False):
+def execute(cmd, exit=True):
+    if isinstance(cmd, list):
+        cmd = ' '.join(cmd)
+    logger.debug('executing command %r' % cmd)
     try:
-        if isinstance(cmd, list):
-            cmd = ' '.join(cmd)
-
-        if verbose:
-            print()
-            print('\t' + cmd)
-            print()
-
         proc = subprocess.Popen(args=cmd, shell=True, stderr=subprocess.PIPE,
                                 stdout=subprocess.PIPE, universal_newlines=True)
         retcode = proc.wait()
         stdout, stderr = proc.communicate()
         if retcode != 0:
-            print(stderr, file=sys.stderr)
+            logger.error('\n\n%s', stderr.strip())
             raise Exception
         return stdout, stderr
     except:
-        print('Error at:\n %r \n' % cmd, file=sys.stderr)
+        logger.error('Error while executing: %r', cmd)
         if exit:
             sys.exit(1)
