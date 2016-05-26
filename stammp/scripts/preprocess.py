@@ -68,7 +68,11 @@ def main(inputfile, outputdir, prefix, configfile):
         inline_comment_prefixes=';',
         interpolation=configparser.ExtendedInterpolation()
     )
-    config.read(configfile)
+    try:
+        config.read(configfile)
+    except configparser.Error as e:
+        logger.error(e)
+        sys.exit(1)
 
     def mapindex_validator(genome_index):
         genome_index_glob = "%s*" % genome_index
@@ -169,35 +173,35 @@ def main(inputfile, outputdir, prefix, configfile):
             fastqc_raw_dir = os.path.join(outputdir, 'fastQC_raw')
             prepare_dir_or_die(fastqc_raw_dir)
             fastqc_mod = FastQCModule()
-            fastqc_mod.prepare(pipeline.cur_output(), fastqc_raw_dir, prefix, cfg_dict)
+            fastqc_mod.prepare(pipeline.cur_output, fastqc_raw_dir, prefix, cfg_dict)
             fastqc_mod.msg = 'started FastQC analysis of raw reads'
             pipeline.schedule(fastqc_mod)
 
         # duplicate removal
         if pipeline_cfg['remove_duplicates']:
             dupfil_mod = DuplicateRemovalModule()
-            dupfil_mod.prepare(pipeline.cur_output(), outputdir, prefix, cfg_dict)
+            dupfil_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
             dupfil_mod.msg = 'started removing duplicated reads'
             pipeline.schedule(dupfil_mod)
 
         # adapter clipping
         if pipeline_cfg['adapter_clipping']:
             clip_mod = ClippyAdapterClippingModule()
-            clip_mod.prepare(pipeline.cur_output(), outputdir, prefix, cfg_dict)
+            clip_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
             clip_mod.msg = 'started clipping adapter sequences'
             pipeline.schedule(clip_mod)
 
         # quality trimming
         if pipeline_cfg['quality_trimming']:
             qt_mod = FastxQualityTrimmingModule()
-            qt_mod.prepare(pipeline.cur_output(), outputdir, prefix, cfg_dict)
+            qt_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
             qt_mod.msg = 'started quality trimming'
             pipeline.schedule(qt_mod)
 
         # quality filtering
         if pipeline_cfg['quality_filtering']:
             qf_mod = LafugaQualityFilterModule()
-            qf_mod.prepare(pipeline.cur_output(), outputdir, prefix, cfg_dict)
+            qf_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
             qf_mod.msg = 'started quality filtering'
             pipeline.schedule(qf_mod)
 
@@ -206,54 +210,54 @@ def main(inputfile, outputdir, prefix, configfile):
             fastqc_fil_dir = os.path.join(outputdir, 'fastQC_filtered')
             prepare_dir_or_die(fastqc_fil_dir)
             fastqc_mod = FastQCModule()
-            fastqc_mod.prepare(pipeline.cur_output(), fastqc_fil_dir, prefix, cfg_dict)
+            fastqc_mod.prepare(pipeline.cur_output, fastqc_fil_dir, prefix, cfg_dict)
             fastqc_mod.msg = 'started FastQC analysis of filtered reads'
             pipeline.schedule(fastqc_mod)
 
         # mapping with STAR
         star_mod = STARMapModule()
-        star_mod.prepare(pipeline.cur_output(), outputdir, prefix, cfg_dict)
+        star_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
         star_mod.msg = 'started mapping with STAR'
         pipeline.schedule(star_mod)
 
         clip_analysis_mod = SoftclipAnalysisModule()
-        clip_analysis_mod.prepare(pipeline.cur_output(), outputdir, prefix, cfg_dict)
+        clip_analysis_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
         clip_analysis_mod.msg = 'extracting common soft-clipped sequences'
         pipeline.schedule(clip_analysis_mod)
 
         # bam postprocessing
         bampp_mod = BamPPModule()
-        bampp_mod.prepare(pipeline.cur_output(), outputdir, prefix, cfg_dict)
+        bampp_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
         bampp_mod.msg = 'started postprocessing of the bam file'
         pipeline.schedule(bampp_mod)
 
         # sort bam file
         sort_mod = SortIndexModule(remove_files=False)
-        sort_mod.prepare(pipeline.cur_output(), outputdir, prefix)
+        sort_mod.prepare(pipeline.cur_output, outputdir, prefix)
         sort_mod.msg = 'started sorting the bam file'
         pipeline.schedule(sort_mod)
 
         # generating the pileup
         pileup_mod = PileupModule()
-        pileup_mod.prepare(pipeline.cur_output(), outputdir, prefix, cfg_dict)
+        pileup_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
         pileup_mod.msg = 'started generating the pileup file'
         pipeline.schedule(pileup_mod)
 
         # finding potential binding sites
         finder = BSFinderModule()
-        finder.prepare(pipeline.cur_output(), outputdir, prefix, cfg_dict)
+        finder.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
         finder.msg = 'scanning for potential binding sites'
         pipeline.schedule(finder)
 
         # calculate occupancies
         norm_mod = NormalizationModule(remove_files=False)
-        norm_mod.prepare(pipeline.cur_output(), outputdir, prefix, cfg_dict)
+        norm_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
         norm_mod.msg = 'started normalizing with RNAseq data'
         pipeline.schedule(norm_mod)
 
         # set maximum to quantile
         quantile_mod = MaxQuantileModule(remove_files=False)
-        quantile_mod.prepare(pipeline.cur_output(), outputdir, prefix, cfg_dict)
+        quantile_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
         quantile_mod.msg = 'setting maximum quantile'
         pipeline.schedule(quantile_mod)
 

@@ -64,6 +64,7 @@ class Pipeline:
         else:
             raise StopIteration
 
+    @property
     def cur_output(self):
         for job in self._jobs[::-1]:
             if job.get() is not None:

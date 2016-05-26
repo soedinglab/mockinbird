@@ -12,6 +12,19 @@ def dir_rwx(path):
     return path
 
 
+def dir_rwx_create(path):
+    if not os.path.isdir(path):
+        try:
+            os.makedirs(path)
+        except OSError:
+            msg = '%r does not exist and cannot be created' % path
+            raise argparse.ArgumentTypeError(msg)
+    if not os.access(path, os.R_OK | os.W_OK | os.X_OK):
+        msg = 'no read-write-execute access on %r' % path
+        raise argparse.ArgumentTypeError(msg)
+    return path
+
+
 def dir_rx(path):
     if not os.path.isdir(path):
         msg = '%r is not an existing directory' % path

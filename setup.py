@@ -36,6 +36,7 @@ setup(
             'stammp-generateConfig = stammp.scripts.generate_config:main',
             'stammp-bam_postprocess = stammp.scripts.bam_postprocessing:main',
             'stammp-softclip_analyzer = stammp.scripts.utils.clipped_seq:main',
+            'stammp-gffFilterSites = stammp.scripts.filter_sites:main',
         ]
     },
     packages=find_packages(),

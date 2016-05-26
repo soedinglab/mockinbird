@@ -5,6 +5,8 @@ import sys
 import logging
 import functools
 import glob
+from collections import OrderedDict
+import operator
 
 from stammp.utils.pipeline import CmdPipelineModule
 from stammp.utils import config_validation as cv
@@ -17,7 +19,8 @@ def create_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('preprocess_dir', type=aph.dir_rx)
     parser.add_argument('--prefix')
-    parser.add_argument('output_dir', type=aph.dir_rwx)
+    parser.add_argument('--no-pileup', action='store_true')
+    parser.add_argument('output_dir', type=aph.dir_rwx_create)
     parser.add_argument('config_file', type=aph.file_r)
     parser.add_argument('--log_level', choices=LOG_LEVEL_MAP.keys(), default='info')
     return parser
@@ -43,7 +46,10 @@ def main():
 
     logger.info('started postprocessing via %r', ' '.join(sys.argv))
 
-    required_ext = ['.mpileup', '.qtable']
+    required_ext = ['.qtable']
+    if not args.no_pileup:
+        required_ext.append('.mpileup')
+
     scan_pat = os.path.join(args.preprocess_dir, '*' + required_ext[0])
     avail_prefixes = []
     for scfile in glob.glob(scan_pat):
@@ -85,10 +91,15 @@ def main():
 
     # config parsing
     config = configparser.ConfigParser(
+        strict=False,
         inline_comment_prefixes=';',
         interpolation=configparser.ExtendedInterpolation(),
     )
-    config.read(args.config_file)
+    try:
+        config.read(args.config_file)
+    except configparser.Error as e:
+        logger.error(e)
+        sys.exit(1)
 
     def rel_file_r_validator(path):
         if not os.path.isabs(path):
@@ -105,95 +116,103 @@ def main():
         return rel_file_r_validator(path)
 
     cfg_format = {
-        'center_plot': {
-            'gff_file': cv.Annot(str, None, rel_file_r_validator),
-            'output_prefix': cv.Annot(str, None, cv.id_converter),
-            'downstream_bp': cv.Annot(int, 1000, cv.nonneg_integer),
-            'upstream_bp': cv.Annot(int, 1000, cv.nonneg_integer),
-            'gene_bp': cv.Annot(int, 750, cv.nonneg_integer),
-            'min_trscr_size_bp': cv.Annot(int, 0, cv.nonneg_integer),
-            'max_trscr_size_bp': cv.Annot(int, 5000, cv.nonneg_integer),
-            'smoothing_window': cv.Annot(int, 20, cv.nonneg_integer),
-            'labelCenterA': cv.Annot(str, None, cv.id_converter),
-            'labelCenterB': cv.Annot(str, None, cv.id_converter),
-            'labelBody': cv.Annot(str, None, cv.id_converter),
-            'remove_tmp_files': cv.Annot(bool, True, cv.id_converter),
-        },
-        'kmer_count_plot': {
-            'genome_fasta': cv.Annot(str, None, rel_file_r_validator),
-            'output_prefix': cv.Annot(str, None, cv.id_converter),
-            'kmer_k': cv.Annot(int, 3, cv.nonneg_integer),
-            'first_index': cv.Annot(int, 0, cv.nonneg_integer),
-            'last_index': cv.Annot(int, 1500, cv.nonneg_integer),
-            'width': cv.Annot(int, 50, cv.nonneg_integer),
-            'sort_key': cv.Annot(str, 'occ', sort_key_validator),
-            'gff_exclude_path': cv.Annot(str, None, opt_file_validator),
-            'gff_padding': cv.Annot(int, 20, cv.nonneg_integer),
-            'remove_tmp_files': cv.Annot(bool, True, cv.id_converter),
-        },
-        'kmer_logodd_plot': {
-            'genome_fasta': cv.Annot(str, None, rel_file_r_validator),
-            'output_prefix': cv.Annot(str, None, cv.id_converter),
-            'kmer_k': cv.Annot(int, 3, cv.nonneg_integer),
-            'sort_key': cv.Annot(str, 'occ', sort_key_validator),
-            'gff_exclude_path': cv.Annot(str, None, opt_file_validator),
-            'use_quantiles': cv.Annot(bool, True, cv.id_converter),
-            'negative_set': cv.Annot(str, None, rel_file_r_validator),
-        },
-        'xxmotif': {
-            'genome_fasta': cv.Annot(str, None, rel_file_r_validator),
-            'output_prefix': cv.Annot(str, None, cv.id_converter),
-            'negative_set': cv.Annot(str, '', opt_file_validator),
-            'plot_top_n_pwm': cv.Annot(int, 3, cv.nonneg_integer),
-            'first_index': cv.Annot(int, 0, cv.nonneg_integer),
-            'last_index': cv.Annot(int, 1500, cv.nonneg_integer),
-            'width': cv.Annot(int, 12, cv.nonneg_integer),
-            'sort_key': cv.Annot(str, 'occ', sort_key_validator),
-            'gff_exclude_path': cv.Annot(str, None, opt_file_validator),
-            'gff_padding': cv.Annot(int, 20, cv.nonneg_integer),
-        },
-        'tr_freq_plot': {
-            'output_prefix': cv.Annot(str, None, cv.id_converter),
-            'min_cov': cv.Annot(int, 5, cv.nonneg_integer),
-            'y_axis_limit': cv.Annot(float, 0, cv.id_converter),
-            'remove_tmp_files': cv.Annot(bool, True, cv.id_converter),
-        },
-        'heatmap_plot': {
-            'gff_file': cv.Annot(str, None, rel_file_r_validator),
-            'output_prefix': cv.Annot(str, None, cv.id_converter),
-            'downstream_bp': cv.Annot(int, 4000, cv.nonneg_integer),
-            'upstream_bp': cv.Annot(int, 1000, cv.nonneg_integer),
-            'min_trscr_size_bp': cv.Annot(int, 0, cv.nonneg_integer),
-            'max_trscr_size_bp': cv.Annot(int, 5000, cv.nonneg_integer),
-            'xbins': cv.Annot(int, 500, cv.nonneg_integer),
-            'ybins': cv.Annot(int, 500, cv.nonneg_integer),
-            'x_pixels': cv.Annot(int, 500, cv.nonneg_integer),
-            'y_pixels': cv.Annot(int, 500, cv.nonneg_integer),
-            'remove_tmp_files': cv.Annot(bool, True, cv.id_converter),
-        },
-        'heatmap_small_plot': {
-            'gff_file': cv.Annot(str, None, rel_file_r_validator),
-            'output_prefix': cv.Annot(str, None, cv.id_converter),
-            'downstream_bp': cv.Annot(int, 500, cv.nonneg_integer),
-            'upstream_bp': cv.Annot(int, 1000, cv.nonneg_integer),
-            'min_trscr_size_bp': cv.Annot(int, 0, cv.nonneg_integer),
-            'max_trscr_size_bp': cv.Annot(int, 5000, cv.nonneg_integer),
-            'xbins': cv.Annot(int, 500, cv.nonneg_integer),
-            'ybins': cv.Annot(int, 500, cv.nonneg_integer),
-            'x_pixels': cv.Annot(int, 500, cv.nonneg_integer),
-            'y_pixels': cv.Annot(int, 500, cv.nonneg_integer),
-            'remove_tmp_files': cv.Annot(bool, True, cv.id_converter),
-        },
+        'center_plot': OrderedDict([
+            ('gff_file', cv.Annot(str, None, rel_file_r_validator)),
+            ('output_prefix', cv.Annot(str, None, cv.id_converter)),
+            ('downstream_bp', cv.Annot(int, 1000, cv.nonneg_integer)),
+            ('upstream_bp', cv.Annot(int, 1000, cv.nonneg_integer)),
+            ('gene_bp', cv.Annot(int, 750, cv.nonneg_integer)),
+            ('min_trscr_size_bp', cv.Annot(int, 0, cv.nonneg_integer)),
+            ('max_trscr_size_bp', cv.Annot(int, 5000, cv.nonneg_integer)),
+            ('smoothing_window', cv.Annot(int, 20, cv.nonneg_integer)),
+            ('labelCenterA', cv.Annot(str, None, cv.id_converter)),
+            ('labelCenterB', cv.Annot(str, None, cv.id_converter)),
+            ('labelBody', cv.Annot(str, None, cv.id_converter)),
+            ('remove_tmp_files', cv.Annot(bool, True, cv.id_converter)),
+        ]),
+        'kmer_count_plot': OrderedDict([
+            ('genome_fasta', cv.Annot(str, None, rel_file_r_validator)),
+            ('output_prefix', cv.Annot(str, None, cv.id_converter)),
+            ('kmer_k', cv.Annot(int, 3, cv.nonneg_integer)),
+            ('first_index', cv.Annot(int, 0, cv.nonneg_integer)),
+            ('last_index', cv.Annot(int, 1500, cv.nonneg_integer)),
+            ('width', cv.Annot(int, 50, cv.nonneg_integer)),
+            ('sort_key', cv.Annot(str, 'occ', sort_key_validator)),
+            ('gff_exclude_path', cv.Annot(str, None, opt_file_validator)),
+            ('gff_padding', cv.Annot(int, 20, cv.nonneg_integer)),
+            ('remove_tmp_files', cv.Annot(bool, True, cv.id_converter)),
+        ]),
+        'kmer_logodd_plot': OrderedDict([
+            ('genome_fasta', cv.Annot(str, None, rel_file_r_validator)),
+            ('output_prefix', cv.Annot(str, None, cv.id_converter)),
+            ('kmer_k', cv.Annot(int, 3, cv.nonneg_integer)),
+            ('sort_key', cv.Annot(str, 'occ', sort_key_validator)),
+            ('gff_exclude_path', cv.Annot(str, None, opt_file_validator)),
+            ('use_quantiles', cv.Annot(bool, True, cv.id_converter)),
+            ('negative_set', cv.Annot(str, None, rel_file_r_validator)),
+        ]),
+        'xxmotif': OrderedDict([
+            ('genome_fasta', cv.Annot(str, None, rel_file_r_validator)),
+            ('output_prefix', cv.Annot(str, None, cv.id_converter)),
+            ('negative_set', cv.Annot(str, '', opt_file_validator)),
+            ('plot_top_n_pwm', cv.Annot(int, 3, cv.nonneg_integer)),
+            ('first_index', cv.Annot(int, 0, cv.nonneg_integer)),
+            ('last_index', cv.Annot(int, 1500, cv.nonneg_integer)),
+            ('width', cv.Annot(int, 12, cv.nonneg_integer)),
+            ('sort_key', cv.Annot(str, 'occ', sort_key_validator)),
+            ('gff_exclude_path', cv.Annot(str, None, opt_file_validator)),
+            ('gff_padding', cv.Annot(int, 20, cv.nonneg_integer)),
+        ]),
+        'tr_freq_plot': OrderedDict([
+            ('output_prefix', cv.Annot(str, None, cv.id_converter)),
+            ('min_cov', cv.Annot(int, 5, cv.nonneg_integer)),
+            ('y_axis_limit', cv.Annot(float, 0, cv.id_converter)),
+            ('remove_tmp_files', cv.Annot(bool, True, cv.id_converter)),
+        ]),
+        'heatmap_plot': OrderedDict([
+            ('gff_file', cv.Annot(str, None, rel_file_r_validator)),
+            ('output_prefix', cv.Annot(str, None, cv.id_converter)),
+            ('downstream_bp', cv.Annot(int, 4000, cv.nonneg_integer)),
+            ('upstream_bp', cv.Annot(int, 1000, cv.nonneg_integer)),
+            ('min_trscr_size_bp', cv.Annot(int, 0, cv.nonneg_integer)),
+            ('max_trscr_size_bp', cv.Annot(int, 5000, cv.nonneg_integer)),
+            ('xbins', cv.Annot(int, 500, cv.nonneg_integer)),
+            ('ybins', cv.Annot(int, 500, cv.nonneg_integer)),
+            ('x_pixels', cv.Annot(int, 500, cv.nonneg_integer)),
+            ('y_pixels', cv.Annot(int, 500, cv.nonneg_integer)),
+            ('remove_tmp_files', cv.Annot(bool, True, cv.id_converter)),
+        ]),
+        'heatmap_small_plot': OrderedDict([
+            ('gff_file', cv.Annot(str, None, rel_file_r_validator)),
+            ('output_prefix', cv.Annot(str, None, cv.id_converter)),
+            ('downstream_bp', cv.Annot(int, 500, cv.nonneg_integer)),
+            ('upstream_bp', cv.Annot(int, 1000, cv.nonneg_integer)),
+            ('min_trscr_size_bp', cv.Annot(int, 0, cv.nonneg_integer)),
+            ('max_trscr_size_bp', cv.Annot(int, 5000, cv.nonneg_integer)),
+            ('xbins', cv.Annot(int, 500, cv.nonneg_integer)),
+            ('ybins', cv.Annot(int, 500, cv.nonneg_integer)),
+            ('x_pixels', cv.Annot(int, 500, cv.nonneg_integer)),
+            ('y_pixels', cv.Annot(int, 500, cv.nonneg_integer)),
+            ('remove_tmp_files', cv.Annot(bool, True, cv.id_converter)),
+        ]),
+        'gff_filter': OrderedDict([
+            ('file_postfix', cv.Annot(str, 'filtered', cv.id_converter)),
+            ('padding_bp', cv.Annot(int, 10, cv.nonneg_integer)),
+            ('features', cv.Annot(str, [], cv.comma_sep_args)),
+            ('filter_gff', cv.Annot(str, None, rel_file_r_validator)),
+        ]),
     }
 
+    output_getter = operator.attrgetter('cur_output')
     modules = {
-        'center_plot': (CenterPlotModule, qnormed_table),
-        'kmer_count_plot': (KmerPerPositionModule, qnormed_table),
-        'kmer_logodd_plot': (KmerLogoddModule, qnormed_table),
-        'xxmotif': (XXmotifModule, qnormed_table),
-        'tr_freq_plot': (TransitionFrequencyModule, pileup_file),
-        'heatmap_plot': (HeatmapPlotModule, qnormed_table),
-        'heatmap_small_plot': (HeatmapSmallPlotModule, qnormed_table),
+        'center_plot': (CenterPlotModule, output_getter),
+        'kmer_count_plot': (KmerPerPositionModule, output_getter),
+        'kmer_logodd_plot': (KmerLogoddModule, output_getter),
+        'xxmotif': (XXmotifModule, output_getter),
+        'tr_freq_plot': (TransitionFrequencyModule, lambda x: pileup_file),
+        'heatmap_plot': (HeatmapPlotModule, output_getter),
+        'heatmap_small_plot': (HeatmapSmallPlotModule, output_getter),
+        'gff_filter': (GffFilterModule, output_getter),
     }
 
     try:
@@ -201,10 +220,21 @@ def main():
     except cv.ConfigError:
         sys.exit(1)
 
+    fil_cfg_dicts = []
+    if args.no_pileup:
+        for cfg_dict in cfg_dicts:
+            if cfg_dict['type'] == 'tr_freq_plot':
+                logger.warn('Scheduled transition frequency plot conflicts with '
+                            'the option %r', '--no-pileup')
+            else:
+                fil_cfg_dicts.append(cfg_dict)
+        cfg_dicts = fil_cfg_dicts
+
     pipeline = pl.Pipeline(qnormed_table)
     for cfg_dict in cfg_dicts:
-        module_class, infile = modules[cfg_dict['type']]
+        module_class, input_factory = modules[cfg_dict['type']]
         module = module_class()
+        infile = input_factory(pipeline)
         module.prepare(infile, args.output_dir, prefix, cfg_dict)
         module.msg = 'Executing work package %r' % cfg_dict['sec_name']
         pipeline.schedule(module)
@@ -216,7 +246,8 @@ def main():
         if res:
             for stdout, stderr in res:
                 if stdout.strip() != '':
-                    logger.info('\n\n' + stdout)
+                    msg = 'Additional Output:\n\n'
+                    logger.info(msg + stdout)
     logger.info('All done. Bye!')
 
 
@@ -371,4 +402,26 @@ class HeatmapSmallPlotModule(CmdPipelineModule):
         ]
         if cfg['remove_tmp_files']:
             cmd.append('-r')
+        self._cmds.append(cmd)
+
+
+class GffFilterModule(CmdPipelineModule):
+
+    def prepare(self, sites_file, outdir, prefix, cfg):
+        file_name = os.path.basename(sites_file)
+        bname, ext = os.path.splitext(file_name)
+        out_bname = '%s_%s' % (bname, cfg['file_postfix'])
+        out_file = os.path.join(outdir, out_bname + ext)
+        self._data['output'] = out_file
+        cmd = [
+            'stammp-gffFilterSites',
+            sites_file,
+            out_file,
+            cfg['filter_gff'],
+            '--padding_bp %s' % cfg['padding_bp'],
+        ]
+        if len(cfg['features']) > 0:
+            cmd.append('--filter_features')
+            for feature in cfg['features']:
+                cmd.append('%r' % feature)
         self._cmds.append(cmd)

@@ -50,6 +50,7 @@ Example::
 """
 import argparse
 import os
+import shutil
 from stammp.obj import parclipsites, genome, gff
 from stammp.utils import argparse_helper as aph
 from stammp.utils import execute
@@ -83,6 +84,7 @@ def run():
     parser.add_argument('--filterGFF', help=filter_gff_help, default='')
     awidth_help = 'number of nt that are added to the start/stop indices of the GFF annotations'
     parser.add_argument('--awidth', help=awidth_help, type=int, default=20)
+    parser.add_argument('--keep-tmp-files', action='store_true')
     args = parser.parse_args()
 
     prefix_pat = '%s_xxmotif_start%s_stop%s_width%s_sort_%s'
@@ -127,6 +129,10 @@ def run():
     ]
     if args.plotPWM > 0:
         execute(plot_cmd)
+
+    tmp_dir = os.path.join(args.outdir, 'tmp')
+    if not args.keep_tmp_files:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 if __name__ == '__main__':

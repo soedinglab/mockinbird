@@ -1,5 +1,5 @@
 """
-Plot log-odds for all kmers as a heatmap. Bins of the x-axis are sorted according to *key*. Y-axis is sorted according to the most enriched kmers in the first 3 columns. Make sure to provide the appropriate negative set for the chosen *kmer*. 
+Plot log-odds for all kmers as a heatmap. Bins of the x-axis are sorted according to *key*. Y-axis is sorted according to the most enriched kmers in the first 3 columns. Make sure to provide the appropriate negative set for the chosen *kmer*.
 
 Log-odds are calculated as: log2(p(kmer|PARCLIP)/p(kmer|background))
 
@@ -57,6 +57,7 @@ Example::
 import os
 import math
 import argparse
+import sys
 
 from stammp.obj import functions, gff, parclipsites, genome
 from stammp.utils import execute
@@ -114,7 +115,8 @@ def sortAndSave(oddlist, outfile, kmers):
             fc.write('\n')
 
 
-def main(parclip, outdir, prefix, genomepath, negset, gfffile, kmer, key, useQuantiles, verbose):
+def main(parclip, outdir, prefix, genomepath, negset, gfffile, kmer, key,
+         useQuantiles, verbose, args):
     scriptPath = os.path.dirname(os.path.realpath(__file__))
     plot_script = os.path.join(scriptPath, 'plotKmerLogOdds.R')
     pc = parclipsites.ParclipSites()
@@ -132,36 +134,34 @@ def main(parclip, outdir, prefix, genomepath, negset, gfffile, kmer, key, useQua
     allfreqs = []
     fileprefix = '%s_logodds_%smer_sort_%s' % (prefix, kmer, key)
     if useQuantiles:
-        fileprefix = fileprefix+'_quantiles'
-        out_file = os.path.join(outdir, fileprefix + '.warning')
-        with open(out_file, 'w') as fc:
-            allfreqs.append(getkmerLogs(pc, genomeseq, negfreq, kmers, 0, 1000, 15))
-            quantiles = [
-                0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.125, 0.15, 0.175,
-                0.2, 0.225, 0.25, 0.275, 0.3, 0.325, 0.35, 0.375, 0.4,
-                0.45, 0.5, 0.55, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9
-            ]
-            count = 1
-            stop = 1000
-            for q in quantiles:
-                if verbose:
-                    functions.showProgress(count, len(quantiles),
-                                           'Getting kmer log-odds from quantiles...')
-                old_stop = stop
-                start = functions.getQuantileIndex(pc.size(), q) - 500
-                stop = functions.getQuantileIndex(pc.size(), q) + 500
-                if start < 0:
-                    start = 0
-                if stop > (pc.size() - 2):
-                    break
-                count = count + 1
-                if (stop - 500) < old_stop:
-                    msg_pat = 'Bin %s and %s are overlapping by %s sites!'
-                    # 2x quantiles[count - 2] is probably a bug
-                    msg = msg_pat % (quantiles[count - 2], quantiles[count - 2],
-                                     old_stop - (stop - 500))
-                    print(msg, file=fc)
-                allfreqs.append(getkmerLogs(pc, genomeseq, negfreq, kmers, start, stop, 15))
+        fileprefix = fileprefix + '_quantiles'
+        allfreqs.append(getkmerLogs(pc, genomeseq, negfreq, kmers, 0, 1000, 15))
+        quantiles = [
+            0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.125, 0.15, 0.175,
+            0.2, 0.225, 0.25, 0.275, 0.3, 0.325, 0.35, 0.375, 0.4,
+            0.45, 0.5, 0.55, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9
+        ]
+        count = 1
+        stop = 1000
+        for q in quantiles:
+            if verbose:
+                functions.showProgress(count, len(quantiles),
+                                       'Getting kmer log-odds from quantiles...')
+            old_stop = stop
+            start = functions.getQuantileIndex(pc.size(), q) - 500
+            stop = functions.getQuantileIndex(pc.size(), q) + 500
+            if start < 0:
+                start = 0
+            if stop > (pc.size() - 2):
+                break
+            count = count + 1
+            if (stop - 500) < old_stop:
+                msg_pat = 'Bin %s and %s are overlapping by %s sites!'
+                # 2x quantiles[count - 2] is probably a bug
+                msg = msg_pat % (quantiles[count - 2], quantiles[count - 2],
+                                 old_stop - (stop - 500))
+                print(msg, file=sys.stderr)
+            allfreqs.append(getkmerLogs(pc, genomeseq, negfreq, kmers, start, stop, 15))
     else:
         maxsize = 50000
         stepsize = 1000
@@ -195,6 +195,9 @@ def main(parclip, outdir, prefix, genomepath, negset, gfffile, kmer, key, useQua
     ]
     execute(cmd)
 
+    if not args.keep_tmp_files:
+        os.remove(table_file)
+
 
 def run():
     parser = argparse.ArgumentParser(
@@ -219,10 +222,11 @@ def run():
                         help=quantile_help)
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                         help='verbose output')
+    parser.add_argument('--keep-tmp-files', action='store_true')
     args = parser.parse_args()
 
     main(args.parclip, args.outdir, args.prefix, args.genome, args.negset,
-         args.gff, args.kmer, args.key, args.useQuantiles, args.verbose)
+         args.gff, args.kmer, args.key, args.useQuantiles, args.verbose, args)
 
 
 if __name__ == '__main__':

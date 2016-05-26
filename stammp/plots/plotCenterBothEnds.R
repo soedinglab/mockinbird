@@ -91,8 +91,10 @@ csa_smooth_r = csa_smooth - miny
 
 maxy = max(c(css_smooth_r, csa_smooth_r))
 
-css_smooth_r = css_smooth_r / maxy
-csa_smooth_r = csa_smooth_r / maxy
+if (maxy > 0) {
+	css_smooth_r = css_smooth_r / maxy
+	csa_smooth_r = csa_smooth_r / maxy
+}
 
 plotBothEnds(css_smooth_r, csa_smooth_r, rStart, rStop, body, centerName1, midName, centerName2, paste('Smoothed signal is rescaled to unit interval', fname))
 
