@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='stammp',
-    version='0.1',
+    version='1.0',
     description='Analyzing PAR-CLIP data',
     url='https://bitbucket.org/soedinglab',
     author='PT',
@@ -37,6 +37,7 @@ setup(
             'stammp-bam_postprocess = stammp.scripts.bam_postprocessing:main',
             'stammp-softclip_analyzer = stammp.scripts.utils.clipped_seq:main',
             'stammp-gffFilterSites = stammp.scripts.filter_sites:main',
+            'stammp-ss_indicator = stammp.plots.secstruc_indicator:main',
         ]
     },
     packages=find_packages(),

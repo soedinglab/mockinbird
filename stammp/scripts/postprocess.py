@@ -149,12 +149,14 @@ def main():
             ('sort_key', cv.Annot(str, 'occ', sort_key_validator)),
             ('gff_exclude_path', cv.Annot(str, None, opt_file_validator)),
             ('use_quantiles', cv.Annot(bool, True, cv.id_converter)),
-            ('negative_set', cv.Annot(str, None, rel_file_r_validator)),
+            ('negative_set_gff', cv.Annot(str, None, rel_file_r_validator)),
+            ('n_negative_seqs', cv.Annot(int, 20000, cv.nonneg_integer)),
         ]),
         'xxmotif': OrderedDict([
             ('genome_fasta', cv.Annot(str, None, rel_file_r_validator)),
             ('output_prefix', cv.Annot(str, None, cv.id_converter)),
-            ('negative_set', cv.Annot(str, '', opt_file_validator)),
+            ('negative_set_gff', cv.Annot(str, None, rel_file_r_validator)),
+            ('n_negative_seqs', cv.Annot(int, 20000, cv.nonneg_integer)),
             ('plot_top_n_pwm', cv.Annot(int, 3, cv.nonneg_integer)),
             ('first_index', cv.Annot(int, 0, cv.nonneg_integer)),
             ('last_index', cv.Annot(int, 1500, cv.nonneg_integer)),
@@ -201,6 +203,16 @@ def main():
             ('features', cv.Annot(str, [], cv.comma_sep_args)),
             ('filter_gff', cv.Annot(str, None, rel_file_r_validator)),
         ]),
+        'ss_indicator': OrderedDict([
+            ('genome_fasta', cv.Annot(str, None, rel_file_r_validator)),
+            ('output_prefix', cv.Annot(str, None, cv.id_converter)),
+            ('sample_gff', cv.Annot(str, None, rel_file_r_validator)),
+            ('first_index', cv.Annot(int, 0, cv.nonneg_integer)),
+            ('last_index', cv.Annot(int, 1500, cv.nonneg_integer)),
+            ('width', cv.Annot(int, 12, cv.nonneg_integer)),
+            ('sort_key', cv.Annot(str, 'occ', sort_key_validator)),
+            ('remove_tmp_files', cv.Annot(bool, True, cv.id_converter)),
+        ]),
     }
 
     output_getter = operator.attrgetter('cur_output')
@@ -213,6 +225,7 @@ def main():
         'heatmap_plot': (HeatmapPlotModule, output_getter),
         'heatmap_small_plot': (HeatmapSmallPlotModule, output_getter),
         'gff_filter': (GffFilterModule, output_getter),
+        'ss_indicator': (SSIndicatorModule, output_getter),
     }
 
     try:
@@ -232,7 +245,11 @@ def main():
 
     pipeline = pl.Pipeline(qnormed_table)
     for cfg_dict in cfg_dicts:
-        module_class, input_factory = modules[cfg_dict['type']]
+        try:
+            module_class, input_factory = modules[cfg_dict['type']]
+        except KeyError:
+            logger.warn('No module found for type %r. Skipping', cfg_dict['type'])
+            continue
         module = module_class()
         infile = input_factory(pipeline)
         module.prepare(infile, args.output_dir, prefix, cfg_dict)
@@ -248,6 +265,8 @@ def main():
                 if stdout.strip() != '':
                     msg = 'Additional Output:\n\n'
                     logger.info(msg + stdout)
+    for job in pipeline:
+        job.cleanup()
     logger.info('All done. Bye!')
 
 
@@ -301,13 +320,30 @@ class KmerPerPositionModule(CmdPipelineModule):
 class KmerLogoddModule(CmdPipelineModule):
 
     def prepare(self, norm_table_file, outdir, prefix, cfg):
+        lo_negset_dir = os.path.join(outdir, 'lo_negset')
+        width = 15
+        self._data['files'].append(lo_negset_dir)
+        negset_cmd = [
+            'stammp-makeNegSets',
+            '--number %s' % cfg['n_negative_seqs'],
+            '%r' % cfg['negative_set_gff'],
+            '%r' % cfg['genome_fasta'],
+            '%r' % cfg['output_prefix'],
+            '--width %s' % width,
+            lo_negset_dir,
+        ]
+        self._cmds.append(negset_cmd)
+
+        fmt_args = cfg['output_prefix'], cfg['n_negative_seqs'], width, cfg['kmer_k']
+        negset_fname = 'rnd_sequences_%s_%s_w%s_%smer.table' % fmt_args
+        negset_file = os.path.join(lo_negset_dir, negset_fname)
         cmd = [
             'stammp-makeKmerLogOdds',
             '%r' % norm_table_file,
             '%r' % outdir,
             '%r' % cfg['output_prefix'],
             '%r' % cfg['genome_fasta'],
-            '%r' % cfg['negative_set'],
+            '%r' % negset_file,
             '--kmer %s' % cfg['kmer_k'],
             '--key %s' % cfg['sort_key'],
         ]
@@ -322,23 +358,38 @@ class XXmotifModule(CmdPipelineModule):
 
     def prepare(self, norm_table_file, outdir, prefix, cfg):
 
+        xx_negset_dir = os.path.join(outdir, 'xx_negset')
+        self._data['files'].append(xx_negset_dir)
+        negset_cmd = [
+            'stammp-makeNegSets',
+            '--number %s' % cfg['n_negative_seqs'],
+            '--width %s ' % cfg['width'],
+            '%r' % cfg['negative_set_gff'],
+            '%r' % cfg['genome_fasta'],
+            '%r' % cfg['output_prefix'],
+            xx_negset_dir,
+        ]
+        self._cmds.append(negset_cmd)
+
+        fmt_args = cfg['output_prefix'], cfg['n_negative_seqs'], cfg['width']
+        negset_fname = 'rnd_sequences_%s_%s_w%s.fa' % fmt_args
+        negset_file = os.path.join(xx_negset_dir, negset_fname)
         cmd = [
             'stammp-xxmotif',
             norm_table_file,
-            cfg['genome_fasta'],
-            outdir,
-            cfg['output_prefix'],
+            '%r' % cfg['genome_fasta'],
+            '%r' % outdir,
+            '%r' % cfg['output_prefix'],
             '--plotPWM %s' % cfg['plot_top_n_pwm'],
             '--start %s' % cfg['first_index'],
             '--stop %s' % cfg['last_index'],
             '--width %s' % cfg['width'],
             '--key %s' % cfg['sort_key'],
             '--awidth %s' % cfg['gff_padding'],
+            '--negSet %r' % negset_file,
         ]
         if cfg['gff_exclude_path']:
-            cmd.append('--filterGFF %s' % cfg['gff_exclude_path'])
-        if cfg['negative_set']:
-            cmd.append('--negSet %s' % cfg['negative_set'])
+            cmd.append('--filterGFF %r' % cfg['gff_exclude_path'])
         self._cmds.append(cmd)
 
 
@@ -424,4 +475,24 @@ class GffFilterModule(CmdPipelineModule):
             cmd.append('--filter_features')
             for feature in cfg['features']:
                 cmd.append('%r' % feature)
+        self._cmds.append(cmd)
+
+
+class SSIndicatorModule(CmdPipelineModule):
+
+    def prepare(self, sites_file, outdir, prefix, cfg):
+        cmd = [
+            'stammp-ss_indicator',
+            '%r' % sites_file,
+            '%r' % cfg['genome_fasta'],
+            '%r' % cfg['sample_gff'],
+            '%r' % outdir,
+            '--start %s' % cfg['first_index'],
+            '--stop %s' % cfg['last_index'],
+            '--width %s' % cfg['width'],
+            '--key %r' % cfg['sort_key'],
+            '--prefix %r' % cfg['output_prefix'],
+        ]
+        if not cfg['remove_tmp_files']:
+            cmd.append('--keep-tmp-files')
         self._cmds.append(cmd)

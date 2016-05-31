@@ -69,7 +69,6 @@ def main(gfffile, genomepath, prefix, outdir, rnumber, width, verbose):
             print(seq, file=fc)
 
     for i in range(1, 5):
-        print('Getting %smer data...' % (i + 1))
         kmer_table = getKmerCounts(rnd_seqs, kmer=i)
         keys = list(kmer_table.keys())
         keys.sort()
@@ -88,7 +87,7 @@ def run():
     parser.add_argument('gff', help='GFF file', type=aph.file_r)
     parser.add_argument('genome', help='path to genome', type=aph.file_r)
     parser.add_argument('prefix', help='prefix')
-    parser.add_argument('outdir', help='output directory', type=aph.dir_rwx)
+    parser.add_argument('outdir', help='output directory', type=aph.dir_rwx_create)
     parser.add_argument('--number', help='set number or random drawings [default: 10000]',
                         dest='rnumber', default=10000, type=int)
     parser.add_argument('--width', help='set number or nt +/- selected position [default: 20]',
