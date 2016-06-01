@@ -1,4 +1,5 @@
 import argparse
+from collections import Counter
 from pyivtree import IVTree
 from pyivtree import GenomicInterval as Interval
 from stammp.utils import argparse_helper as aph
@@ -37,7 +38,7 @@ def main():
     with open(args.parclip_sites) as pc, open(args.filtered_file, 'w') as out:
         header = pc.readline().split()
         print(*header, sep='\t', file=out)
-        filtered_sites = 0
+        fil_annots = Counter()
         for line in pc:
             toks = line.split()
             chrom, pos_str, _, _, _, strand, _ = toks
@@ -51,9 +52,10 @@ def main():
             if not has_overlap:
                 print(*toks, sep='\t', file=out)
             else:
-                filtered_sites += 1
+                fil_annots[ovl.annot] += 1
 
-    print('Filtered %s PARCLIP sites' % filtered_sites)
+    for annot, count in fil_annots.items():
+        print('Removed %s PARCLIP sites annotated %r' % (count, annot))
 
 
 if __name__ == '__main__':
