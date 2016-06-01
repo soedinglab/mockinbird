@@ -164,6 +164,7 @@ def main():
             ('sort_key', cv.Annot(str, 'occ', sort_key_validator)),
             ('gff_exclude_path', cv.Annot(str, None, opt_file_validator)),
             ('gff_padding', cv.Annot(int, 20, cv.nonneg_integer)),
+            ('remove_tmp_files', cv.Annot(bool, True, cv.id_converter)),
         ]),
         'tr_freq_plot': OrderedDict([
             ('output_prefix', cv.Annot(str, None, cv.id_converter)),
@@ -390,6 +391,8 @@ class XXmotifModule(CmdPipelineModule):
         ]
         if cfg['gff_exclude_path']:
             cmd.append('--filterGFF %r' % cfg['gff_exclude_path'])
+        if not cfg['remove_tmp_files']:
+            cmd.append('--keep-tmp-files')
         self._cmds.append(cmd)
 
 

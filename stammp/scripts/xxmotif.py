@@ -114,6 +114,19 @@ def run():
         cmd.append('--negSet %s' % args.negSet)
     execute(cmd)
 
+    tmp_dir = os.path.join(args.outdir, 'tmp')
+    mini_plot_script = os.path.join(tmp_dir, 'plotDistribution.R')
+
+    mini_plot_cmd = [
+        'R',
+        '-q',
+        '--slave',
+        '-f %r' % mini_plot_script,
+        '--args',
+        '%r' % args.outdir,
+    ]
+    execute(mini_plot_cmd)
+
     plot_script = os.path.join(scriptPath, '..', 'plots', 'weblogo.R')
     pwm_file = os.path.join(args.outdir, file_prefix + '.pwm')
     plot_cmd = [
@@ -130,7 +143,6 @@ def run():
     if args.plotPWM > 0:
         execute(plot_cmd)
 
-    tmp_dir = os.path.join(args.outdir, 'tmp')
     if not args.keep_tmp_files:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
