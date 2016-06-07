@@ -119,11 +119,17 @@ def run():
                         default='gene')
     label_cenB_help = 'plot label for the second center position [default: pA]'
     parser.add_argument('--labelCenterB', help=label_cenB_help, default='pA')
+    parser.add_argument('--title')
     parser.add_argument('-r', '--remove', action='store_true',
                         help='remove temporary files. [default: false]')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='verbose output')
     args = parser.parse_args()
+
+    if not args.title:
+        title = args.prefix
+    else:
+        title = args.title
 
     prefix_fmt = '%s_centerBoth_up%s_gene%s_do%s_min%s_max%s'
     fmt_args = (
@@ -163,7 +169,7 @@ def run():
         '%r' % outfile_sense,
         '%r' % outfile_asense,
         '%r' % outfile_pdf,
-        args.prefix,
+        '%r' % args.title,
         args.upstream,
         args.downstream,
         args.gene,

@@ -278,8 +278,8 @@ class CenterPlotModule(CmdPipelineModule):
             'stammp-makeCenterBothEnds',
             '%r' % norm_table_file,
             '%r' % outdir,
-            cfg['output_prefix'],
-            cfg['gff_file'],
+            '%r' % cfg['output_prefix'],
+            '%r' % cfg['gff_file'],
             '-d %s' % cfg['downstream_bp'],
             '-u %s' % cfg['upstream_bp'],
             '--min %s' % cfg['min_trscr_size_bp'],
@@ -289,6 +289,7 @@ class CenterPlotModule(CmdPipelineModule):
             '--labelCenterA %r' % cfg['labelCenterA'],
             '--labelCenterB %r' % cfg['labelCenterB'],
             '--labelBody %r' % cfg['labelBody'],
+            '--title %r' % '[%s] %s' % (cfg['output_prefix'], prefix),
         ]
         if cfg['remove_tmp_files']:
             cmd.append('-r')

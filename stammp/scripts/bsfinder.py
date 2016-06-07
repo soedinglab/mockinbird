@@ -205,6 +205,7 @@ def findPvalueParclipInPileup(pileup, outputfile, mincov, maxcov, probabilities,
     reference_reverse   = functions.makeReverseComplement(reference)
     mutation_reverse    = functions.makeReverseComplement(mutation)
     
+    found_sites = 0
     lines = 0
     for line in open(pileup):
         lines += 1
@@ -239,6 +240,7 @@ def findPvalueParclipInPileup(pileup, outputfile, mincov, maxcov, probabilities,
                     pvalue = getPvalue(counts[1], counts[0], probabilities, SNPlikely)
                 if pvalue <= maxPvalue:
                     file_table.write(split[0]+'\t'+split[1]+'\t'+str(counts[1])+'\t'+str(counts[0])+'\t'+str(pvalue)+'\t-\t0\n')
+                    found_sites += 1
         percent_new = math.trunc((linecount/lines)*100)
         if(percent_new > percent_old):
             if verbose: functions.showProgress(linecount,lines,'Processing Pileup')
@@ -246,6 +248,7 @@ def findPvalueParclipInPileup(pileup, outputfile, mincov, maxcov, probabilities,
         line = file_pileup.readline()
     file_table.close()
     file_pileup.close()
+    print('Found %s PAR-CLIP sites.' % found_sites)
 
 def main(inputfile, outputfile, threshold, mincov, reference, mutation, verbose):
     """

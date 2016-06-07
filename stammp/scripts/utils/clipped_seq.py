@@ -37,7 +37,9 @@ def main():
         outfile = os.path.join(args.output_dir, filename)
         with open(outfile, 'w') as outhandle:
             for clip_size, seqs in itertools.groupby(sorted(hits, key=len_sort), len_sort):
-                print('clipped bases: %s' % clip_size, file=outhandle)
+                seqs = list(seqs)
+                print('clipped bases: %s | clipped sequences: %s' % (clip_size, len(seqs)),
+                      file=outhandle)
                 print(file=outhandle)
                 counter = Counter(seqs)
                 for clip_seq, seq_count in counter.most_common(args.top_n):

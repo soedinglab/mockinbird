@@ -27,6 +27,7 @@ import configparser
 import glob
 import logging
 from functools import partial
+from collections import OrderedDict
 
 from stammp import LOG_DEFAULT_FORMAT, LOG_LEVEL_MAP
 from stammp.utils import prepare_output_dir
@@ -94,67 +95,67 @@ def main(inputfile, outputdir, prefix, configfile):
         return cv.file_r_validator(path)
 
     cfg_format = {
-        'general': {
-            'adapter5prime': cv.Annot(str, None, cv.dnastr_validator),
-            'adapter3prime': cv.Annot(str, None, cv.dnastr_validator),
-            'genomeindex': cv.Annot(str, None, mapindex_validator),
-            'genomefasta': cv.Annot(str, None, genomefasta_validator),
-            'rnaseq_pileup': cv.Annot(str, None, rel_file_r_validator),
-            'rmTemp': cv.Annot(bool, True, cv.id_converter),
-            'n_threads': cv.Annot(int, 2, cv.id_converter),
-        },
-        'reads': {
-            'fx_Q33': cv.Annot(bool, True, cv.id_converter),
-            'bc_5prime': cv.Annot(int, 0, cv.nonneg_integer),
-            'bc_3prime': cv.Annot(int, 0, cv.nonneg_integer),
-            'min_len': cv.Annot(int, 15, cv.nonneg_integer),
-        },
-        'pipeline': {
-            'remove_duplicates': cv.Annot(bool, True, cv.id_converter),
-            'fastqc_statistics': cv.Annot(bool, True, cv.id_converter),
-            'quality_trimming': cv.Annot(bool, False, cv.id_converter),
-            'adapter_clipping': cv.Annot(bool, True, cv.id_converter),
-            'quality_filtering': cv.Annot(bool, True, cv.id_converter),
-            'mapping': cv.Annot(str, 'STAR', mapper_validator),
-        },
-        'fastQC': {
-            'kmer_length': cv.Annot(int, 7, cv.nonneg_integer),
-            'extra_flags': cv.Annot(str, [], cv.comma_sep_args),
-        },
-        'clippyAdapterClipper': {
-            'clip_len': cv.Annot(int, 10, cv.nonneg_integer),
-        },
-        'fastxQualityTrimmer': {
-            'quality_cutoff': cv.Annot(int, 30, cv.nonneg_integer),
-        },
-        'lafugaQualityFilter': {
-            'quality_cutoff': cv.Annot(int, 30, cv.nonneg_integer),
-            'chastity': cv.Annot(bool, False, cv.id_converter),
-            'remove_n': cv.Annot(bool, True, cv.id_converter),
-        },
-        'STAR': {
-            'n_mismatch': cv.Annot(int, 1, cv.nonneg_integer),
-            'n_multimap': cv.Annot(int, 1, cv.nonneg_integer),
-            'extra_flags': cv.Annot(str, [], cv.comma_sep_args),
-            'allow_soft_clipping': cv.Annot(bool, True, cv.id_converter),
-        },
-        'PostProcessing': {
-            'plot_transition_profiles': cv.Annot(bool, True, cv.id_converter),
-            'remove_n_edge_mut': cv.Annot(int, 0, cv.nonneg_integer),
-            'max_mut_per_read': cv.Annot(int, 1, cv.nonneg_integer),
-        },
-        'bsfinder': {
-            'pval_threshold': cv.Annot(float, 0.005, cv.id_converter),
-            'min_cov': cv.Annot(int, 2, cv.nonneg_integer),
-            'ref_nuc': cv.Annot(str, 'T', cv.dnanuc_validator),
-            'mut_nuc': cv.Annot(str, 'C', cv.dnanuc_validator),
-        },
-        'normalizer': {
-            'mut_snp_ratio': cv.Annot(float, 0.75, cv.id_converter),
-        },
-        'max_quantile': {
-            'max_quantile': cv.Annot(float, 0.95, cv.id_converter),
-        },
+        'general': OrderedDict([
+            ('adapter5prime', cv.Annot(str, None, cv.dnastr_validator)),
+            ('adapter3prime', cv.Annot(str, None, cv.dnastr_validator)),
+            ('genomeindex', cv.Annot(str, None, mapindex_validator)),
+            ('genomefasta', cv.Annot(str, None, genomefasta_validator)),
+            ('rnaseq_pileup', cv.Annot(str, None, rel_file_r_validator)),
+            ('rmTemp', cv.Annot(bool, True, cv.id_converter)),
+            ('n_threads', cv.Annot(int, 2, cv.id_converter)),
+        ]),
+        'reads': OrderedDict([
+            ('fx_Q33', cv.Annot(bool, True, cv.id_converter)),
+            ('bc_5prime', cv.Annot(int, 0, cv.nonneg_integer)),
+            ('bc_3prime', cv.Annot(int, 0, cv.nonneg_integer)),
+            ('min_len', cv.Annot(int, 15, cv.nonneg_integer)),
+        ]),
+        'pipeline': OrderedDict([
+            ('remove_duplicates', cv.Annot(bool, True, cv.id_converter)),
+            ('fastqc_statistics', cv.Annot(bool, True, cv.id_converter)),
+            ('quality_trimming', cv.Annot(bool, False, cv.id_converter)),
+            ('adapter_clipping', cv.Annot(bool, True, cv.id_converter)),
+            ('quality_filtering', cv.Annot(bool, True, cv.id_converter)),
+            ('mapping', cv.Annot(str, 'STAR', mapper_validator)),
+        ]),
+        'fastQC': OrderedDict([
+            ('kmer_length', cv.Annot(int, 7, cv.nonneg_integer)),
+            ('extra_flags', cv.Annot(str, [], cv.comma_sep_args)),
+        ]),
+        'clippyAdapterClipper': OrderedDict([
+            ('clip_len', cv.Annot(int, 10, cv.nonneg_integer)),
+        ]),
+        'fastxQualityTrimmer': OrderedDict([
+            ('quality_cutoff', cv.Annot(int, 30, cv.nonneg_integer)),
+        ]),
+        'lafugaQualityFilter': OrderedDict([
+            ('quality_cutoff', cv.Annot(int, 30, cv.nonneg_integer)),
+            ('chastity', cv.Annot(bool, False, cv.id_converter)),
+            ('remove_n', cv.Annot(bool, True, cv.id_converter)),
+        ]),
+        'STAR': OrderedDict([
+            ('n_mismatch', cv.Annot(int, 1, cv.nonneg_integer)),
+            ('n_multimap', cv.Annot(int, 1, cv.nonneg_integer)),
+            ('extra_flags', cv.Annot(str, [], cv.comma_sep_args)),
+            ('allow_soft_clipping', cv.Annot(bool, True, cv.id_converter)),
+        ]),
+        'PostProcessing': OrderedDict([
+            ('plot_transition_profiles', cv.Annot(bool, True, cv.id_converter)),
+            ('remove_n_edge_mut', cv.Annot(int, 0, cv.nonneg_integer)),
+            ('max_mut_per_read', cv.Annot(int, 1, cv.nonneg_integer)),
+        ]),
+        'bsfinder': OrderedDict([
+            ('pval_threshold', cv.Annot(float, 0.005, cv.id_converter)),
+            ('min_cov', cv.Annot(int, 2, cv.nonneg_integer)),
+            ('ref_nuc', cv.Annot(str, 'T', cv.dnanuc_validator)),
+            ('mut_nuc', cv.Annot(str, 'C', cv.dnanuc_validator)),
+        ]),
+        'normalizer': OrderedDict([
+            ('mut_snp_ratio', cv.Annot(float, 0.75, cv.id_converter)),
+        ]),
+        'max_quantile': OrderedDict([
+            ('max_quantile', cv.Annot(float, 0.95, cv.id_converter)),
+        ]),
     }
 
     try:
@@ -268,7 +269,8 @@ def main(inputfile, outputdir, prefix, configfile):
         if res:
             for stdout, stderr in res:
                 if stdout.strip() != '':
-                    logger.info('\n\n' + stdout)
+                    msg = 'Additional Output:\n\n'
+                    logger.info(msg + stdout)
 
     if cfg_dict['general']['rmTemp']:
         logger.info('Started cleaning up temporary files')
