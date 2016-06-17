@@ -38,8 +38,8 @@ def execute(cmd, exit=True):
     try:
         proc = subprocess.Popen(args=cmd, shell=True, stderr=subprocess.PIPE,
                                 stdout=subprocess.PIPE, universal_newlines=True)
-        retcode = proc.wait()
         stdout, stderr = proc.communicate()
+        retcode = proc.returncode
         if retcode != 0:
             logger.error('\n\n%s', stderr.strip())
             raise Exception
