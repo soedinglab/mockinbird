@@ -100,7 +100,7 @@ def main(inputfile, outputdir, prefix, configfile):
             ('adapter3prime', cv.Annot(str, None, cv.dnastr_validator)),
             ('genomeindex', cv.Annot(str, None, mapindex_validator)),
             ('genomefasta', cv.Annot(str, None, genomefasta_validator)),
-            ('rnaseq_pileup', cv.Annot(str, None, rel_file_r_validator)),
+            ('normalization_pileup', cv.Annot(str, None, rel_file_r_validator)),
             ('rmTemp', cv.Annot(bool, True, cv.id_converter)),
             ('n_threads', cv.Annot(int, 2, cv.id_converter)),
         ]),
@@ -108,7 +108,9 @@ def main(inputfile, outputdir, prefix, configfile):
             ('fx_Q33', cv.Annot(bool, True, cv.id_converter)),
             ('bc_5prime', cv.Annot(int, 0, cv.nonneg_integer)),
             ('bc_3prime', cv.Annot(int, 0, cv.nonneg_integer)),
-            ('min_len', cv.Annot(int, 15, cv.nonneg_integer)),
+            ('min_len', cv.Annot(int, 20, cv.nonneg_integer)),
+            ('reference_nucleotide', cv.Annot(str, 'T', cv.dnanuc_validator)),
+            ('mutation_nucleotide', cv.Annot(str, 'C', cv.dnanuc_validator)),
         ]),
         'pipeline': OrderedDict([
             ('remove_duplicates', cv.Annot(bool, True, cv.id_converter)),
@@ -143,12 +145,13 @@ def main(inputfile, outputdir, prefix, configfile):
             ('plot_transition_profiles', cv.Annot(bool, True, cv.id_converter)),
             ('remove_n_edge_mut', cv.Annot(int, 0, cv.nonneg_integer)),
             ('max_mut_per_read', cv.Annot(int, 1, cv.nonneg_integer)),
+            ('min_base_quality', cv.Annot(int, 0, cv.nonneg_integer)),
+            ('min_mismatch_quality', cv.Annot(int, 20, cv.nonneg_integer)),
+            ('dump_raw_data', cv.Annot(bool, False, cv.id_converter)),
         ]),
         'bsfinder': OrderedDict([
             ('pval_threshold', cv.Annot(float, 0.005, cv.id_converter)),
             ('min_cov', cv.Annot(int, 2, cv.nonneg_integer)),
-            ('ref_nuc', cv.Annot(str, 'T', cv.dnanuc_validator)),
-            ('mut_nuc', cv.Annot(str, 'C', cv.dnanuc_validator)),
         ]),
         'normalizer': OrderedDict([
             ('mut_snp_ratio', cv.Annot(float, 0.75, cv.id_converter)),
@@ -634,16 +637,22 @@ class BamPPModule(pl.CmdPipelineModule):
             os.makedirs(pp_plot_dir)
         self._data['files'].append(out_bam_file)
 
+        transition = read_cfg['reference_nucleotide'] + read_cfg['mutation_nucleotide']
         cmd = [
             'stammp-bam_postprocess',
             bam_file,
             out_bam_file,
             pp_plot_dir,
-            '--plot_transition_profiles',
             '--min-length %s' % read_cfg['min_len'],
             '--mut_edge_bp %s' % pp_cfg['remove_n_edge_mut'],
             '--max_transitions %s' % pp_cfg['max_mut_per_read'],
+            '--min_base_quality %s' % pp_cfg['min_base_quality'],
+            '--min_mismatch_quality %s' % pp_cfg['min_mismatch_quality'],
+            '--transition_of_interest %s' % transition,
         ]
+        if pp_cfg['dump_raw_data']:
+            cmd.append('--dump_raw_data')
+
         self._cmds.append(cmd)
         self._data['output'] = out_bam_file
 
@@ -667,6 +676,7 @@ class BSFinderModule(pl.CmdPipelineModule):
 
     def prepare(self, pileup_file, outdir, prefix, cfg_dict):
         cfg = cfg_dict['bsfinder']
+        read_cfg = cfg_dict['reads']
         table_file = os.path.join(outdir, prefix + '.table')
         self._data['output'] = table_file
         self._data['files'].append(table_file)
@@ -674,8 +684,8 @@ class BSFinderModule(pl.CmdPipelineModule):
             'stammp-bsfinder',
             '-p %s' % cfg['pval_threshold'],
             '-c %s' % cfg['min_cov'],
-            '-r %s' % cfg['ref_nuc'],
-            '-m %s' % cfg['mut_nuc'],
+            '-r %s' % read_cfg['reference_nucleotide'],
+            '-m %s' % read_cfg['mutation_nucleotide'],
             pileup_file,
             table_file
         ]
@@ -693,7 +703,7 @@ class NormalizationModule(pl.CmdPipelineModule):
             'stammp-normalize',
             table_file,
             normed_table_file,
-            cfg_dict['general']['rnaseq_pileup'],
+            cfg_dict['general']['normalization_pileup'],
             '--mut_snp_ratio %s' % cfg['mut_snp_ratio'],
         ]
         self._cmds.append(cmd)

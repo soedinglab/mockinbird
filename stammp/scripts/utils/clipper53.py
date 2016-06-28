@@ -30,6 +30,9 @@ def main():
     read_buffer = [''] * 4
     total_reads = 0
     discarded_reads = 0
+    total_5prime_clipped = 0
+    total_3prime_clipped = 0
+
     with open(args.infile) as infile, open(args.outfile, 'w') as outfile:
         for line_no, line in enumerate(infile):
             read_ind = line_no % 4
@@ -43,8 +46,17 @@ def main():
                 left_hit = nt_seq.rfind(prim5_string)
                 right_hit = nt_seq.find(prim3_string)
 
-                read_start = bc5_len if left_hit < 0 else left_hit + len(prim5_string) + bc5_len
-                read_end = len(nt_seq) if right_hit < 0 else right_hit - bc3_len
+                if left_hit < 0:
+                    read_start = bc5_len
+                else:
+                    read_start = left_hit + len(prim5_string) + bc5_len
+                    total_5prime_clipped += 1
+
+                if right_hit < 0:
+                    read_end = len(nt_seq)
+                else:
+                    read_end = right_hit - bc3_len
+                    total_3prime_clipped += 1
 
                 if read_end - read_start >= min_len:
                     print(read_buffer[0], file=outfile)
@@ -56,7 +68,9 @@ def main():
 
     if args.verbose:
         print('total reads:     %s' % total_reads)
-        print('discarded reads: %s' % discarded_reads)
+        print('5prime clipped:  %s' % total_5prime_clipped)
+        print('3prime clipped:  %s' % total_3prime_clipped)
+        print('too short reads: %s' % discarded_reads)
         print('surviving reads: %.2f%%' % (100 - discarded_reads / total_reads * 100))
 
 

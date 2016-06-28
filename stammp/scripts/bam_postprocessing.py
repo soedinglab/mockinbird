@@ -4,6 +4,7 @@ import itertools
 from collections import defaultdict
 import os
 import io
+import sys
 
 import pysam
 import pandas as pd
@@ -36,24 +37,28 @@ NUC_COMPL = {
     'C': 'G',
     'G': 'C',
     'T': 'A',
+    'N': 'N',
 }
 
 
+@functools.lru_cache(maxsize=2**10)
 def parse_md(md_str):
     char_pos = 0
     read_pos = 0
+    result = []
     for i, c in enumerate(md_str):
         if c.isalpha():
             read_pos += int(md_str[char_pos:i])
-            yield c.upper(), read_pos
+            result.append((c.upper(), read_pos))
             read_pos += 1
             char_pos = i + 1
+    return result
 
 
 def get_map_pos(read):
     start = 0
     end = read.infer_query_length()
-    assert read.infer_query_length() == len(read.seq)
+    # assert read.infer_query_length() == len(read.seq)
     op, bp = read.cigartuples[0]
     if op == CIGAR_SOFTCLIP:
         start = bp
@@ -68,44 +73,55 @@ def create_parser():
     parser.add_argument('input_bam_file')
     parser.add_argument('output_bam_file')
     parser.add_argument('output_directory')
-    parser.add_argument('--plot_transition_profiles', action='store_true')
     parser.add_argument('--min-length', default=0, type=int)
     parser.add_argument('--mut_edge_bp', default=0, type=int)
     parser.add_argument('--max_transitions', default=1, type=int)
+    parser.add_argument('--min_base_quality', default=0, type=int)
+    parser.add_argument('--min_mismatch_quality', default=0, type=int)
+    parser.add_argument('--transition_of_interest', default='TC')
+    parser.add_argument('--dump_raw_data', action='store_true')
     return parser
 
 
 def run(args):
 
     pre_modules = []
-    if args.plot_transition_profiles:
-        pre_tr_dir = os.path.join(args.output_directory, 'pre_fil_data')
-        if not os.path.exists(pre_tr_dir):
-            os.makedirs(pre_tr_dir)
-        pre_modules.append(MutationModule(
-            pre_tr_dir)
-        )
+    pre_tr_dir = os.path.join(args.output_directory, 'pre_fil_data')
+    if not os.path.exists(pre_tr_dir):
+        os.makedirs(pre_tr_dir)
+    pre_modules.append(MutationModule(
+        pre_tr_dir,
+        transition_of_interest=args.transition_of_interest,
+        dump_raw_data=args.dump_raw_data
+    ))
 
     post_modules = []
-    if args.plot_transition_profiles:
-        post_tr_dir = os.path.join(args.output_directory, 'post_fil_data')
-        if not os.path.exists(post_tr_dir):
-            os.makedirs(post_tr_dir)
-        post_modules.append(MutationModule(
-            post_tr_dir)
-        )
+    post_tr_dir = os.path.join(args.output_directory, 'post_fil_data')
+    if not os.path.exists(post_tr_dir):
+        os.makedirs(post_tr_dir)
+    post_modules.append(MutationModule(
+        post_tr_dir,
+        transition_of_interest=args.transition_of_interest,
+        dump_raw_data=args.dump_raw_data
+    ))
     filters = []
-    filters.append(SizeFilter(
-        args.min_length)
-    )
+    filters.append(QualityFilter(
+        min_size=args.min_length,
+        drop_n=True,
+        min_qual=args.min_base_quality
+    ))
     filters.append(EdgeClippingFilter(
         args.mut_edge_bp,
-        args.max_transitions)
-    )
+        args.max_transitions,
+        args.min_mismatch_quality
+    ))
 
+    processed_reads = 0
+    written_reads = 0
     with pysam.AlignmentFile(args.input_bam_file, 'rb') as infile:
         with pysam.AlignmentFile(args.output_bam_file, 'wb', template=infile) as outfile:
             for read in infile:
+                processed_reads += 1
                 # prefilter modules
                 for mod in pre_modules:
                     mod.update(read)
@@ -116,12 +132,14 @@ def run(args):
                     cur_read = fil.filter(cur_read)
                     if cur_read is None:
                         break
-                if cur_read is not None:
-                    outfile.write(cur_read)
+                if cur_read is None:
+                    continue
+                outfile.write(cur_read)
+                written_reads += 1
 
-                    # postfilter modules
-                    for mod in post_modules:
-                        mod.update(cur_read)
+                # postfilter modules
+                for mod in post_modules:
+                    mod.update(cur_read)
 
     for mod in pre_modules:
         mod.aggregate()
@@ -129,24 +147,56 @@ def run(args):
     for mod in post_modules:
         mod.aggregate()
 
+    print('processed %s alignments' % processed_reads)
+    for fil in filters:
+        fil.print_status()
+    print()
+    print('%s alignments passed all quality filters' % written_reads)
+    post_mut_mod = post_modules[0]
+    ts_pct = post_mut_mod.mismatch_alignments / post_mut_mod.total_alignments * 100
+    print('%s aligments have transitions (%.2f%%)' % (post_mut_mod.mismatch_alignments, ts_pct))
 
-class SizeFilter:
-    def __init__(self, min_size):
+
+class QualityFilter:
+    def __init__(self, min_size, drop_n, min_qual):
         self._min_size = min_size
+        self._drop_n = drop_n
+        self._min_qual = min_qual
+        self._drop_n_count = 0
+        self._drop_size_count = 0
+        self._drop_minqual_count = 0
 
     def filter(self, read):
         if read.is_unmapped:
-            return None
+            return
+        if self._drop_n and 'N' in read.seq:
+            self._drop_n_count += 1
+            return
+        if min(read.query_alignment_qualities) < self._min_qual:
+            self._drop_minqual_count += 1
+            return
         start, end, real_length = get_map_pos(read)
         if real_length < self._min_size:
-            return None
+            self._drop_size_count += 1
+            return
         return read
+
+    def print_status(self, output_file=sys.stdout):
+        print('dropped %s alignments containing \'N\' nucleotides' % self._drop_n_count,
+              file=output_file)
+        print('dropped %s alignments falling below minimum quality constraints'
+              % self._drop_minqual_count, file=output_file)
+        print('dropped %s short alignments' % self._drop_size_count, file=output_file)
 
 
 class EdgeClippingFilter:
-    def __init__(self, edge_bp, allowed_mm):
+    def __init__(self, edge_bp, allowed_mm, min_mm_qual):
         self._edge_bp = edge_bp
         self._allowed_mm = allowed_mm
+        self._min_mm_qual = min_mm_qual
+        self._dropped_low_ts_quality = 0
+        self._dropped_too_many_mm = 0
+        self._clipped_transitions = 0
 
     def filter(self, read):
         tag_dict = dict(read.tags)
@@ -163,17 +213,23 @@ class EdgeClippingFilter:
         left_clip_bp = 0
         right_clip_bp = 0
         for ref_nuc, mm_pos in parse_md(md):
+            if read.query_alignment_qualities[mm_pos] < self._min_mm_qual:
+                self._dropped_low_ts_quality += 1
+                return
             if mm_pos < self._edge_bp:
                 left_clip_bp = max(left_clip_bp, mm_pos + 1)
                 nm -= 1
+                self._clipped_transitions += 1
             elif mm_pos >= real_length - self._edge_bp:
                 right_clip_bp = max(right_clip_bp, real_length - mm_pos)
                 nm -= 1
+                self._clipped_transitions += 1
             else:
                 mm.append((ref_nuc, mm_pos))
 
         if len(mm) > self._allowed_mm:
-            return None
+            self._dropped_too_many_mm += 1
+            return
 
         # no additional clipping needed
         if left_clip_bp == 0 and right_clip_bp == 0:
@@ -213,14 +269,14 @@ class EdgeClippingFilter:
                     cigar_tup[0] = (CIGAR_SOFTCLIP, first_bp + left_clip_bp)
                     cigar_tup[1] = (CIGAR_MATCH, second_bp - left_clip_bp)
                 else:
-                    return None
+                    return
             else:
                 assert first_op == CIGAR_MATCH
                 if first_bp > left_clip_bp:
                     cigar_tup[0] = (CIGAR_MATCH, first_bp - left_clip_bp)
                     cigar_tup.insert(0, (CIGAR_SOFTCLIP, left_clip_bp))
                 else:
-                    return None
+                    return
         if right_clip_bp > 0:
             last_op, last_bp = cigar_tup[-1]
             if last_op == CIGAR_SOFTCLIP:
@@ -230,26 +286,38 @@ class EdgeClippingFilter:
                     cigar_tup[-1] = (CIGAR_SOFTCLIP, last_bp + right_clip_bp)
                     cigar_tup[-2] = (CIGAR_MATCH, penu_bp - right_clip_bp)
                 else:
-                    return None
+                    return
             else:
                 assert last_op == CIGAR_MATCH
                 if last_bp > right_clip_bp:
                     cigar_tup[-1] = (CIGAR_MATCH, last_bp - right_clip_bp)
                     cigar_tup.append((CIGAR_SOFTCLIP, right_clip_bp))
                 else:
-                    return None
+                    return
 
         read.cigartuples = cigar_tup
         read.reference_start += left_clip_bp
         return read
 
+    def print_status(self, output_file=sys.stdout):
+        print('dropped %s alignments due to low quality transitions'
+              % self._dropped_low_ts_quality, file=output_file)
+        print('dropped %s alignments with too many mismatches' % self._dropped_too_many_mm,
+              file=output_file)
+        print('clipped %s mutations from alignment starts or ends' % self._clipped_transitions,
+              file=output_file)
+
 
 class MutationModule:
 
-    def __init__(self, output_dir):
+    def __init__(self, output_dir, transition_of_interest='TC', dump_raw_data=False):
         self._output_dir = output_dir
         self._real_lengths = []
         self._tr_data = defaultdict(list)
+        self._total_alignments = 0
+        self._mm_alignments = 0
+        self._transition_of_interest = transition_of_interest
+        self._dump_raw_data = dump_raw_data
 
     def update(self, read):
 
@@ -265,23 +333,37 @@ class MutationModule:
         start, end, real_length = get_map_pos(read)
         self._real_lengths.append(real_length)
 
+        self._total_alignments += 1
         if nm == 0:
             return
+        else:
+            self._mm_alignments += 1
 
         # extract transition
         for ref_nuc, mm_pos in parse_md(md):
             mm_nuc = read.seq[start + mm_pos].upper()
 
             if read.is_reverse:
-                transition = NUC_COMPL[ref_nuc] + NUC_COMPL[mm_nuc]
+                ref_nuc = NUC_COMPL[ref_nuc]
+                mm_nuc = NUC_COMPL[mm_nuc]
+                forward = False
             else:
-                transition = ref_nuc + mm_nuc
+                forward = True
+
+            transition = ref_nuc + mm_nuc
+            is_tr_of_interest = transition == self._transition_of_interest
+            tr_quality = read.query_alignment_qualities[mm_pos]
 
             self._tr_data['length'].append(real_length)
             self._tr_data['mm_pos'].append(mm_pos + 1)
             self._tr_data['transition'].append(transition)
+            self._tr_data['is_transition_of_interest'].append(is_tr_of_interest)
+            self._tr_data['transition_quality'].append(tr_quality)
+            self._tr_data['is_forward'].append(forward)
 
     def aggregate(self):
+
+
         # plot read size distribution
         max_len = max(self._real_lengths)
         fig, ax = plt.subplots(figsize=(10, 6))
@@ -345,11 +427,57 @@ class MutationModule:
             plt.savefig(tr_plot, bbox_extra_artists=(lgd, title), bbox_inches='tight')
             plt.close()
 
+        # quality vs. characteristic mutation
+        grouped_df = mm_df.groupby('transition_quality').agg({
+            'is_transition_of_interest': lambda x: np.sum(x) / len(x)
+        })
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.bar(grouped_df.index, grouped_df.is_transition_of_interest)
+        fig.suptitle('Frequency of characteristic transitions by transition quality',
+                     fontsize=20)
+        ax.set_xlabel('Transition quality')
+        ax.set_ylabel('Frequency')
+
+        qual_tr_plot = os.path.join(self._output_dir, 'quality_transition_plot.png')
+        plt.savefig(qual_tr_plot)
+        plt.close()
+
+        # length vs. characteristic mutation
+        grouped_df = mm_df.groupby('length').agg({
+            'is_transition_of_interest': lambda x: np.sum(x) / len(x)
+        })
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.bar(grouped_df.index, grouped_df.is_transition_of_interest)
+        fig.suptitle('Frequency of characteristic transitions by alignment length',
+                     fontsize=20)
+        ax.set_xlabel('Alignment length in bp')
+        ax.set_ylabel('Frequency')
+        qual_len_plot = os.path.join(self._output_dir, 'length_transition_plot.png')
+        plt.savefig(qual_len_plot)
+        plt.close()
+
+        if self._dump_raw_data:
+            raw_data_dir = os.path.join(self._output_dir, 'raw_data')
+            if not os.path.exists(raw_data_dir):
+                os.makedirs(raw_data_dir)
+
+            mm_df_table = os.path.join(raw_data_dir, 'mismatch_data.tab')
+            mm_df.to_csv(mm_df_table, index=False, sep='\t')
+
+    @property
+    def total_alignments(self):
+        return self._total_alignments
+
+    @property
+    def mismatch_alignments(self):
+        return self._mm_alignments
+
 
 def main():
     parser = create_parser()
     args = parser.parse_args()
     run(args)
+
 
 if __name__ == '__main__':
     main()
