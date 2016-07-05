@@ -1,25 +1,3 @@
-"""
-wrapper to convert raw fastq files from sequencing files to mpileup files. A
-fastq-file is adapterclipped, qualityfiltered, mapped and converted.
-
-Command line:
--------------
-**Usage:** stammp-preprocess [-h] inputfile outputdir prefix configfile
-
-**Positional arguments:**
-  ==========   =================================================
-  inputfile    Input fastq file
-  outputdir    Output directory
-  prefix       Set prefix for all outputfiles
-  configfile   Configuration file containing additional options
-  ==========   =================================================
-
-**Optional arguments:**
-  -h, --help  show this help message and exit
-
-Module usage:
--------------
-"""
 import argparse
 import os
 import sys
@@ -29,6 +7,7 @@ import logging
 from functools import partial
 from collections import OrderedDict
 
+from stammp.utils import argparse_helper as aph
 from stammp import LOG_DEFAULT_FORMAT, LOG_LEVEL_MAP
 from stammp.utils import prepare_output_dir
 from stammp.utils import config_validation as cv
@@ -37,6 +16,22 @@ from stammp.utils import pipeline as pl
 logger = logging.getLogger()
 cur_dir = os.path.dirname(os.path.realpath(__file__))
 scriptPath = os.path.join(cur_dir, 'utils')
+
+
+def create_parser():
+    description = 'run the PAR-CLIP preprocessing pipeline'
+    parser = argparse.ArgumentParser(prog='stammp-preprocess', description=description)
+    parser.add_argument('parclip_fastq', help='path to PAR-CLIP fastq reads',
+                        type=aph.file_r)
+    outdir_help = 'output directory - will be created if it does not exist'
+    parser.add_argument('output_dir', help=outdir_help, type=aph.dir_rwx_create)
+    parser.add_argument('prefix', help='filename prefix for newly created files')
+    parser.add_argument('config_file', help='path to preprocessing config file',
+                        type=aph.file_r)
+    parser.add_argument('--log_level', help='verbosity level of the logger',
+                        choices=LOG_LEVEL_MAP.keys(), default='info')
+    aph.add_version_arguments(parser)
+    return parser
 
 
 def prepare_dir_or_die(dir_path):
@@ -48,22 +43,32 @@ def prepare_dir_or_die(dir_path):
         sys.exit(1)
 
 
-def main(inputfile, outputdir, prefix, configfile):
-    """
-    Wrapper method to run 3rd-party programs necessary to pre-process and convert raw fastq files into pileup files for subsequent analysis steps. Detailed parameter settings for the used programs can be modified in the configuration file (:ref:`ref_pre-processing_config`).
+def run():
+    parser = create_parser()
+    args = parser.parse_args()
 
-    Args:
-        inputfile (str): Input fastq file
-        outputdir (str): Path to your output directory
-        prefix (str): Prefix which is added to all output files e.g. a unique experiment name or protein name
-        configfile (str): configuration file where additional options can be set
+    inputfile = args.parclip_fastq
+    outputdir = args.output_dir
+    prefix = args.prefix
+    configfile = args.config_file
 
-    Can be accessed directly::
+    prepare_dir_or_die(outputdir)
 
-        $ stammp-preprocess.py /path/to/input.fastq /path/output/ prefix /path/to/configfile
+    # activate logging
+    logging_file = os.path.join(outputdir, 'preprocess.log')
+    logger = logging.getLogger()
+    logger.setLevel(LOG_LEVEL_MAP[args.log_level])
+    formatter = logging.Formatter(LOG_DEFAULT_FORMAT)
 
+    console_handler = logging.StreamHandler(stream=sys.stdout)
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
 
-    """
+    file_handler = logging.FileHandler(logging_file, mode='w')
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+    logger.info('started preprocessing via %r', ' '.join(sys.argv))
 
     config = configparser.ConfigParser(
         inline_comment_prefixes=';',
@@ -142,7 +147,6 @@ def main(inputfile, outputdir, prefix, configfile):
             ('allow_soft_clipping', cv.Annot(bool, True, cv.id_converter)),
         ]),
         'PostProcessing': OrderedDict([
-            ('plot_transition_profiles', cv.Annot(bool, True, cv.id_converter)),
             ('remove_n_edge_mut', cv.Annot(int, 0, cv.nonneg_integer)),
             ('max_mut_per_read', cv.Annot(int, 1, cv.nonneg_integer)),
             ('min_base_quality', cv.Annot(int, 0, cv.nonneg_integer)),
@@ -256,7 +260,7 @@ def main(inputfile, outputdir, prefix, configfile):
         # calculate occupancies
         norm_mod = NormalizationModule(remove_files=False)
         norm_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
-        norm_mod.msg = 'started normalizing with RNAseq data'
+        norm_mod.msg = 'started calculating occupancies'
         pipeline.schedule(norm_mod)
 
         # set maximum to quantile
@@ -281,45 +285,6 @@ def main(inputfile, outputdir, prefix, configfile):
             job.cleanup()
 
     logger.info('all done. See you soon!')
-
-
-def run():
-    parser = argparse.ArgumentParser(
-        description=(
-            'Wrapper to convert raw fastq files from sequencing files to mpileup files. '
-            'A fastq-file is adapterclipped, qualityfiltered, mapped and converted.'
-        ),
-    )
-    parser.add_argument('inputfile', help='Input fastq file')
-    parser.add_argument('outputdir', help='Output directory')
-    parser.add_argument('prefix', help='Set prefix for all outputfile')
-    parser.add_argument('configfile', help='Config file containing arguments')
-    parser.add_argument('--log_level', choices=LOG_LEVEL_MAP.keys(), default='info')
-    args = parser.parse_args()
-    prepare_dir_or_die(args.outputdir)
-
-    # activate logging
-    logging_file = os.path.join(args.outputdir, 'preprocess.log')
-    logger = logging.getLogger()
-    logger.setLevel(LOG_LEVEL_MAP[args.log_level])
-    formatter = logging.Formatter(LOG_DEFAULT_FORMAT)
-
-    console_handler = logging.StreamHandler(stream=sys.stdout)
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
-
-    file_handler = logging.FileHandler(logging_file, mode='w')
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-
-    logger.info('started preprocessing via %r', ' '.join(sys.argv))
-    if not os.path.isfile(args.inputfile):
-        logger.error('Input fastq file: %r does not exist', args.inputfile)
-        sys.exit(1)
-    if not os.path.isfile(args.configfile):
-        logger.error('Config file: %r does not exist', args.configfile)
-        sys.exit(1)
-    main(args.inputfile, args.outputdir, args.prefix, args.configfile)
 
 
 class STARMapModule(pl.CmdPipelineModule):
@@ -458,7 +423,7 @@ class ClippyAdapterClippingModule(pl.CmdPipelineModule):
         self._data['files'].append(adapter_clipped_file)
 
         cmd = [
-            'stammp-adapter_clipper',
+            'stammp-adapter-clipper',
             fastq_file,
             adapter_clipped_file,
             general_cfg['adapter5prime'],
@@ -639,7 +604,7 @@ class BamPPModule(pl.CmdPipelineModule):
 
         transition = read_cfg['reference_nucleotide'] + read_cfg['mutation_nucleotide']
         cmd = [
-            'stammp-bam_postprocess',
+            'stammp-bam-postprocess',
             bam_file,
             out_bam_file,
             pp_plot_dir,
@@ -665,7 +630,7 @@ class SoftclipAnalysisModule(pl.CmdPipelineModule):
             os.makedirs(pp_plot_dir)
 
         cmd = [
-            'stammp-softclip_analyzer',
+            'stammp-softclip-analyzer',
             bam_file,
             pp_plot_dir,
         ]

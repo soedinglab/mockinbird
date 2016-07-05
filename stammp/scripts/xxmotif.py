@@ -56,8 +56,7 @@ from stammp.utils import argparse_helper as aph
 from stammp.utils import execute
 
 
-def run():
-    scriptPath = os.path.dirname(os.path.realpath(__file__))
+def create_parser():
     parser = argparse.ArgumentParser(
         description=('Selects sequences from PAR-CLIP sites and pass them for '
                      'motif search to XXmotif.')
@@ -67,24 +66,30 @@ def run():
     parser.add_argument('outdir', help='output directory', type=aph.dir_rwx)
     parser.add_argument('prefix', help='prefix')
     parser.add_argument('--negSet', help='set path to negative set if available.')
-    plot_pwm_help = 'plot top plotPWM PWMs as pdf sequence logos. [default=0]',
+    plot_pwm_help = 'plot top plotPWM PWMs as pdf sequence logos'
     parser.add_argument('--plotPWM', help=plot_pwm_help, type=int, default=0)
-    parser.add_argument('--start', help='start index of PAR-CLIP sites [default=0]',
+    parser.add_argument('--start', help='start index of PAR-CLIP sites',
                         type=int, default=0)
-    parser.add_argument('--stop', help='stop index of PAR-CLIP sites [default=1500]',
+    parser.add_argument('--stop', help='stop index of PAR-CLIP sites',
                         type=int, default=1500)
-    parser.add_argument('--width', help='number of nt +/- the crosslink site [default=12]',
+    parser.add_argument('--width', help='number of nt +/- the crosslink site',
                         type=int, default=12)
-    sort_key_help = ('set key that is used for PAR-CLIP site ordering [default = occ], '
-                     'options: [occ, m, r, mr, pvalue]')
+    sort_key_help = 'set key that is used for PAR-CLIP site ordering'
     sort_keys = ['occ', 'm', 'r', 'mr', 'pvalue']
     parser.add_argument('--key', help=sort_key_help, choices=sort_keys, default='occ')
     filter_gff_help = ('set path to GFF if sites should be removed that overlap '
-                       'with the GFF. Default = \'\' means that no sites are filtered out.')
+                       'with the GFF. Does not filter by default.')
     parser.add_argument('--filterGFF', help=filter_gff_help, default='')
     awidth_help = 'number of nt that are added to the start/stop indices of the GFF annotations'
     parser.add_argument('--awidth', help=awidth_help, type=int, default=20)
-    parser.add_argument('--keep-tmp-files', action='store_true')
+    parser.add_argument('--keep-tmp-files', help='do not clean up temporary files',
+                        action='store_true')
+    return parser
+
+
+def run():
+    scriptPath = os.path.dirname(os.path.realpath(__file__))
+    parser = create_parser()
     args = parser.parse_args()
 
     prefix_pat = '%s_xxmotif_start%s_stop%s_width%s_sort_%s'

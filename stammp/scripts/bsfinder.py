@@ -1,34 +1,3 @@
-#! /usr/bin/python3
-"""
-Finds PAR-CLIP binding sites in a given pileup file.
-
-:mod:`~stammp.scripts.bsfinder` optimizes the parameters for a statistical model based on non-experimental mutation counts to calculate p-values for the probability that an observed number of mutations at a given genomic postion is caused by non-crosslink-effects. Only sites which pass a certain p-value cutoff are reported as PAR-CLIP binding sites.
-
-Command line:
--------------
-**Usage:** stammp-bsfinder [-h] [-p THRESHOLD] [-c MINCOV] [-r REFERENCE]
-                       [-m MUTATION] [-v]
-                       inputfile outputfile
-
-**Positional arguments:**
-  ==========     ===============================
-  inputfile      Path to the inputfile \*.pileup
-  outputfile     Define output file \*.table
-  ==========     ===============================
-
-**Optional arguments:**
-  ==============  =======================================================
-  -h, --help      show this help message and exit
-  -p THRESHOLD    Set maximum p-value for site selection [Default: 0.001]
-  -c MINCOV       Set minimum coverage [Default: 2]
-  -r REFERENCE    Set default reference nucleotide [Default: T]
-  -m MUTATION     Set default mutation nucleotide [Default: C]
-  -v, --verbose   verbose output
-  ==============  =======================================================
-
-Module usage:
--------------
-"""
 import argparse
 import os
 import sys
@@ -39,6 +8,26 @@ import scipy.optimize
 import scipy.special
 import random
 from stammp.obj import functions
+from stammp.utils import argparse_helper as aph
+
+
+def create_parser():
+    description = ('stammp-bsfinder detects protein RNA binding sites from PAR-CLIP '
+                   'experiments in mpileup files.')
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument('inputfile', help='path to the inputfile *.pileup', type=aph.file_r)
+    parser.add_argument('outputfile', help='define output file *.table')
+    parser.add_argument('--threshold', '-p', default=0.005, type=float,
+                        help='set maximum p-value for site selection')
+    parser.add_argument('--mincov', '-c', help='set minimum coverage', default=3, type=int)
+    parser.add_argument('--reference', '-r', help='set default reference nucleotide',
+                        default='T')
+    parser.add_argument('--mutation', '-m', help='set default mutation nucleotide',
+                        default='C')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help='verbose output')
+    return parser
+
 
 def processPileup(file_pileup, verbose, reference='T', mutation='C'):
     pseudocount = 1
@@ -299,14 +288,7 @@ def main(inputfile, outputfile, threshold, mincov, reference, mutation, verbose)
     LOG_3P.close()
 
 def run():
-    parser = argparse.ArgumentParser(description='stammp-bsfinder detects protein RNA binding sites from PAR-CLIP experiments in mpileup files.', epilog="contact: torkler@genzentrum.lmu.de")
-    parser.add_argument('inputfile',  help='path to the inputfile *.pileup')
-    parser.add_argument('outputfile', help='define output file *.table')
-    parser.add_argument('-p', help='set maximum p-value for site selection [Default: 0.005]', dest='threshold', default=0.005, type=float)
-    parser.add_argument('-c', help='set minimum coverage [Default: 2]', dest='mincov', default=3, type=int)
-    parser.add_argument('-r', help='set default reference nucleotide [Default: T]', dest='reference', default='T')
-    parser.add_argument('-m', help='set default mutation nucleotide [Default: C]', dest='mutation', default='C')
-    parser.add_argument('-v','--verbose', dest='verbose', action="store_true", default=False, help='verbose output')
+    parser = create_parser()
     args = parser.parse_args()
     main(args.inputfile, args.outputfile, args.threshold, args.mincov, args.reference, args.mutation, args.verbose)
 

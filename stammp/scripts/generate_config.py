@@ -5,11 +5,16 @@ import shutil
 from stammp.utils import argparse_helper as aph
 
 
-def main():
+def create_parser():
     description = 'Tool to generate example config files'
     parser = argparse.ArgumentParser('stammp-generateConfig', description=description)
     output_help = 'output folder'
-    parser.add_argument('output_directory', help=output_help, type=aph.dir_rwx)
+    parser.add_argument('output_directory', help=output_help, type=aph.dir_rwx_create)
+    return parser
+
+
+def main():
+    parser = create_parser()
     args = parser.parse_args()
 
     cur_dir = os.path.dirname(os.path.realpath(__file__))

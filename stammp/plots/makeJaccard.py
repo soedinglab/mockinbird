@@ -1,40 +1,27 @@
-#! /usr/bin/python3
-"""
-Plots Jaccard-index for two given PAR-CLIP data files.
-
-**Usage:** stammp-makeJaccard [-h] [--zlimit ZLIMIT] [-v]
-                          parclipA parclipB outdir nameA nameB
-
-**Positional arguments:**
-  ========         ============================
-  parclipA         path to the PAR-CLIP \*.table
-  parclipB         path to the PAR-CLIP \*.table
-  outdir           output directory
-  nameA            factor name A
-  nameB            factor name B
-  ========         ============================
-
-**Optional arguments:**
-  ===============  =====================================================
-  -h, --help       show this help message and exit
-  --zlimit ZLIMIT  set maximum jaccard index for plotting [default: 1.0]
-  -v, --verbose    verbose output [default: false]
-  ===============  =====================================================
-
-Example::
-    
-    $ stammp-makeJaccard parclipA.table parclipB.table outputdir/ nameA nameB -v
-    
-
-.. image:: img/img_jaccard.png
-    :align: center
-    :width: 500px
-    :alt: alternate text
-
-"""
 import argparse
 import os
 from stammp.obj import *
+from stammp.utils import argparse_helper as aph
+
+
+def create_parser():
+
+    parser = argparse.ArgumentParser(
+        description='Plots Jaccard-index for two given PAR-CLIP data files.'
+    )
+    parser.add_argument('parclipA', help='path to the PAR-CLIP *.table', type=aph.file_r)
+    parser.add_argument('parclipB', help='path to the PAR-CLIP *.table', type=aph.file_r)
+    parser.add_argument('outdir', help='output directory', type=aph.dir_rwx_create)
+    parser.add_argument('nameA', help='factor name A')
+    parser.add_argument('nameB', help='factor name B')
+    parser.add_argument('--zlimit', help='set maximum jaccard index for plotting',
+                        default=1.0, type=float)
+    parser.add_argument('--width', help='nt +/- parclip site',
+                        default=5, type=int)
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help='verbose output')
+    return parser
+
 
 def getEntries(sites, q1, q2):
     i = 0
@@ -84,19 +71,7 @@ def main(parclipA, parclipB, outfile, width, verbose):
 def run():
     scriptPath = os.path.dirname(os.path.realpath(__file__))
     scriptPath = scriptPath+'/'
-    parser = argparse.ArgumentParser(description='Plots Jaccard-index for two given PAR-CLIP data files.', 
-                                     epilog="contact: torkler@genzentrum.lmu.de")
-    parser.add_argument('parclipA', help='path to the PAR-CLIP *.table')
-    parser.add_argument('parclipB', help='path to the PAR-CLIP *.table')
-    parser.add_argument('outdir',   help='output directory')
-    parser.add_argument('nameA', help='factor name A')
-    parser.add_argument('nameB', help='factor name B')
-    parser.add_argument('--zlimit', help='set maximum jaccard index for plotting [default: 1.0]',
-                        dest='zlimit', default=1.0, type=float)
-    parser.add_argument('--width', help='nt +/- parclip site [default: 5]',  
-                        default=5, type=int)
-    parser.add_argument('-v','--verbose', dest='verbose', action="store_true", 
-                        default=False, help='verbose output [default: false]')
+    parser = create_parser()
     args = parser.parse_args()
     outfile = os.path.abspath(args.outdir)
     outfile = outfile+'/jaccard_'+args.nameA+'_'+args.nameB+'.table'

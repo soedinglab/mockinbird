@@ -1,6 +1,8 @@
 import argparse
 import os
 
+from stammp import __version__
+
 
 def dir_rwx(path):
     if not os.path.isdir(path):
@@ -61,3 +63,8 @@ def file_rw_or_dir_rwx(path):
     else:
         file_rw(path)
     return path
+
+
+def add_version_arguments(parser):
+    parser.add_argument('--version', '-v', action='version',
+                        version='%(prog)s {version}'.format(version=__version__))

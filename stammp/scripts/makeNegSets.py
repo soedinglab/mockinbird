@@ -1,24 +1,8 @@
 """
-Make random negativ sets (fasta and 2-5-mer tables) from random drawings of annotations in GFF
+Make random negative sets (fasta and 2-5-mer tables) from random drawings of annotations in GFF
 format. Negative sets are mandatory for k-mer log odd calculations or motif finding with XXmotif.
 
 .. warning:: Negative sets heavily influence the results of motif analysis. Make sure to select a good negative set to avoid wrong results. For the analysis of protein-RNA interactions it is a good idea to start with a negative set based on randomly choosen sequences of the transcriptome.
-
-**Usage:** stammp-makeNegSets [-h] [--number RNUMBER] [--width WIDTH] [-v]
-                          gff genome prefix outdir
-
-**Positional arguments:**
-  gff               GFF file
-  genome            path to genome
-  prefix            prefix
-  outdir            output directory
-
-**Optional arguments:**
-  -h, --help        show this help message and exit
-  --number RNUMBER  set number or random drawings [default: 10000]
-  --width WIDTH     set number or nt +/- selected position [default: 20]
-  -v, --verbose     verbose output [default: false]
-
 """
 import argparse
 import random
@@ -79,7 +63,7 @@ def main(gfffile, genomepath, prefix, outdir, rnumber, width, verbose):
                 print(k, kmer_table[k], sep='\t', file=fc)
 
 
-def run():
+def create_parser():
     parser = argparse.ArgumentParser(
         description=('Make random negativ sets (fasta and 2-5-mer tables) from '
                      'random sampling of annotations in GFF format.')
@@ -88,12 +72,16 @@ def run():
     parser.add_argument('genome', help='path to genome', type=aph.file_r)
     parser.add_argument('prefix', help='prefix')
     parser.add_argument('outdir', help='output directory', type=aph.dir_rwx_create)
-    parser.add_argument('--number', help='set number or random drawings [default: 10000]',
+    parser.add_argument('--number', help='set number or random drawings',
                         dest='rnumber', default=10000, type=int)
-    parser.add_argument('--width', help='set number or nt +/- selected position [default: 20]',
+    parser.add_argument('--width', help='set number or nt +/- selected position',
                         dest='width', default=20, type=int)
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
-                        help='verbose output [default: false]')
+                        help='verbose output')
+    return parser
+
+def run():
+    parser = create_parser()
     args = parser.parse_args()
     main(args.gff, args.genome, args.prefix, args.outdir, args.rnumber, args.width, args.verbose)
 

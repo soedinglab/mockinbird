@@ -64,6 +64,33 @@ from stammp.utils import execute
 from stammp.utils import argparse_helper as aph
 
 
+def create_parser():
+    parser = argparse.ArgumentParser(
+        description=('Plot log-odds for all kmers as a heatmap. Make sure to '
+                     'provide the appropriate negative set.')
+    )
+    parser.add_argument('parclip', help='PAR-CLIP file *.table', type=aph.file_r)
+    parser.add_argument('outdir', help='output directory', type=aph.dir_rwx)
+    parser.add_argument('prefix', help='prefix of filenames')
+    parser.add_argument('genome', help='path to genome')
+    parser.add_argument('--kmer', help='kmer length', type=int, default=4)
+    parser.add_argument('negset', help='path to correct k-mer negative set')
+    parser.add_argument('--gff', help='remove PAR-CLIP sites overlapping with annotations')
+    key_choices = ['occ', 'm', 'r', 'mr', 'pvalue']
+    key_help = 'set key that is used for PAR-CLIP site ordering'
+    parser.add_argument('--key', help=key_help, choices=key_choices, default='occ')
+    quantile_help = ('use quantiles for binarization instead of fixed bin size. '
+                     'Note, if you have a small number of bindng sites the bins '
+                     'based on quantiles can overlap!')
+    parser.add_argument('--quantiles', '-q', dest='useQuantiles', action='store_true',
+                        help=quantile_help)
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help='verbose output')
+    parser.add_argument('--keep-tmp-files', action='store_true',
+                        help='keep temporary files')
+    return parser
+
+
 def loadNegTable(filename):
     with open(filename) as fc:
         negset = {}
@@ -200,29 +227,7 @@ def main(parclip, outdir, prefix, genomepath, negset, gfffile, kmer, key,
 
 
 def run():
-    parser = argparse.ArgumentParser(
-        description=('Plot log-odds for all kmers as a heatmap. Make sure to '
-                     'provide the appropriate negative set.')
-    )
-    parser.add_argument('parclip', help='PAR-CLIP file *.table', type=aph.file_r)
-    parser.add_argument('outdir', help='output directory', type=aph.dir_rwx)
-    parser.add_argument('prefix', help='prefix of filenames')
-    parser.add_argument('genome', help='path to genome')
-    parser.add_argument('--kmer', help='kmer length [default = 4]', type=int, default=4)
-    parser.add_argument('negset', help='path to correct k-mer negative set')
-    parser.add_argument('--gff', help='remove PAR-CLIP sites overlapping with annotations')
-    key_choices = ['occ', 'm', 'r', 'mr', 'pvalue']
-    key_help = ('set key that is used for PAR-CLIP site ordering [default = occ], '
-                'options: [occ, m, r, mr, pvalue]')
-    parser.add_argument('--key', help=key_help, choices=key_choices, default='occ')
-    quantile_help = ('use quantiles for binarization instead of fixed bin size. '
-                     'Note, if you have a small number of bindng sites the bins '
-                     'based on quantiles can overlap!')
-    parser.add_argument('-q', '--quantiles', dest='useQuantiles', action='store_true',
-                        help=quantile_help)
-    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
-                        help='verbose output')
-    parser.add_argument('--keep-tmp-files', action='store_true')
+    parser = create_parser()
     args = parser.parse_args()
 
     main(args.parclip, args.outdir, args.prefix, args.genome, args.negset,

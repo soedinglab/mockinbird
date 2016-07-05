@@ -1,5 +1,7 @@
 import logging
 
+__version__ = '1.2.0'
+
 __all__ = ['obj']
 
 LOG_DEFAULT_FORMAT = '%(asctime)s [%(levelname)s]  %(message)s'

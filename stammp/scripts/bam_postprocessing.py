@@ -13,6 +13,33 @@ import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 
+from stammp.utils import argparse_helper as aph
+
+
+def create_parser():
+    parser = argparse.ArgumentParser('stammp-bam-postprocess')
+    parser.add_argument('input_bam_file', type=aph.file_r,
+                        help='input bam file to be postprocessed')
+    parser.add_argument('output_bam_file', type=aph.file_rw_or_dir_rwx,
+                        help='filtered output bam file')
+    parser.add_argument('output_directory', type=aph.dir_rwx_create,
+                        help='output directory for plots and statistics')
+    parser.add_argument('--min-length', default=0, type=int,
+                        help='minimum alignment length in bp')
+    edge_help = 'bp at the start and end of an alignment that cannot contain transitions'
+    parser.add_argument('--mut_edge_bp', default=0, type=int,
+                        help=edge_help)
+    parser.add_argument('--max_transitions', default=1, type=int,
+                        help='maximum number of transitions per alignment')
+    parser.add_argument('--min_base_quality', default=0, type=int,
+                        help='minimum base quality for aligned bases')
+    parser.add_argument('--min_mismatch_quality', default=0, type=int,
+                        help='minimum transition base quality')
+    parser.add_argument('--transition_of_interest', default='TC',
+                        help='characteristic PAR-CLIP transition')
+    parser.add_argument('--dump_raw_data', action='store_true',
+                        help='write out mismatch data for manual analysis')
+    return parser
 
 CIGAR_MATCH = 0
 CIGAR_SOFTCLIP = 4
@@ -66,21 +93,6 @@ def get_map_pos(read):
     if op == CIGAR_SOFTCLIP:
         end -= bp
     return start, end, end - start
-
-
-def create_parser():
-    parser = argparse.ArgumentParser('bam_postprocess')
-    parser.add_argument('input_bam_file')
-    parser.add_argument('output_bam_file')
-    parser.add_argument('output_directory')
-    parser.add_argument('--min-length', default=0, type=int)
-    parser.add_argument('--mut_edge_bp', default=0, type=int)
-    parser.add_argument('--max_transitions', default=1, type=int)
-    parser.add_argument('--min_base_quality', default=0, type=int)
-    parser.add_argument('--min_mismatch_quality', default=0, type=int)
-    parser.add_argument('--transition_of_interest', default='TC')
-    parser.add_argument('--dump_raw_data', action='store_true')
-    return parser
 
 
 def run(args):
@@ -362,7 +374,6 @@ class MutationModule:
             self._tr_data['is_forward'].append(forward)
 
     def aggregate(self):
-
 
         # plot read size distribution
         max_len = max(self._real_lengths)

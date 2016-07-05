@@ -16,13 +16,23 @@ from stammp import LOG_DEFAULT_FORMAT, LOG_LEVEL_MAP
 
 
 def create_parser():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('preprocess_dir', type=aph.dir_rx)
-    parser.add_argument('--prefix')
-    parser.add_argument('--no-pileup', action='store_true')
-    parser.add_argument('output_dir', type=aph.dir_rwx_create)
-    parser.add_argument('config_file', type=aph.file_r)
-    parser.add_argument('--log_level', choices=LOG_LEVEL_MAP.keys(), default='info')
+    description = 'run the PAR-CLIP postprocessing pipeline'
+    parser = argparse.ArgumentParser(prog='stammp-postprocess', description=description)
+    parser.add_argument('preprocess_dir', help='folder to files created by the preprocessing',
+                        type=aph.dir_rx)
+    prefix_help = ('preprocessing filename prefix - only required if there are multiple prefixes '
+                   'in the specified preprocess directory')
+    parser.add_argument('--prefix', help=prefix_help)
+    no_pileup_help = 'do not require a pileup file and skip all tasks that depend on the pileup.'
+    parser.add_argument('--no-pileup', help=no_pileup_help, action='store_true')
+    output_help = 'output directory - will be created if it does not exist'
+    parser.add_argument('output_dir', help=output_help, type=aph.dir_rwx_create)
+    config_help = 'path to the postprocessing config file'
+    parser.add_argument('config_file', help=config_help, type=aph.file_r)
+    log_level_help = 'verbosity level of the logger'
+    parser.add_argument('--log_level', help=log_level_help, choices=LOG_LEVEL_MAP.keys(),
+                        default='info')
+    aph.add_version_arguments(parser)
     return parser
 
 
@@ -199,7 +209,7 @@ def main():
             ('remove_tmp_files', cv.Annot(bool, True, cv.id_converter)),
         ]),
         'gff_filter': OrderedDict([
-            ('file_postfix', cv.Annot(str, 'filtered', cv.id_converter)),
+            ('file_postfix', cv.Annot(str, 'fil', cv.id_converter)),
             ('padding_bp', cv.Annot(int, 10, cv.nonneg_integer)),
             ('features', cv.Annot(str, [], cv.comma_sep_args)),
             ('filter_gff', cv.Annot(str, None, rel_file_r_validator)),
@@ -500,3 +510,7 @@ class SSIndicatorModule(CmdPipelineModule):
         if not cfg['remove_tmp_files']:
             cmd.append('--keep-tmp-files')
         self._cmds.append(cmd)
+
+
+if __name__ == '__main__':
+    main()

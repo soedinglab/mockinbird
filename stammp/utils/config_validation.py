@@ -10,11 +10,12 @@ Annot = namedtuple('Annotation', ['type', 'default', 'converter'])
 
 
 def dnastr_validator(dna_string):
-    nuc_pat = re.compile('[ACTGactg]+')
+    dna_string = dna_string.upper().replace('U', 'T')
+    nuc_pat = re.compile('[ACTG]+')
     if not nuc_pat.match(dna_string):
         raise ValueError('DNA sequence %r is invalid. DNA sequences may only '
                          'contain A, C, G or T nucleotides.' % dna_string)
-    return dna_string.upper()
+    return dna_string
 
 
 def dnanuc_validator(dna_nuc):

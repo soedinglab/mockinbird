@@ -52,6 +52,39 @@ from stammp.utils import execute
 from stammp.utils import argparse_helper as aph
 
 
+def create_parser():
+    parser = argparse.ArgumentParser(
+        description=(
+            'Plots kmer occurences per sequence position for all kmers of a given '
+            'kmer-length for selected PAR-CLIP sites.'
+        )
+    )
+    parser.add_argument('inputfile', help='PAR-CLIP file *.table', type=aph.file_r)
+    parser.add_argument('genome', help='path to genome', type=aph.file_r)
+    parser.add_argument('outdir', help='output directory', type=aph.dir_rwx)
+    parser.add_argument('prefix', help='prefix')
+    parser.add_argument('--kmer', help='kmer-length', type=int, default=3)
+    parser.add_argument('--start', help='start index of PAR-CLIP sites',
+                        type=int, default=0)
+    parser.add_argument('--stop', help='stop index of PAR-CLIP sites',
+                        type=int, default=1500)
+    parser.add_argument('--width', help='number of nt +/- the crosslink site',
+                        type=int, default=50)
+    key_choices = ['occ', 'm', 'r', 'mr', 'pvalue']
+    key_help = ('set key that is used for PAR-CLIP site ordering')
+    parser.add_argument('--key', help=key_help, choices=key_choices, default='occ')
+    gff_help = ('set path to GFF if sites should be removed that overlap with the GFF. '
+                'By default no sites are filtered out.')
+    parser.add_argument('--filterGFF', help=gff_help, default='')
+    awidth_help = 'number of nt that are added to the start/stop indices of the GFF annotations'
+    parser.add_argument('--awidth', help=awidth_help, type=int, default=20)
+    parser.add_argument('--remove', '-r', action='store_true',
+                        help='remove temporary text files')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help='verbose output')
+    return parser
+
+
 def getKmerOccurences(listofsequences, outfile, kmer=3, verbose=False):
     kmers = functions.makekmers(kmer + 1, list('ACGT'))[kmer]
 
@@ -87,35 +120,7 @@ def run():
     scriptPath = os.path.dirname(os.path.realpath(__file__))
     plot_script = os.path.join(scriptPath, 'plotKmerPerPosition.R')
 
-    parser = argparse.ArgumentParser(
-        description=(
-            'Plots kmer occurences per sequence position for all kmers of a given '
-            'kmer-length for selected PAR-CLIP sites.'
-        )
-    )
-    parser.add_argument('inputfile', help='PAR-CLIP file *.table', type=aph.file_r)
-    parser.add_argument('genome', help='path to genome', type=aph.file_r)
-    parser.add_argument('outdir', help='output directory', type=aph.dir_rwx)
-    parser.add_argument('prefix', help='prefix')
-    parser.add_argument('--kmer', help='kmer-length [default=3]', type=int, default=3)
-    parser.add_argument('--start', help='start index of PAR-CLIP sites [default=0]',
-                        type=int, default=0)
-    parser.add_argument('--stop', help='stop index of PAR-CLIP sites [default=1500]',
-                        type=int, default=1500)
-    parser.add_argument('--width', help='number of nt +/- the crosslink site [default=50]',
-                        type=int, default=50)
-    key_choices = ['occ', 'm', 'r', 'mr', 'pvalue']
-    key_help = ('set key that is used for PAR-CLIP site ordering [default = occ], '
-                'options: [occ, m, r, mr, pvalue]')
-    parser.add_argument('--key', help=key_help, choices=key_choices, default='occ')
-    gff_help = ('set path to GFF if sites should be removed that overlap with the GFF. '
-                'Default = \'\' means that no sites are filtered out.')
-    parser.add_argument('--filterGFF', help=gff_help, default='')
-    awidth_help = 'number of nt that are added to the start/stop indices of the GFF annotations'
-    parser.add_argument('--awidth', help=awidth_help, type=int, default=20)
-    parser.add_argument('-r', '--remove', dest='remove', action='store_true',
-                        help='remove temporary text files. [default: false]')
-    parser.add_argument('--verbose', action='store_true')
+    parser = create_parser()
     args = parser.parse_args()
 
     yeast = genome.Genome(location=args.genome, verbose=False)

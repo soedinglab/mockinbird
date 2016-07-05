@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
-
+from stammp import __version__
 
 setup(
     name='stammp',
-    version='1.0',
+    version=__version__,
     description='Analyzing PAR-CLIP data',
     url='https://bitbucket.org/soedinglab',
     author='PT',
@@ -30,14 +30,15 @@ setup(
             'stammp-makeHeatMap = stammp.plots.makeHeatMap:run',
             'stammp-makeHeatMapSmall = stammp.plots.makeHeatMapSmall:run',
             'stammp-makeNucleotideProbabilities = stammp.plots.makeNucleotideProbabilities:run',
-            'stammp-adapter_clipper = stammp.scripts.utils.clipper53:main',
+            'stammp-adapter-clipper = stammp.scripts.utils.clipper53:main',
             'stammp-selectSitesInside = stammp.scripts.selectSitesInside:run',
             'stammp-selectSitesAround = stammp.scripts.selectSitesAround:run',
             'stammp-generateConfig = stammp.scripts.generate_config:main',
-            'stammp-bam_postprocess = stammp.scripts.bam_postprocessing:main',
-            'stammp-softclip_analyzer = stammp.scripts.utils.clipped_seq:main',
+            'stammp-bam-postprocess = stammp.scripts.bam_postprocessing:main',
+            'stammp-softclip-analyzer = stammp.scripts.utils.clipped_seq:main',
             'stammp-gffFilterSites = stammp.scripts.filter_sites:main',
             'stammp-ss_indicator = stammp.plots.secstruc_indicator:main',
+            'stammp-filter-sites = stammp.scripts.filter_sites:main',
         ]
     },
     packages=find_packages(),

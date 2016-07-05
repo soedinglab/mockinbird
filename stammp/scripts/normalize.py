@@ -1,41 +1,10 @@
-"""
-**Usage:** stammp-normalize [-h] [-s SWITCH] [-v] [-r SNP]
-                        inputfile outputfile rnaseqfiles chrnames
-
-Takes all PAR-CLIP sites and traverses through given pileups to get strand
-specific coverage of all given pileups and divides the PAR-CLIP mutations
-counts by the sum of the coverages.
-
-**Positional arguments:**
-  ===========    =============================================================
-  inputfile      PAR-CLIP file \*.table
-  outputfile     Normalized PAR-CLIP file \*.table
-  rnaseqfiles    Comma separated list of pileup files used for normalization
-                 [no whitespaces]
-  chrnames       Comma separated, ordered list of chrnames [no whitespaces]
-  ===========    =============================================================
-
-**Optional arguments:**
-  =============  =============================================================
-  -h, --help     show this help message and exit
-  -s SWITCH      Comma sperated list of 0 or 1 indicating which files have to
-                 be inverted (1) [Default: None]
-  -v, --verbose  verbose output
-  -r SNP         Remove positions with SNP-ratio > r [Default: 0.75]
-  =============  =============================================================
-
-Example::
-
-    $ stammp-normalize /path/parclipsites.table /path/parclipsites_normalized.table RNAseq1.pileup,...,RNAseqN.pileup chr1,...,chrN -s 0,0
-
-"""
 import argparse
 from collections import defaultdict, Counter
 
 from stammp.utils.argparse_helper import file_r, file_rw_or_dir_rwx
 
 
-def run():
+def create_parser():
     parser = argparse.ArgumentParser(
         description=(
             'Takes all PAR-CLIP sites and traverses through given pileups to get strand '
@@ -44,11 +13,17 @@ def run():
         )
     )
     parser.add_argument('input_file', help='PAR-CLIP file *.table', type=file_r)
-    parser.add_argument('output_file', help='Normalized PAR-CLIP file *.table',
+    parser.add_argument('output_file', help='normalized PAR-CLIP file *.table',
                         type=file_rw_or_dir_rwx)
-    parser.add_argument('RNAseq_pileup', type=file_r)
-    rm_snp_help = 'Remove positions with SNP-ratio > r [Default: 0.75]'
+    parser.add_argument('normalization_pileup', help='pileup file used for normalization',
+                        type=file_r)
+    rm_snp_help = 'remove positions with SNP-ratio > r'
     parser.add_argument('--mut_snp_ratio', '-r', help=rm_snp_help, default=0.75, type=float)
+    return parser
+
+
+def run():
+    parser = create_parser()
     args = parser.parse_args()
 
     # first pass: mark pc_sites
@@ -60,7 +35,7 @@ def run():
             pc_sites[chrom][pos] = strand
 
     # count coverages
-    with open(args.RNAseq_pileup) as mpileup:
+    with open(args.normalization_pileup) as mpileup:
         for line in mpileup:
             try:
                 chrom, pos, _, _, cov_str, _ = line.split()

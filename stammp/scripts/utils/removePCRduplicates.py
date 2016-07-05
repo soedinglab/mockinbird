@@ -1,4 +1,3 @@
-#! /usr/bin/python3
 import argparse
 import os
 import sys
@@ -6,6 +5,18 @@ import collections
 import math
 
 from stammp.utils import native_wordcount as wccount
+from stammp.utils import argparse_helper as aph
+
+
+def create_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input_fastq', type=aph.file_r,
+                        help='path to input fastq file')
+    parser.add_argument('output_fastq', type=aph.file_rw_or_dir_rwx,
+                        help='path to output fastq file.')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help='verbose output')
+    return parser
 
 
 def showProgress(count, total, message):
@@ -74,18 +85,13 @@ def readFastq(inputfile, verbose, nblines, outfile):
             o.write("%15i  %15i\n"%(i,counter[i]))
 
 def run():
-    parser = argparse.ArgumentParser(description='', epilog="contact: jessica.andreani@mpibpc.mpg.de")
-    parser.add_argument('inputfile',     help='Input file (trimmed/quality-filtered FastQ).')
-    parser.add_argument('outputfile',     help='Output file (FastQ).')
-    parser.add_argument('-v','--verbose', dest='verbose', action="store_true", default=False, help='verbose output')
+    parser = create_parser()
     args = parser.parse_args()
 
-    if not os.path.exists(args.inputfile):
-        sys.exit("Input file does not exist! %s"%(args.inputfile))
-    print("### %s ###"%os.path.basename(args.inputfile))
-    nblines = wccount(args.inputfile)
+    print("### %s ###"%os.path.basename(args.input_fastq))
+    nblines = wccount(args.input_fastq)
     print("Input file has %i lines, %i reads"%(nblines,nblines/4))
-    readFastq(args.inputfile, args.verbose, nblines, args.outputfile)
+    readFastq(args.input_fastq, args.verbose, nblines, args.output_fastq)
 
 if __name__ == '__main__':
     run()

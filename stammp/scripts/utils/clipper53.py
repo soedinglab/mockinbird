@@ -1,17 +1,25 @@
 import argparse
+from stammp.utils import argparse_helper as aph
 
 
 def create_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('infile')
-    parser.add_argument('outfile')
-    parser.add_argument('prime5_adapter')
-    parser.add_argument('prime3_adapter')
-    parser.add_argument('--clip_len', type=int, default=12)
-    parser.add_argument('--min_len', type=int, default=1)
-    parser.add_argument('--nt_barcode_5prime', type=int, default=0)
-    parser.add_argument('--nt_barcode_3prime', type=int, default=0)
-    parser.add_argument('--verbose', action='store_true')
+    parser.add_argument('input_fastq', type=aph.file_r,
+                        help='path to input fastq')
+    parser.add_argument('output_fastq', type=aph.file_rw_or_dir_rwx,
+                        help='path to output fastq')
+    parser.add_argument('prime5_adapter', help='5\' adapter sequence')
+    parser.add_argument('prime3_adapter', help='3\' adapter sequence')
+    parser.add_argument('--clip_len', type=int, default=12,
+                        help='partial adapter size required for clipping (in bp)')
+    parser.add_argument('--min_len', type=int, default=1,
+                        help='minimum read size required after clipping')
+    parser.add_argument('--nt_barcode_5prime', type=int, default=0,
+                        help='size of the 5\' barcode (in bp)')
+    parser.add_argument('--nt_barcode_3prime', type=int, default=0,
+                        help='size of the 3\' barcode (in bp)')
+    parser.add_argument('--verbose', action='store_true',
+                        help='verbose output')
     return parser
 
 
@@ -33,7 +41,7 @@ def main():
     total_5prime_clipped = 0
     total_3prime_clipped = 0
 
-    with open(args.infile) as infile, open(args.outfile, 'w') as outfile:
+    with open(args.input_fastq) as infile, open(args.output_fastq, 'w') as outfile:
         for line_no, line in enumerate(infile):
             read_ind = line_no % 4
             read_buffer[read_ind] = line.rstrip()

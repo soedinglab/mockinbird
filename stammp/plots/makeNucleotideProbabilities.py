@@ -32,6 +32,24 @@ from stammp.utils import argparse_helper as aph
 from stammp.utils import execute
 
 
+def create_parser():
+    parser = argparse.ArgumentParser(
+        description=('Plots all possible conditional mutation probabilities '
+                     'based on pileup data.')
+    )
+    parser.add_argument('inputfile', help='path to the *.pileup', type=aph.file_r)
+    parser.add_argument('outdir', help='output directory', type=aph.dir_rwx)
+    parser.add_argument('prefix', help='prefix of filenames')
+    parser.add_argument('--coverage', '-c', help='minimum coverage',
+                        default=5, type=int)
+    parser.add_argument('--limit', '-l', help='y-axis limit',
+                        default=0.0, type=float)
+    parser.add_argument('--verbose', '-v', action='store_true', help='verbose output')
+    parser.add_argument('--remove', '-r', action='store_true',
+                        help='remove temporary files')
+    return parser
+
+
 def getCountMat(file_pileup, minCoverage, verbose):
     alphabet = ['A', 'C', 'G', 'T']
     translate = {'A': 0, 'C': 1, 'G': 2, 'T': 3}
@@ -90,21 +108,7 @@ def run():
     scriptPath = os.path.dirname(os.path.realpath(__file__))
     plot_script = os.path.join(scriptPath, 'plotNucleotideProbabilities.R')
 
-    parser = argparse.ArgumentParser(
-        description=('Plots all possible conditional mutation probabilities '
-                     'based on pileup data.')
-    )
-    parser.add_argument('inputfile', help='path to the *.pileup', type=aph.file_r)
-    parser.add_argument('outdir', help='output directory', type=aph.dir_rwx)
-    parser.add_argument('prefix', help='prefix of filenames')
-    parser.add_argument('-c', help='minimum coverage [default: 5]',
-                        default=5, type=int, dest='coverage')
-    parser.add_argument('-l', help='y-axis limit [default: 0]',
-                        default=0.0, type=float, dest='limit')
-    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
-                        default=False, help='verbose output')
-    parser.add_argument('-r', '--remove', dest='remove', action='store_true',
-                        default=False, help='remove temporary files. [default: false]')
+    parser = create_parser()
     args = parser.parse_args()
 
     functions.checkExistence(args.inputfile)

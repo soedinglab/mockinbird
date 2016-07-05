@@ -11,9 +11,12 @@ CIGAR_CLIP = 4
 
 def create_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('bam_file', type=file_r)
-    parser.add_argument('--top_n', default=10, type=int)
-    parser.add_argument('output_dir', type=dir_rwx)
+    parser.add_argument('bam_file', type=file_r,
+                        help='path to input bam file')
+    parser.add_argument('--top_n', default=10, type=int,
+                        help='number of most commonly clipped sequences printed')
+    parser.add_argument('output_dir', type=dir_rwx,
+                        help='path to output directory')
     return parser
 
 

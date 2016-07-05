@@ -7,11 +7,16 @@ from stammp.utils import argparse_helper as aph
 
 def create_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('parclip_sites', type=aph.file_r)
-    parser.add_argument('filtered_file', type=aph.file_rw_or_dir_rwx)
-    parser.add_argument('gff_file', type=aph.file_r)
-    parser.add_argument('--padding_bp', type=int, default=10)
-    parser.add_argument('--filter_features', nargs='+', default=[])
+    parser.add_argument('parclip_sites', type=aph.file_r,
+                        help='path to parclip sites')
+    parser.add_argument('filtered_file', type=aph.file_rw_or_dir_rwx,
+                        help='path to filtered output file')
+    parser.add_argument('gff_file', type=aph.file_r,
+                        help='path to gff annotation file')
+    parser.add_argument('--padding_bp', type=int, default=10,
+                        help='bp added to the annotation start and ends')
+    parser.add_argument('--filter_features', nargs='+', default=[],
+                        help='comma separated list of gff features')
     return parser
 
 

@@ -1,54 +1,47 @@
-"""
-Plot PAR-CLIP data in senseand anti-sense direction as heat maps based on
-annotations of a GFF file. The plot is centered at the start coordinate given
-in the GFF. The data [(start-UPSTREAM),(start+downstream)] is plotted. Note,
-that no binning in y-direction is performed if the value of --ybins is smaller
-compared to the number of entries in the GFF.
-
-**Usage:** stammp-makeHeatMap [-h] [-d DOWNSTREAM] [-u UPSTREAM] [--min MIN]
-                            [--max MAX] [--xsize XSIZE] [--ysize YSIZE] [-r]
-                            [-v]
-                            parclip outputdir prefix gff
-
-**Positional arguments:**
-  =========      =============================
-  parclip        path to the PAR-CLIP \*.table
-  outputdir      output directory
-  prefix         prefix of filenames
-  gff            GFF file used for plotting
-  =========      =============================
-
-**Optional arguments:**
-  =============  ==============================================
-  -h, --help     show this help message and exit
-  -d DOWNSTREAM  set downstream range [default: 1000nt]
-  -u UPSTREAM    set upstream range [default: 4000nt]
-  --min MIN      minium transcript size [default: 0nt]
-  --max MAX      maximum transcript size [default: 5000nt]
-  --xbins XBINS  number of bins in x direction [default: 500]
-  --ybins YBINS  number of bins in y direction [default: 500]
-  --xpx XPX      width of final plot in px [default: 500]
-  --ypx YPX      height of final plot in px [default: 500]
-  -r, --remove   remove temporary text files. [default: false]
-  -v, --verbose  verbose output
-  =============  ==============================================
-
-.. image:: img/img_pub1_heatmap_sense.png
-    :align: center
-    :height: 250px
-    :alt: alternate text
-
-.. image:: img/img_pub1_heatmap_asense.png
-    :align: center
-    :height: 250px
-    :alt: alternate text
-"""
 import argparse
 import os
 
 from stammp.utils import argparse_helper as aph
 from stammp.utils import execute
 from stammp.obj import functions, gff, parclipsites
+
+
+def create_parser():
+    parser = argparse.ArgumentParser(
+        description=(
+            'Plot PAR-CLIP data in sense and anti-sense direction as heat maps '
+            'based on annotations of a GFF file. The plot is centered at the '
+            'start coordinate given in the GFF. The data '
+            '[(start-UPSTREAM),(start+downstream)] is plotted. Note, '
+            'that no binning in y-direction is performed if the value of --ybins '
+            'is smaller compared to the number of entries in the GFF.'
+        )
+    )
+    parser.add_argument('parclip', help='path to the PAR-CLIP *.table', type=aph.file_r)
+    parser.add_argument('outputdir', help='output directory', type=aph.dir_rwx)
+    parser.add_argument('prefix', help='prefix of filenames')
+    parser.add_argument('gff', help='GFF file used for plotting', type=aph.file_r)
+    parser.add_argument('--downstream', '-d', help='set downstream range',
+                        default=4000, type=int)
+    parser.add_argument('--upstream', '-u', help='set upstream range',
+                        default=1000, type=int)
+    parser.add_argument('--min', help='minimum transcript size',
+                        default=0, type=int)
+    parser.add_argument('--max', help='maximum transcript size',
+                        default=5000, type=int)
+    parser.add_argument('--xbins', help='number of bins in x direction',
+                        default=500, type=int)
+    parser.add_argument('--ybins', help='number of bins in y direction',
+                        default=500, type=int)
+    parser.add_argument('--xpx', help='width of final plot in px',
+                        default=500, type=int)
+    parser.add_argument('--ypx', help='height of final plot in px',
+                        default=500, type=int)
+    parser.add_argument('--remove', '-r', action='store_true',
+                        help='remove temporary text files')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help='verbose output')
+    return parser
 
 
 def main(parclipfile, gfffile, upstream, downstream, sense, minSize,
@@ -115,40 +108,7 @@ def saveMat(outfile, mat, upstream, downstream, annosize, xbins):
 def run():
     scriptPath = os.path.dirname(os.path.realpath(__file__))
     plot_script = os.path.join(scriptPath, 'plotHeatMap.R')
-    parser = argparse.ArgumentParser(
-        description=(
-            'Plot PR-CLIP data in sense and anti-sense direction as heat maps '
-            'based on annotations of a GFF file. The plot is centered at the '
-            'start coordinate given in the GFF. The data '
-            '[(start-UPSTREAM),(start+downstream)] is plotted. Note, '
-            'that no binning in y-direction is performed if the value of --ybins '
-            'is smaller compared to the number of entries in the GFF.'
-        )
-    )
-    parser.add_argument('parclip', help='path to the PAR-CLIP *.table', type=aph.file_r)
-    parser.add_argument('outputdir', help='output directory', type=aph.dir_rwx)
-    parser.add_argument('prefix', help='prefix of filenames')
-    parser.add_argument('gff', help='GFF file used for plotting', type=aph.file_r)
-    parser.add_argument('-d', help='set downstream range [default: 4000nt]',
-                        dest='downstream', default=4000, type=int)
-    parser.add_argument('-u', help='set upstream range [default: 1000nt]',
-                        dest='upstream', default=1000, type=int)
-    parser.add_argument('--min', help='minium transcript size [default: 0nt]',
-                        default=0, type=int)
-    parser.add_argument('--max', help='maximum transcript size [default: 5000nt]',
-                        default=5000, type=int)
-    parser.add_argument('--xbins', help='number of bins in x direction [default: 500]',
-                        default=500, type=int)
-    parser.add_argument('--ybins', help='number of bins in y direction [default: 500]',
-                        default=500, type=int)
-    parser.add_argument('--xpx', help='width of final plot in px [default: 500]',
-                        default=500, type=int)
-    parser.add_argument('--ypx', help='height of final plot in px [default: 500]',
-                        default=500, type=int)
-    parser.add_argument('-r', '--remove', dest='remove', action='store_true',
-                        help='remove temporary text files. [default: false]')
-    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
-                        help='verbose output')
+    parser = create_parser()
     args = parser.parse_args()
 
     functions.checkExistence(args.parclip)

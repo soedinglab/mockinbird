@@ -1,55 +1,3 @@
-"""
-Plot PAR-CLIP data in sense and anti-sense direction around start and stop
-positions given in the GFF file. Outputfilename is constructed from
-parameters: outputdir/prefix+u+g+d+min+max+labelCenterA+labelBody+labelCenterB
-+plotSmooth.pdf
-
-Blue color represents PAR-CLIP signal on the sense strand, green color represents PAR-CLIP signal on the anti-sense strand.
-
-**Usage:** stammp-makeCenterBothEnds [-h] [-d DOWNSTREAM] [-u UPSTREAM] [-g GENE]
-                                 [--min MIN] [--max MAX]
-                                 [--plotSmooth PLOTSMOOTH]
-                                 [--labelCenterA LABELCENTERA]
-                                 [--labelBody LABELBODY]
-                                 [--labelCenterB LABELCENTERB] [-r]
-                                 parclip outputdir prefix gff
-
-**Positional arguments:**
-  =========             ==============================
-  parclip               path to the PAR-CLIP \*.pileup
-  outputdir             output directory
-  prefix                prefix of filenames
-  gff                   GFF file used for plotting
-  =========             ==============================
-
-**Optional arguments:**
-  ==================    ======================================================
-  -h, --help            show this help message and exit
-  -d 1000               set downstream range [default: 1000nt]
-  -u 1000               set upstream range [default: 1000nt]
-  -g 750                set gene range [default: 750nt]
-  --min 0               minium transcript size [default: 0nt]
-  --max 5000            maximum transcript size [default: 5000nt]
-  --plotSmooth 20       half of the window size used for the running mean
-                        [default: 20nt]
-  --labelCenterA TSS    plot label for the first center position [default:
-                        TSS]
-  --labelBody gene      plot label for body (between A and B) [default: gene]
-  --labelCenterB pA     plot label for the second center position [default:
-                        pA]
-  -r, --remove          remove temporary text files. [default: false]
-  ==================    ======================================================
-
-Example::
-
-    stammp-makeCenterBothEnds parclip.table outputdirectory/ annotation.gff -d 1000 -u 1000 -g 750 --min 1500 --max 4000 --plotSmooth 20 --labelCenterA TSS --labelBody Gene --labelCenterB pA
-
-
-.. image:: img/img_plotCenterBoth.png
-    :align: center
-    :height: 689px
-    :alt: alternate text
-"""
 import argparse
 import os
 from itertools import chain
@@ -58,6 +6,47 @@ import datetime
 from stammp.obj import functions, gff, parclipsites
 from stammp.utils import execute
 from stammp.utils.argparse_helper import file_r, dir_rwx
+
+
+def create_parser():
+    parser = argparse.ArgumentParser(
+        description=(
+            'Plot PAR-CLIP data in sense and anti-sense direction around start '
+            'and stop positions given in the GFF file. The output filename is constructed '
+            'from parameters: outputdir/prefix+u+g+d+min+max+labelCenterA+labelBody+'
+            'labelCenterB+plotSmooth.pdf\n\n'
+            'Blue color represents PAR-CLIP signal on the sense strand, green color '
+            'represents PAR-CLIP signal on the anti-sense strand.'
+        )
+    )
+    parser.add_argument('parclip', help='path to the PAR-CLIP *.table', type=file_r)
+    parser.add_argument('outputdir', help='output directory', type=dir_rwx)
+    parser.add_argument('prefix', help='prefix of filenames')
+    parser.add_argument('gff', help='GFF file used for plotting', type=file_r)
+    parser.add_argument('--downstream', '-d', help='set downstream range',
+                        default=1000, type=int)
+    parser.add_argument('--upstream', '-u', help='set upstream range',
+                        default=1000, type=int)
+    parser.add_argument('--gene', '-g', help='set gene range',
+                        default=750, type=int)
+    parser.add_argument('--min', help='minimum transcript size',
+                        default=0, type=int)
+    parser.add_argument('--max', help='maximum transcript size',
+                        default=5000, type=int)
+    smooth_help = 'half of the window size used for the running mean'
+    parser.add_argument('--plotSmooth', help=smooth_help, default=20, type=int)
+    label_cenA_help = 'plot label for the first center position'
+    parser.add_argument('--labelCenterA', help=label_cenA_help, default='TSS')
+    parser.add_argument('--labelBody', help='for body (between A and B)',
+                        default='gene')
+    label_cenB_help = 'plot label for the second center position'
+    parser.add_argument('--labelCenterB', help=label_cenB_help, default='pA')
+    parser.add_argument('--title', help='plot title')
+    parser.add_argument('--remove', '-r', action='store_true',
+                        help='remove temporary files')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help='verbose output')
+    return parser
 
 
 def main(parclipfile, outputfile, gfffile, downstream, upstream, gene, sense, minSize,
@@ -89,41 +78,7 @@ def main(parclipfile, outputfile, gfffile, downstream, upstream, gene, sense, mi
 def run():
     scriptPath = os.path.dirname(os.path.realpath(__file__))
     plot_script = os.path.join(scriptPath, 'plotCenterBothEnds.R')
-    parser = argparse.ArgumentParser(
-        description=(
-            'Plot PAR-CLIP data in sense and anti-sense direction around start '
-            'and stop positions given in the GFF file. Outputfilename is constructed '
-            'from parameters: outputdir/prefix+u+g+d+min+max+labelCenterA+labelBody+'
-            'labelCenterB+plotSmooth.pdf'
-        )
-    )
-    parser.add_argument('parclip', help='path to the PAR-CLIP *.table', type=file_r)
-    parser.add_argument('outputdir', help='output directory', type=dir_rwx)
-    parser.add_argument('prefix', help='prefix of filenames')
-    parser.add_argument('gff', help='GFF file used for plotting', type=file_r)
-    parser.add_argument('-d', help='set downstream range [default: 1000nt]',
-                        dest='downstream', default=1000, type=int)
-    parser.add_argument('-u', help='set upstream range [default: 1000nt]',
-                        dest='upstream', default=1000, type=int)
-    parser.add_argument('-g', help='set gene range [default: 750nt]', dest='gene',
-                        default=750, type=int)
-    parser.add_argument('--min', help='minimum transcript size [default: 0nt]',
-                        default=0, type=int)
-    parser.add_argument('--max', help='maximum transcript size [default: 5000nt]',
-                        default=5000, type=int)
-    smooth_help = 'half of the window size used for the running mean [default: 20nt]'
-    parser.add_argument('--plotSmooth', help=smooth_help, default=20, type=int)
-    label_cenA_help = 'plot label for the first center position [default: TSS]'
-    parser.add_argument('--labelCenterA', help=label_cenA_help, default='TSS')
-    parser.add_argument('--labelBody', help='for body (between A and B) [default: gene]',
-                        default='gene')
-    label_cenB_help = 'plot label for the second center position [default: pA]'
-    parser.add_argument('--labelCenterB', help=label_cenB_help, default='pA')
-    parser.add_argument('--title')
-    parser.add_argument('-r', '--remove', action='store_true',
-                        help='remove temporary files. [default: false]')
-    parser.add_argument('-v', '--verbose', action='store_true',
-                        help='verbose output')
+    parser = create_parser()
     args = parser.parse_args()
 
     if not args.title:
@@ -169,7 +124,7 @@ def run():
         '%r' % outfile_sense,
         '%r' % outfile_asense,
         '%r' % outfile_pdf,
-        '%r' % args.title,
+        '%r' % title,
         args.upstream,
         args.downstream,
         args.gene,
