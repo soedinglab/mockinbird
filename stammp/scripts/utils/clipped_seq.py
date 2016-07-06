@@ -3,6 +3,7 @@ import itertools
 import os
 from collections import Counter
 from stammp.utils.argparse_helper import dir_rwx, file_r
+from stammp.obj.functions import makeReverseComplement as revcomp
 import pysam
 
 
@@ -30,10 +31,16 @@ def main():
         for ali in infile:
             first_op, first_bp = ali.cigartuples[0]
             if first_op == CIGAR_CLIP:
-                hits_5p.append(ali.seq[:first_bp])
+                if not ali.is_reverse:
+                    hits_5p.append(ali.seq[:first_bp])
+                else:
+                    hits_3p.append(revcomp(ali.seq[:first_bp]))
             last_op, last_bp = ali.cigartuples[-1]
             if last_op == CIGAR_CLIP:
-                hits_3p.append(ali.seq[-last_bp:])
+                if not ali.is_reverse:
+                    hits_3p.append(ali.seq[-last_bp:])
+                else:
+                    hits_5p.append(revcomp(ali.seq[-last_bp:]))
 
     len_sort = lambda x: len(x)
     for filename, hits in [('5prime_clipped.txt', hits_5p), ('3prime_clipped.txt', hits_3p)]:
