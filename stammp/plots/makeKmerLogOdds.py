@@ -111,6 +111,9 @@ def getkmerLogs(s, g, neg, kmers, start, stop, width):
     for k in kmers:
         kmer_freqs[k] = 1
         total += 1
+    # dirty hack to ensure indices not growing larger than index bounds
+    start = max(start, len(s.chrs))
+    stop = max(stop, len(s.chrs))
     for i in range(start, stop):
         seq = g.getSequence(s.chrs[i], (s.pos[i] - 1 - width), (s.pos[i] - 1 + width + 1))
         if seq != -1:

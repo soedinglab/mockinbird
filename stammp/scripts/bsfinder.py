@@ -219,6 +219,7 @@ def findPvalueParclipInPileup(pileup, outputfile, mincov, maxcov, probabilities,
                     pvalue = getPvalue(counts[1], counts[0], probabilities, SNPlikely)
                 if pvalue <= maxPvalue:
                     file_table.write(split[0]+'\t'+split[1]+'\t'+str(counts[1])+'\t'+str(counts[0])+'\t'+str(pvalue)+'\t+\t0\n')
+                    found_sites += 1
         if split[2] == reference_reverse:
             tmp_counts = functions.getCounts(split[4], forward=False)
             counts     = [tmp_counts[0], tmp_counts[1][mutation_reverse]]

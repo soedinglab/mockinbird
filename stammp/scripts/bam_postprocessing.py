@@ -166,7 +166,7 @@ def run(args):
     print('%s alignments passed all quality filters' % written_reads)
     post_mut_mod = post_modules[0]
     ts_pct = post_mut_mod.mismatch_alignments / post_mut_mod.total_alignments * 100
-    print('%s aligments have transitions (%.2f%%)' % (post_mut_mod.mismatch_alignments, ts_pct))
+    print('%s alignments have transitions (%.2f%%)' % (post_mut_mod.mismatch_alignments, ts_pct))
 
 
 class QualityFilter:
