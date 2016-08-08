@@ -351,6 +351,8 @@ class ParclipSites:
         return seqs
 
     def getChromosomePositions(self):
+        if len(self.chrs) == 0:
+            return
         if self.sorted:
             print('PAR-CLIP sites have been sorted according to other values. Exiting!')
             raise Exception

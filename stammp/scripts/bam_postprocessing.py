@@ -33,6 +33,8 @@ def create_parser():
                         help='maximum number of transitions per alignment')
     parser.add_argument('--min_base_quality', default=0, type=int,
                         help='minimum base quality for aligned bases')
+    parser.add_argument('--avg_alignment_quality', default=20, type=int,
+                        help='minimum average alignment quality')
     parser.add_argument('--min_mismatch_quality', default=0, type=int,
                         help='minimum transition base quality')
     parser.add_argument('--transition_of_interest', default='TC',
@@ -120,7 +122,8 @@ def run(args):
     filters.append(QualityFilter(
         min_size=args.min_length,
         drop_n=True,
-        min_qual=args.min_base_quality
+        min_qual=args.min_base_quality,
+        avg_qual=args.avg_alignment_quality
     ))
     filters.append(EdgeClippingFilter(
         args.mut_edge_bp,
@@ -165,27 +168,38 @@ def run(args):
     print()
     print('%s alignments passed all quality filters' % written_reads)
     post_mut_mod = post_modules[0]
-    ts_pct = post_mut_mod.mismatch_alignments / post_mut_mod.total_alignments * 100
+
+    if post_mut_mod.total_alignments > 0:
+        ts_pct = post_mut_mod.mismatch_alignments / post_mut_mod.total_alignments * 100
+    else:
+        ts_pct = 100
     print('%s alignments have transitions (%.2f%%)' % (post_mut_mod.mismatch_alignments, ts_pct))
 
 
 class QualityFilter:
-    def __init__(self, min_size, drop_n, min_qual):
+    def __init__(self, min_size, drop_n, min_qual, avg_qual):
         self._min_size = min_size
         self._drop_n = drop_n
         self._min_qual = min_qual
+        self._avg_qual = avg_qual
         self._drop_n_count = 0
         self._drop_size_count = 0
         self._drop_minqual_count = 0
+        self._drop_avgqual_count = 0
+        self._drop_unmapped = 0
 
     def filter(self, read):
         if read.is_unmapped:
+            self._drop_unmapped += 1
             return
         if self._drop_n and 'N' in read.seq:
             self._drop_n_count += 1
             return
-        if min(read.query_alignment_qualities) < self._min_qual:
+        if np.min(read.query_alignment_qualities) < self._min_qual:
             self._drop_minqual_count += 1
+            return
+        if np.mean(read.query_alignment_qualities) < self._avg_qual:
+            self._drop_avgqual_count += 1
             return
         start, end, real_length = get_map_pos(read)
         if real_length < self._min_size:
@@ -194,10 +208,13 @@ class QualityFilter:
         return read
 
     def print_status(self, output_file=sys.stdout):
+        print('dropped %s unmapped alignments' % self._drop_unmapped, file=output_file)
         print('dropped %s alignments containing \'N\' nucleotides' % self._drop_n_count,
               file=output_file)
         print('dropped %s alignments falling below minimum quality constraints'
               % self._drop_minqual_count, file=output_file)
+        print('dropped %s alignments below minimum average alignment quality'
+              % self._drop_avgqual_count, file=output_file)
         print('dropped %s short alignments' % self._drop_size_count, file=output_file)
 
 
@@ -376,7 +393,9 @@ class MutationModule:
     def aggregate(self):
 
         # plot read size distribution
-        max_len = max(self._real_lengths)
+        if len(self._real_lengths) == 0:
+            return
+        max_len = np.max(self._real_lengths)
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.hist(self._real_lengths, bins=np.arange(max_len) + 1)
         fig.suptitle('Mapped read size distribution', fontsize=20)

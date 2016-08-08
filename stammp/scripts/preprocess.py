@@ -91,7 +91,7 @@ def run():
             raise ValueError('genome fasta file %r does not exist' % genome_fasta)
         return genome_fasta
 
-    mapper_validator = partial(cv.in_set_validator, item_set=set(['STAR']))
+    mapper_validator = partial(cv.in_set_validator, item_set=set(['STAR', 'bowtie']))
 
     def rel_file_r_validator(path):
         if not os.path.isabs(path):
@@ -146,10 +146,16 @@ def run():
             ('extra_flags', cv.Annot(str, [], cv.comma_sep_args)),
             ('allow_soft_clipping', cv.Annot(bool, True, cv.id_converter)),
         ]),
+        'bowtie': OrderedDict([
+            ('n_mismatch', cv.Annot(int, 1, cv.nonneg_integer)),
+            ('n_multimap', cv.Annot(int, 1, cv.nonneg_integer)),
+            ('extra_flags', cv.Annot(str, [], cv.comma_sep_args)),
+        ]),
         'PostProcessing': OrderedDict([
             ('remove_n_edge_mut', cv.Annot(int, 0, cv.nonneg_integer)),
             ('max_mut_per_read', cv.Annot(int, 1, cv.nonneg_integer)),
             ('min_base_quality', cv.Annot(int, 0, cv.nonneg_integer)),
+            ('min_avg_ali_quality', cv.Annot(int, 20, cv.nonneg_integer)),
             ('min_mismatch_quality', cv.Annot(int, 20, cv.nonneg_integer)),
             ('dump_raw_data', cv.Annot(bool, False, cv.id_converter)),
         ]),
@@ -173,56 +179,54 @@ def run():
     pipeline = pl.Pipeline(inputfile)
     pipeline_cfg = cfg_dict['pipeline']
 
-    # star pipeline
+    # fastqc analysis
+    if pipeline_cfg['fastqc_statistics']:
+        fastqc_raw_dir = os.path.join(outputdir, 'fastQC_raw')
+        prepare_dir_or_die(fastqc_raw_dir)
+        fastqc_mod = FastQCModule()
+        fastqc_mod.prepare(pipeline.cur_output, fastqc_raw_dir, prefix, cfg_dict)
+        fastqc_mod.msg = 'started FastQC analysis of raw reads'
+        pipeline.schedule(fastqc_mod)
+
+    # duplicate removal
+    if pipeline_cfg['remove_duplicates']:
+        dupfil_mod = DuplicateRemovalModule()
+        dupfil_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
+        dupfil_mod.msg = 'started removing duplicated reads'
+        pipeline.schedule(dupfil_mod)
+
+    # adapter clipping
+    if pipeline_cfg['adapter_clipping']:
+        clip_mod = ClippyAdapterClippingModule()
+        clip_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
+        clip_mod.msg = 'started clipping adapter sequences'
+        pipeline.schedule(clip_mod)
+
+    # quality trimming
+    if pipeline_cfg['quality_trimming']:
+        qt_mod = FastxQualityTrimmingModule()
+        qt_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
+        qt_mod.msg = 'started quality trimming'
+        pipeline.schedule(qt_mod)
+
+    # quality filtering
+    if pipeline_cfg['quality_filtering']:
+        qf_mod = LafugaQualityFilterModule()
+        qf_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
+        qf_mod.msg = 'started quality filtering'
+        pipeline.schedule(qf_mod)
+
+    # fastqc analysis
+    if pipeline_cfg['fastqc_statistics']:
+        fastqc_fil_dir = os.path.join(outputdir, 'fastQC_filtered')
+        prepare_dir_or_die(fastqc_fil_dir)
+        fastqc_mod = FastQCModule()
+        fastqc_mod.prepare(pipeline.cur_output, fastqc_fil_dir, prefix, cfg_dict)
+        fastqc_mod.msg = 'started FastQC analysis of filtered reads'
+        pipeline.schedule(fastqc_mod)
+
+    # mapping with STAR
     if pipeline_cfg['mapping'] == 'STAR':
-
-        # fastqc analysis
-        if pipeline_cfg['fastqc_statistics']:
-            fastqc_raw_dir = os.path.join(outputdir, 'fastQC_raw')
-            prepare_dir_or_die(fastqc_raw_dir)
-            fastqc_mod = FastQCModule()
-            fastqc_mod.prepare(pipeline.cur_output, fastqc_raw_dir, prefix, cfg_dict)
-            fastqc_mod.msg = 'started FastQC analysis of raw reads'
-            pipeline.schedule(fastqc_mod)
-
-        # duplicate removal
-        if pipeline_cfg['remove_duplicates']:
-            dupfil_mod = DuplicateRemovalModule()
-            dupfil_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
-            dupfil_mod.msg = 'started removing duplicated reads'
-            pipeline.schedule(dupfil_mod)
-
-        # adapter clipping
-        if pipeline_cfg['adapter_clipping']:
-            clip_mod = ClippyAdapterClippingModule()
-            clip_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
-            clip_mod.msg = 'started clipping adapter sequences'
-            pipeline.schedule(clip_mod)
-
-        # quality trimming
-        if pipeline_cfg['quality_trimming']:
-            qt_mod = FastxQualityTrimmingModule()
-            qt_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
-            qt_mod.msg = 'started quality trimming'
-            pipeline.schedule(qt_mod)
-
-        # quality filtering
-        if pipeline_cfg['quality_filtering']:
-            qf_mod = LafugaQualityFilterModule()
-            qf_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
-            qf_mod.msg = 'started quality filtering'
-            pipeline.schedule(qf_mod)
-
-        # fastqc analysis
-        if pipeline_cfg['fastqc_statistics']:
-            fastqc_fil_dir = os.path.join(outputdir, 'fastQC_filtered')
-            prepare_dir_or_die(fastqc_fil_dir)
-            fastqc_mod = FastQCModule()
-            fastqc_mod.prepare(pipeline.cur_output, fastqc_fil_dir, prefix, cfg_dict)
-            fastqc_mod.msg = 'started FastQC analysis of filtered reads'
-            pipeline.schedule(fastqc_mod)
-
-        # mapping with STAR
         star_mod = STARMapModule()
         star_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
         star_mod.msg = 'started mapping with STAR'
@@ -233,41 +237,47 @@ def run():
         clip_analysis_mod.msg = 'extracting common soft-clipped sequences'
         pipeline.schedule(clip_analysis_mod)
 
-        # bam postprocessing
-        bampp_mod = BamPPModule()
-        bampp_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
-        bampp_mod.msg = 'started postprocessing of the bam file'
-        pipeline.schedule(bampp_mod)
+    elif pipeline_cfg['mapping'] == 'bowtie':
+        bowtie_mod = BowtieMapModule()
+        bowtie_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
+        bowtie_mod.msg = 'started mapping with bowtie'
+        pipeline.schedule(bowtie_mod)
 
-        # sort bam file
-        sort_mod = SortIndexModule(remove_files=False)
-        sort_mod.prepare(pipeline.cur_output, outputdir, prefix)
-        sort_mod.msg = 'started sorting the bam file'
-        pipeline.schedule(sort_mod)
+    # bam postprocessing
+    bampp_mod = BamPPModule()
+    bampp_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
+    bampp_mod.msg = 'started postprocessing of the bam file'
+    pipeline.schedule(bampp_mod)
 
-        # generating the pileup
-        pileup_mod = PileupModule()
-        pileup_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
-        pileup_mod.msg = 'started generating the pileup file'
-        pipeline.schedule(pileup_mod)
+    # sort bam file
+    sort_mod = SortIndexModule(remove_files=False)
+    sort_mod.prepare(pipeline.cur_output, outputdir, prefix)
+    sort_mod.msg = 'started sorting the bam file'
+    pipeline.schedule(sort_mod)
 
-        # finding potential binding sites
-        finder = BSFinderModule()
-        finder.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
-        finder.msg = 'scanning for potential binding sites'
-        pipeline.schedule(finder)
+    # generating the pileup
+    pileup_mod = PileupModule()
+    pileup_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
+    pileup_mod.msg = 'started generating the pileup file'
+    pipeline.schedule(pileup_mod)
 
-        # calculate occupancies
-        norm_mod = NormalizationModule(remove_files=False)
-        norm_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
-        norm_mod.msg = 'started calculating occupancies'
-        pipeline.schedule(norm_mod)
+    # finding potential binding sites
+    finder = BSFinderModule()
+    finder.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
+    finder.msg = 'scanning for potential binding sites'
+    pipeline.schedule(finder)
 
-        # set maximum to quantile
-        quantile_mod = MaxQuantileModule(remove_files=False)
-        quantile_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
-        quantile_mod.msg = 'setting maximum quantile'
-        pipeline.schedule(quantile_mod)
+    # calculate occupancies
+    norm_mod = NormalizationModule(remove_files=False)
+    norm_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
+    norm_mod.msg = 'started calculating occupancies'
+    pipeline.schedule(norm_mod)
+
+    # set maximum to quantile
+    quantile_mod = MaxQuantileModule(remove_files=False)
+    quantile_mod.prepare(pipeline.cur_output, outputdir, prefix, cfg_dict)
+    quantile_mod.msg = 'setting maximum quantile'
+    pipeline.schedule(quantile_mod)
 
     for job in pipeline:
         if hasattr(job, 'msg'):
@@ -329,6 +339,60 @@ class STARMapModule(pl.CmdPipelineModule):
             'samtools',
             'index',
             sorted_bam_file
+        ]
+        self._cmds.append(index_cmd)
+
+
+class BowtieMapModule(pl.CmdPipelineModule):
+
+    def prepare(self, fastq_file, output_dir, prefix, params):
+        bowtie_cfg = params['bowtie']
+        general_cfg = params['general']
+
+        sam_file = os.path.join(output_dir, prefix + '.sam')
+        self._data['files'].append(sam_file)
+
+        cmd = [
+            'bowtie',
+            '-m %s' % bowtie_cfg['n_multimap'],
+            '-v %s' % bowtie_cfg['n_mismatch'],
+            '%r' % general_cfg['genomeindex'],
+            '%r' % fastq_file,
+            '%r' % sam_file,
+            '-p %s' % general_cfg['n_threads'],
+            '-S',
+        ]
+        for extra_flag in bowtie_cfg['extra_flags']:
+            cmd.append(extra_flag)
+        self._cmds.append(cmd)
+
+        bam_file = os.path.join(output_dir, prefix + '_raw_sorted.bam')
+        self._data['files'].append(bam_file)
+
+        sort_cmd = [
+            'samtools sort',
+            sam_file,
+            '-@ %s' % general_cfg['n_threads'],
+            '| samtools view -h -b > %r' % bam_file,
+        ]
+        self._cmds.append(sort_cmd)
+
+        calmd_file = os.path.join(output_dir, prefix + '.bam')
+        calmd_cmd = [
+            'samtools calmd',
+            '%r' % bam_file,
+            '%r' % general_cfg['genomefasta'],
+            '-b',
+            '> %r' % calmd_file,
+        ]
+        self._cmds.append(calmd_cmd)
+
+        self._data['output'] = calmd_file
+
+        index_cmd = [
+            'samtools',
+            'index',
+            calmd_file
         ]
         self._cmds.append(index_cmd)
 
