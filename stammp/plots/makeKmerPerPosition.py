@@ -85,7 +85,7 @@ def create_parser():
     return parser
 
 
-def getKmerOccurences(listofsequences, outfile, kmer=3, verbose=False):
+def getKmerOccurences(listofsequences, width, outfile, kmer=3, verbose=False):
     kmers = functions.makekmers(kmer + 1, list('ACGT'))[kmer]
 
     with open(outfile, 'w') as file_center:
@@ -95,8 +95,9 @@ def getKmerOccurences(listofsequences, outfile, kmer=3, verbose=False):
         for km in kmers:
             if verbose:
                 print('', km, '%s/%s\r' % (kmercount, len(kmers)), sep='\t')
-            counts = [0] * len(listofsequences[0])
+            counts = [0] * width
             for s in listofsequences:
+                assert len(s) == width
                 hits = functions.findAllSubstrings(s, km)
                 for h in hits:
                     counts[h] = counts[h] + 1
@@ -140,7 +141,8 @@ def run():
                            args.width, args.key)
     outfile_table = os.path.join(args.outdir, prefix + '.table')
     outfile_pdf = os.path.join(args.outdir, prefix + '.pdf')
-    getKmerOccurences(seqs, outfile_table, kmer=(args.kmer - 1), verbose=args.verbose)
+    seq_len = 2 * args.width + 1
+    getKmerOccurences(seqs, seq_len, outfile_table, kmer=(args.kmer - 1), verbose=args.verbose)
 
     cmd = [
         'R',

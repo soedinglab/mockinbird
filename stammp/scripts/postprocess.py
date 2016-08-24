@@ -12,6 +12,7 @@ from stammp.utils.pipeline import CmdPipelineModule
 from stammp.utils import config_validation as cv
 from stammp.utils import argparse_helper as aph
 from stammp.utils import pipeline as pl
+from stammp import __version__
 from stammp import LOG_DEFAULT_FORMAT, LOG_LEVEL_MAP
 
 
@@ -54,6 +55,7 @@ def main():
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
+    logger.info('stammp version: %s', __version__)
     logger.info('started postprocessing via %r', ' '.join(sys.argv))
 
     required_ext = ['.qtable']

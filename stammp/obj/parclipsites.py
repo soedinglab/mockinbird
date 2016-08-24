@@ -283,7 +283,7 @@ class ParclipSites:
             raise IndexError
         if stop >= len(self.chrs):
             stop = len(self.chrs)
-            warning = (
+            warning_tmpl = (
                 'WARNING: stop index is higher than the number of available '
                 'PAR-CLIP sites. Stop index was set to %s.'
             )
@@ -449,3 +449,6 @@ class ParclipSites:
         if strand == '-':
             values = values[::-1]
         return values
+
+    def __len__(self):
+        return len(self.chrs)

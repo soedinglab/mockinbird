@@ -12,6 +12,7 @@ from stammp import LOG_DEFAULT_FORMAT, LOG_LEVEL_MAP
 from stammp.utils import prepare_output_dir
 from stammp.utils import config_validation as cv
 from stammp.utils import pipeline as pl
+from stammp import __version__
 
 logger = logging.getLogger()
 cur_dir = os.path.dirname(os.path.realpath(__file__))
@@ -68,6 +69,7 @@ def run():
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
+    logger.info('stammp version: %s', __version__)
     logger.info('started preprocessing via %r', ' '.join(sys.argv))
 
     config = configparser.ConfigParser(

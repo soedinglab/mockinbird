@@ -30,24 +30,25 @@ class Genome:
             self.genome = {}
             fc = open(location, 'r')
             line = fc.readline()
-            tmp_name = line.split('>')[1].split('\n')[0]
+            header, *_ = line.split()
+            tmp_name = header.lstrip('>')
             seq = ''
             line = fc.readline()
             while line:
                 if line[0] == '>':
                     self.genome[tmp_name] = seq
                     seq = ''
-                    tmp_name = line.split('>')[1].split('\n')[0]
+                    header, *_ = line.split()
+                    tmp_name = header.lstrip('>')
                 else:
                     line = line.replace('\n', '')
-                    seq  = seq+line.upper()
+                    seq = seq + line.upper()
                 line = fc.readline()
             self.genome[tmp_name] = seq
             fc.close()
         else:
             sys.stderr.write('No file or directory. Exit')
-            #sys.exit(-1)
-    
+
     def readFasta(self, filename):
         """
         Returns a single string, containing the sequence of *filename*.fasta.
