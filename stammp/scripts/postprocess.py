@@ -142,6 +142,22 @@ def main():
             ('labelBody', cv.Annot(str, None, cv.id_converter)),
             ('remove_tmp_files', cv.Annot(bool, True, cv.id_converter)),
         ]),
+        'center_plot_bs': OrderedDict([
+            ('gff_file', cv.Annot(str, None, rel_file_r_validator)),
+            ('output_prefix', cv.Annot(str, None, cv.id_converter)),
+            ('downstream_bp', cv.Annot(int, 1000, cv.nonneg_integer)),
+            ('upstream_bp', cv.Annot(int, 1000, cv.nonneg_integer)),
+            ('gene_bp', cv.Annot(int, 750, cv.nonneg_integer)),
+            ('min_trscr_size_bp', cv.Annot(int, 0, cv.nonneg_integer)),
+            ('max_trscr_size_bp', cv.Annot(int, 5000, cv.nonneg_integer)),
+            ('smoothing_window', cv.Annot(int, 20, cv.nonneg_integer)),
+            ('labelCenterA', cv.Annot(str, None, cv.id_converter)),
+            ('labelCenterB', cv.Annot(str, None, cv.id_converter)),
+            ('labelBody', cv.Annot(str, None, cv.id_converter)),
+            ('remove_tmp_files', cv.Annot(bool, True, cv.id_converter)),
+            ('bootstrap_iter', cv.Annot(int, 2500, cv.id_converter)),
+            ('n_processes', cv.Annot(int, 4, cv.id_converter)),
+        ]),
         'kmer_count_plot': OrderedDict([
             ('genome_fasta', cv.Annot(str, None, rel_file_r_validator)),
             ('output_prefix', cv.Annot(str, None, cv.id_converter)),
@@ -231,6 +247,7 @@ def main():
     output_getter = operator.attrgetter('cur_output')
     modules = {
         'center_plot': (CenterPlotModule, output_getter),
+        'center_plot_bs': (CenterPlotBSModule, output_getter),
         'kmer_count_plot': (KmerPerPositionModule, output_getter),
         'kmer_logodd_plot': (KmerLogoddModule, output_getter),
         'xxmotif': (XXmotifModule, output_getter),
@@ -305,6 +322,33 @@ class CenterPlotModule(CmdPipelineModule):
         ]
         if cfg['remove_tmp_files']:
             cmd.append('-r')
+        self._cmds.append(cmd)
+
+
+class CenterPlotBSModule(CmdPipelineModule):
+
+    def prepare(self, norm_table_file, outdir, prefix, cfg):
+        cmd = [
+            'stammp-makeCenterBothEnds_bs',
+            '%r' % norm_table_file,
+            '%r' % outdir,
+            '%r' % cfg['output_prefix'],
+            '%r' % cfg['gff_file'],
+            '--downstream_bp %s' % cfg['downstream_bp'],
+            '--upstream_bp %s' % cfg['upstream_bp'],
+            '--min_ts_len %s' % cfg['min_trscr_size_bp'],
+            '--max_ts_len %s' % cfg['max_trscr_size_bp'],
+            '--gene_bp %s' % cfg['gene_bp'],
+            '--smooth_window %s' % cfg['smoothing_window'],
+            '--labelCenterA %r' % cfg['labelCenterA'],
+            '--labelCenterB %r' % cfg['labelCenterB'],
+            '--labelBody %r' % cfg['labelBody'],
+            '--title %r' % '[%s] %s' % (cfg['output_prefix'], prefix),
+            '--n_bs_iterations %s' % cfg['bootstrap_iter'],
+            '--n_processes %s' % cfg['n_processes'],
+        ]
+        if cfg['remove_tmp_files']:
+            cmd.append('--cleanup')
         self._cmds.append(cmd)
 
 

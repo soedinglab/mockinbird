@@ -18,6 +18,7 @@ setup(
             'stammp-normalizeFake = stammp.scripts.normalizeFake:run',
             'stammp-convert2quantile = stammp.scripts.convert2quantile:run',
             'stammp-makeCenterBothEnds = stammp.plots.makeCenterBothEnds:run',
+            'stammp-makeCenterBothEnds_bs = stammp.plots.makeCenterBothEnds_bs:main',
             'stammp-makeKmerPerPosition = stammp.plots.makeKmerPerPosition:run',
             'stammp-remove5primeAdapter = stammp.scripts.utils.remove5primeAdapter:run',
             'stammp-removePCRduplicates = stammp.scripts.utils.removePCRduplicates:run',

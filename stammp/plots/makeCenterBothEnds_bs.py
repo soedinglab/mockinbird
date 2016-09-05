@@ -1,5 +1,6 @@
 import argparse
 import os
+from multiprocessing import Pool
 
 import numpy as np
 import pandas as pd
@@ -47,7 +48,17 @@ def create_parser():
                         help='remove temporary files')
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--n_bs_iterations', default=500, type=int)
+    parser.add_argument('--n_processes', default=4, type=int)
     return parser
+
+global data_dict
+
+def calc_profile(indices, bp_size):
+    avg_vec = np.zeros(bp_size)
+    for ind in indices:
+        avg_vec += data_dict[ind]
+    avg_vec /= len(indices)
+    return avg_vec
 
 
 def main():
@@ -81,6 +92,7 @@ def main():
             return smooth_data
 
     def write_out_data(sense, out_file, bs_file):
+        global data_dict
         data_dict = {}
         for g in range(anno.size()):
             data = aggregate_data(g, sense)
@@ -95,15 +107,18 @@ def main():
             avg_vec /= len(ids)
             print(*avg_vec, sep='\t', file=out)
 
-        # bootstrap replicates
+
         with open(bs_file, 'w') as out:
-            for bs in range(args.n_bs_iterations):
-                avg_vec = np.zeros(cut_len)
-                ts_ind = np.random.choice(ids, size=len(ids))
-                for ind in ts_ind:
-                    avg_vec += data_dict[ind]
-                avg_vec /= len(ts_ind)
-                print(*avg_vec, sep='\t', file=out)
+            with Pool(args.n_processes) as pool:
+                jobs = []
+                for bs in range(args.n_bs_iterations):
+                    ts_ind = np.random.choice(ids, size=len(ids))
+                    job = pool.apply_async(calc_profile, args=(ts_ind, cut_len))
+                    jobs.append(job)
+
+                for job in jobs:
+                    res_vec = job.get()
+                    print(*res_vec, sep='\t', file=out)
 
     prefix_fmt = '%s_centerBoth_up%s_gene%s_do%s_min%s_max%s'
     fmt_args = (
