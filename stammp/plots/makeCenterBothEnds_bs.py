@@ -53,6 +53,7 @@ def create_parser():
 
 global data_dict
 
+
 def calc_profile(indices, bp_size):
     avg_vec = np.zeros(bp_size)
     for ind in indices:
@@ -96,7 +97,8 @@ def main():
         data_dict = {}
         for g in range(anno.size()):
             data = aggregate_data(g, sense)
-            data_dict[g] = data
+            if data is not None:
+                data_dict[g] = data
         ids = np.array(list(data_dict.keys()))
 
         # actual smoothed curve
@@ -106,7 +108,6 @@ def main():
                 avg_vec += data_dict[ts_ind]
             avg_vec /= len(ids)
             print(*avg_vec, sep='\t', file=out)
-
 
         with open(bs_file, 'w') as out:
             with Pool(args.n_processes) as pool:
