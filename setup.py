@@ -40,6 +40,7 @@ setup(
             'stammp-gffFilterSites = stammp.scripts.filter_sites:main',
             'stammp-ss_indicator = stammp.plots.secstruc_indicator:main',
             'stammp-filter-sites = stammp.scripts.filter_sites:main',
+            'stammp-annotate-table = stammp.scripts.utils.annotate_table:main',
         ]
     },
     packages=find_packages(),
