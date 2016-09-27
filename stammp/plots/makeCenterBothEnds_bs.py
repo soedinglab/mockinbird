@@ -87,10 +87,11 @@ def main():
             values_dostream = pc.getValues(anno.chr[g], anno.start[g], anno.strand[g],
                                            sense, args.gene_bp, args.downstream_bp)
         if values_upstream is not None and values_dostream is not None:
-            data = np.hstack((values_upstream, values_dostream))
-            smooth_data = pd.Series(data).rolling(window=args.smooth_window, center=True,
-                                                  min_periods=0).mean()
-            return smooth_data
+            upstr = pd.Series(values_upstream).rolling(window=args.smooth_window, center=True,
+                                                       min_periods=0).mean()
+            dostr = pd.Series(values_dostream).rolling(window=args.smooth_window, center=True,
+                                                       min_periods=0).mean()
+            return np.hstack((upstr, dostr))
 
     def write_out_data(sense, out_file, bs_file):
         global data_dict
