@@ -34,7 +34,7 @@ plotBothEnds = function(sense, sense_bs, asense, asense_bs, relativeSTART, relat
     maxy = max(c(sense, asense, max_sbs, max_abs))
     shift = 50
     plot(x=10000, y=10000, xlim=c(1,length(sense)+shift), ylim=c(0,maxy), ylab='Averaged Occupancy', xlab='Genomic position', xaxt='n', main=main)
-        sel = 1:(relativeSTART+bodysize)
+        sel = 1:(relativeSTART+bodysize+1)
         lines(x=sel, sense[sel],  lwd=lwd, col=s_col)
         lines(x=sel, asense[sel], lwd=lwd, col=a_col)
         polygon(c(sel, rev(sel)), c(bss_quantile[1,][sel], rev(bss_quantile[2,][sel])), col=s_ci_col, border=NA)
@@ -44,7 +44,7 @@ plotBothEnds = function(sense, sense_bs, asense, asense_bs, relativeSTART, relat
         abline(v=relativeSTART, lwd=1, lty = 1 , col='black')
         abline(v=relativeSTART+bodysize, lwd=1, lty = 2 , col='darkgrey')
         abline(v=relativeSTART+bodysize+shift, lwd=1, lty = 2 , col='darkgrey')
-        sel = (relativeSTART+bodysize):length(sense)
+        sel = (relativeSTART+bodysize+2):length(sense)
         lines(x=sel+shift, sense[sel],  lwd=lwd, col=s_col)
         lines(x=sel+shift, asense[sel], lwd=lwd, col=a_col)
         polygon(c(sel + shift, rev(sel + shift)), c(bss_quantile[1,][sel], rev(bss_quantile[2,][sel])), col=s_ci_col, border=NA)
