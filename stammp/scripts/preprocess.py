@@ -498,6 +498,7 @@ class ClippyAdapterClippingModule(pl.CmdPipelineModule):
             '--min_len %s' % read_cfg['min_len'],
             '--nt_barcode_5prime %s' % read_cfg['bc_5prime'],
             '--nt_barcode_3prime %s' % read_cfg['bc_3prime'],
+            '--plot_dir %s' % output_dir,
             '--verbose'
         ]
         self._cmds.append(cmd)
