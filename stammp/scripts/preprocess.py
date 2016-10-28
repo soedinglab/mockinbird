@@ -447,7 +447,7 @@ class FastXStatisticsModule(pl.CmdPipelineModule):
         qual_bp_toks = [
             'fastq_quality_boxplot_graph.sh',
             '-i %s' % qual_stats_file,
-            '-o %s' % os.path.join(output_dir, prefix + '_raw_quality.png'),
+            '-o %s' % os.path.join(output_dir, prefix + '_raw_quality.pdf'),
             '-t %s' % prefix,  # title
         ]
         cmds.append(qual_bp_toks)
@@ -455,7 +455,7 @@ class FastXStatisticsModule(pl.CmdPipelineModule):
         nucdistr_toks = [
             'fastx_nucleotide_distribution_graph.sh',
             '-i %s' % qual_stats_file,
-            '-o %s' % os.path.join(output_dir, prefix + '_raw_nuc.png'),
+            '-o %s' % os.path.join(output_dir, prefix + '_raw_nuc.pdf'),
             '-t %s' % prefix,  # title
         ]
         cmds.append(nucdistr_toks)

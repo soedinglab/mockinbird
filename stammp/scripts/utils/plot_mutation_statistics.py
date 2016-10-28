@@ -71,7 +71,7 @@ def create_transition_plots(calmd_bam_file, output_dir):
     fig.suptitle('Read size distribution of mapped reads', fontsize=20)
     ax.set_xlabel('Read length in bp', fontsize=16)
 
-    maplen_plot = os.path.join(output_dir, 'mapped_lengths.png')
+    maplen_plot = os.path.join(output_dir, 'mapped_lengths.pdf')
     plt.savefig(maplen_plot)
 
     # mismatch position histogram
@@ -81,7 +81,7 @@ def create_transition_plots(calmd_bam_file, output_dir):
     fig.suptitle('Mismatch frequency distribution of mapped reads', fontsize=20)
     ax.set_xlabel('Read position', fontsize=16)
 
-    mismatch_freq_plot = os.path.join(output_dir, 'mismatch_freq.png')
+    mismatch_freq_plot = os.path.join(output_dir, 'mismatch_freq.pdf')
     plt.savefig(mismatch_freq_plot)
 
     # transition frequency plot
@@ -128,7 +128,7 @@ def create_transition_plots(calmd_bam_file, output_dir):
         ax.set_xlabel('Read Position', fontsize=16)
         ax.set_xlim(0, length + 1)
 
-        tr_plot = os.path.join(tr_plot_dir, 'transition_%sbp_plot.png' % length)
+        tr_plot = os.path.join(tr_plot_dir, 'transition_%sbp_plot.pdf' % length)
         plt.savefig(tr_plot, bbox_extra_artists=(lgd, title), bbox_inches='tight')
         plt.close()
 

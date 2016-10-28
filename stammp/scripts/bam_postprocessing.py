@@ -400,7 +400,7 @@ class MutationModule:
         ax.hist(self._real_lengths, bins=np.arange(max_len) + 1)
         fig.suptitle('Mapped read size distribution', fontsize=20)
         ax.set_xlabel('Mapped read length in bp', fontsize=16)
-        maplen_plot = os.path.join(self._output_dir, 'mapped_lengths.png')
+        maplen_plot = os.path.join(self._output_dir, 'mapped_lengths.pdf')
         plt.savefig(maplen_plot)
         plt.close()
 
@@ -435,7 +435,7 @@ class MutationModule:
             ax.set_xlabel('Read position', fontsize=16)
 
             mismatch_freq_plot = os.path.join(mm_plot_dir,
-                                              'mismatch_freq_%sbp.png' % length)
+                                              'mismatch_freq_%sbp.pdf' % length)
             plt.savefig(mismatch_freq_plot)
             plt.close()
 
@@ -453,7 +453,7 @@ class MutationModule:
             ax.set_xlabel('Read Position', fontsize=16)
             ax.set_xlim(0, length + 1)
 
-            tr_plot = os.path.join(tr_plot_dir, 'transition_%sbp_plot.png' % length)
+            tr_plot = os.path.join(tr_plot_dir, 'transition_%sbp_plot.pdf' % length)
             plt.savefig(tr_plot, bbox_extra_artists=(lgd, title), bbox_inches='tight')
             plt.close()
 
@@ -468,7 +468,7 @@ class MutationModule:
         ax.set_xlabel('Transition quality')
         ax.set_ylabel('Frequency')
 
-        qual_tr_plot = os.path.join(self._output_dir, 'quality_transition_plot.png')
+        qual_tr_plot = os.path.join(self._output_dir, 'quality_transition_plot.pdf')
         plt.savefig(qual_tr_plot)
         plt.close()
 
@@ -482,7 +482,7 @@ class MutationModule:
                      fontsize=20)
         ax.set_xlabel('Alignment length in bp')
         ax.set_ylabel('Frequency')
-        qual_len_plot = os.path.join(self._output_dir, 'length_transition_plot.png')
+        qual_len_plot = os.path.join(self._output_dir, 'length_transition_plot.pdf')
         plt.savefig(qual_len_plot)
         plt.close()
 
