@@ -51,9 +51,10 @@ Example::
 import argparse
 import os
 import shutil
-from stammp.obj import parclipsites, genome, gff
+from stammp.obj import gff
 from stammp.utils import argparse_helper as aph
 from stammp.utils import execute
+from stammp.utils import ParclipSiteContainer, EfficientGenome
 
 
 def create_parser():
@@ -95,8 +96,7 @@ def run():
     prefix_pat = '%s_xxmotif_start%s_stop%s_width%s_sort_%s'
     file_prefix = prefix_pat % (args.prefix, args.start, args.stop, args.width, args.key)
 
-    gen = genome.Genome(args.genome, verbose=False)
-    sites = parclipsites.ParclipSites()
+    sites = ParclipSiteContainer()
     sites.loadFromFile(args.inputfile)
 
     if args.filterGFF != '':
@@ -105,7 +105,8 @@ def run():
 
     sites.sort(args.key)
     gen_file = os.path.join(args.outdir, file_prefix + '.fa')
-    sites.save2Fasta(gen, gen_file, args.start, args.stop, width=args.width)
+    with EfficientGenome(args.genome) as genome:
+        sites.save2Fasta(genome, gen_file, args.start, args.stop, width=args.width)
 
     cmd = [
         'XXmotif',

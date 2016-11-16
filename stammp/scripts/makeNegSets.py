@@ -7,8 +7,9 @@ format. Negative sets are mandatory for k-mer log odd calculations or motif find
 import argparse
 import random
 import os
-from stammp.obj import gff, genome, functions
+from stammp.obj import gff, functions
 from stammp.utils import argparse_helper as aph
+from stammp.utils import EfficientGenome
 
 
 def getRandomSequences(anno, wg, rnumber, width):
@@ -17,13 +18,15 @@ def getRandomSequences(anno, wg, rnumber, width):
     while i < rnumber:
         rnd_anno = random.randint(0, (anno.size() - 1))
         rnd_pos = random.randint(anno.start[rnd_anno], anno.stop[rnd_anno])
-        tmp_seq = wg.getSequence(anno.chr[rnd_anno], rnd_pos - width, rnd_pos + width)
-        if tmp_seq != -1:
-            if anno.strand[rnd_anno] == '+':
-                seq.append(tmp_seq)
-            else:
-                seq.append(functions.makeReverseComplement(tmp_seq))
+        try:
+            tmp_seq = wg.get_sequence(anno.chr[rnd_anno], rnd_pos - width, rnd_pos + width,
+                                      anno.strand)
+            if 'N' in tmp_seq:
+                continue
+            seq.append(tmp_seq)
             i += 1
+        except ValueError:
+            continue
     return seq
 
 
@@ -40,9 +43,9 @@ def getKmerCounts(seqs, kmer=3):
 
 def main(gfffile, genomepath, prefix, outdir, rnumber, width, verbose):
     anno = gff.GFF(gfffile)
-    g = genome.Genome(genomepath)
+    with EfficientGenome(genomepath) as g:
+        rnd_seqs = getRandomSequences(anno, g, rnumber, width)
 
-    rnd_seqs = getRandomSequences(anno, g, rnumber, width)
     kmer_table = getKmerCounts(rnd_seqs, kmer=3)
 
     basename = 'rnd_sequences_%s_%s_w%s' % (prefix, rnumber, width)

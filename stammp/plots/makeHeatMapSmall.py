@@ -2,7 +2,8 @@ import argparse
 import os
 from stammp.utils import argparse_helper as aph
 from stammp.utils import execute
-from stammp.obj import gff, functions, parclipsites
+from stammp.obj import gff, functions
+from stammp.utils import ParclipSiteContainer
 
 
 def create_parser():
@@ -49,7 +50,7 @@ def main(parclipfile, gfffile, upstream, downstream, sense, minSize,
     anno.filterSize(minSize, maxSize)
     totalsize = upstream + maxSize + 1 + downstream
     anno.sort2size()
-    pc = parclipsites.ParclipSites()
+    pc = ParclipSiteContainer()
     pc.loadFromFile(parclipfile)
     mat = []
     annosize = []

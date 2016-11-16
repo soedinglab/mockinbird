@@ -1,5 +1,9 @@
 from collections import namedtuple, OrderedDict
 from urllib.parse import quote, unquote
+import logging
+
+logger= logging.getLogger()
+
 
 GFFRecord = namedtuple('GFFRecord', [
     'seqid', 'source', 'type', 'start', 'end', 'score',
@@ -82,17 +86,37 @@ class PCTableParser:
 
     def __init__(self, handle):
         self._handle = handle
+        header = handle.readline().split()
+        mand_fields = [
+            'seqid', 'position', 'transitions', 'coverage', 'score',
+            'strand', 'occupancy'
+        ]
+        mand_conv = [str, int, int, int, float, str, float]
+
+        if header[:7] != mand_fields:
+            raise ValueError('data is not a PCTable')
+
+        self._fields = header
+        self._converters = dict(zip(mand_fields, mand_conv))
+
+    def register_converter(self, field, converter):
+        self._converters[field] = converter
 
     def parse(self):
-        self._handle.readline()
-        for line in self._handle:
+        # we already read the header, first line is line 2
+        fields = self._fields
+        Record = namedtuple('PCRecord', fields)
+        conv = list(map(self._converters, fields))
+        for line_no, line in enumerate(self._handle, start=2):
             tokens = line.split()
-            if len(tokens) != 7:
+            if len(tokens) != len(self._fields):
+                logger.warn('PCTable: skipping line %s due to an unexpected number of fields',
+                            line_no)
                 continue
             values = []
-            for value, field_type in zip(tokens, PC_FIELD_TYPES):
+            for value, field_type in zip(tokens, conv):
                 if value == '.':
                     values.append(None)
                 else:
                     values.append(field_type(value))
-            yield PCRecord(*values)
+            yield Record(*values)

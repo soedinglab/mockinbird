@@ -59,9 +59,10 @@ import math
 import argparse
 import sys
 
-from stammp.obj import functions, gff, parclipsites, genome
+from stammp.obj import functions, gff
 from stammp.utils import execute
 from stammp.utils import argparse_helper as aph
+from stammp.utils import ParclipSiteContainer, EfficientGenome
 
 
 def create_parser():
@@ -94,64 +95,64 @@ def create_parser():
 def loadNegTable(filename):
     with open(filename) as fc:
         negset = {}
-        total = 0
         for line in fc:
-            s = line.split('\t')
-            negset[s[0]] = float(s[1].split('\n')[0])
-            total += negset[s[0]]
+            kmer, count_str = line.split()
+            count = int(count_str)
+            negset[kmer] = count
+
+    total = sum(negset.values())
     for k in negset:
-        negset[k] = negset[k] / total
+        negset[k] /= total
     return negset
 
 
 def getkmerLogs(s, g, neg, kmers, start, stop, width):
-    total = 0
+    # dirty hack to ensure indices not growing larger than index bounds
+    start = min(start, len(s.chrs))
+    stop = min(stop, len(s.chrs))
+
     kmer = len(kmers[0])
     kmer_freqs = {}
     for k in kmers:
         kmer_freqs[k] = 1
-        total += 1
-    # dirty hack to ensure indices not growing larger than index bounds
-    start = max(start, len(s.chrs))
-    stop = max(stop, len(s.chrs))
+
     for i in range(start, stop):
-        seq = g.getSequence(s.chrs[i], (s.pos[i] - 1 - width), (s.pos[i] - 1 + width + 1))
-        if seq != -1:
-            if s.strand[i] == '-':
-                seq = functions.makeReverseComplement(seq)
-            for j in range(len(seq) - kmer):
-                kmer_freqs[seq[j:(j + kmer)]] += 1
-                total += 1
+        seq = g.get_sequence(s.chrs[i], s.pos[i] - width, s.pos[i] + width, s.strand[i])
+        for j in range(len(seq) - kmer + 1):
+            kmer_freqs[seq[j:j + kmer]] += 1
+
+    total = sum(kmer_freqs.values())
     for k in kmers:
-        kmer_freqs[k] = math.log(((kmer_freqs[k] / total) / neg[k]), 2)
-    return(kmer_freqs)
+        kmer_freqs[k] = math.log2((kmer_freqs[k] / total) / neg[k])
+    return kmer_freqs
 
 
 def sortAndSave(oddlist, outfile, kmers):
+
     sortedKmers = []
-    for k in range(len(kmers)):
+    for kmer in kmers:
         if len(oddlist) > 2:
-            counts = oddlist[0][kmers[k]] + oddlist[1][kmers[k]] + oddlist[2][kmers[k]]
-            sortedKmers.append([kmers[k], counts])
+            counts = oddlist[0][kmer] + oddlist[1][kmer] + oddlist[2][kmer]
+            sortedKmers.append([kmer, counts])
         else:
-            sortedKmers.append([kmers[k], oddlist[0][kmers[k]]])
-    sortedKmers = sorted(sortedKmers, key=lambda d: d[1])[::-1]
+            sortedKmers.append(kmer, oddlist[0][kmer])
+    sortedKmers = [kmer for kmer, counts in sorted(sortedKmers, key=lambda d: d[1], reverse=True)]
 
     with open(outfile, 'w') as fc:
-        for i in range(len(sortedKmers)):
-            fc.write(sortedKmers[i][0] + '\t')
-            for j in range(len(oddlist)):
-                fc.write(str(oddlist[j][sortedKmers[i][0]]) + '\t')
-            fc.write('\n')
+        for kmer in sortedKmers:
+            row = []
+            row.append(kmer)
+            for i in range(len(oddlist)):
+                row.append(oddlist[i][kmer])
+            print(*row, sep='\t', file=fc)
 
 
 def main(parclip, outdir, prefix, genomepath, negset, gfffile, kmer, key,
          useQuantiles, verbose, args):
     scriptPath = os.path.dirname(os.path.realpath(__file__))
     plot_script = os.path.join(scriptPath, 'plotKmerLogOdds.R')
-    pc = parclipsites.ParclipSites()
+    pc = ParclipSiteContainer()
     pc.loadFromFile(parclip)
-    genomeseq = genome.Genome(genomepath)
 
     if gfffile is not None:
         anno = gff.GFF(gfffile)
@@ -161,54 +162,55 @@ def main(parclip, outdir, prefix, genomepath, negset, gfffile, kmer, key,
     kmers = functions.makekmers(kmer, list('ACGT'))[kmer - 1]
     negfreq = loadNegTable(negset)
 
-    allfreqs = []
-    fileprefix = '%s_logodds_%smer_sort_%s' % (prefix, kmer, key)
-    if useQuantiles:
-        fileprefix = fileprefix + '_quantiles'
-        allfreqs.append(getkmerLogs(pc, genomeseq, negfreq, kmers, 0, 1000, 15))
-        quantiles = [
-            0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.125, 0.15, 0.175,
-            0.2, 0.225, 0.25, 0.275, 0.3, 0.325, 0.35, 0.375, 0.4,
-            0.45, 0.5, 0.55, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9
-        ]
-        count = 1
-        stop = 1000
-        for q in quantiles:
-            if verbose:
-                functions.showProgress(count, len(quantiles),
-                                       'Getting kmer log-odds from quantiles...')
-            old_stop = stop
-            start = functions.getQuantileIndex(pc.size(), q) - 500
-            stop = functions.getQuantileIndex(pc.size(), q) + 500
-            if start < 0:
-                start = 0
-            if stop > (pc.size() - 2):
-                break
-            count = count + 1
-            if (stop - 500) < old_stop:
-                msg_pat = 'Bin %s and %s are overlapping by %s sites!'
-                # 2x quantiles[count - 2] is probably a bug
-                msg = msg_pat % (quantiles[count - 2], quantiles[count - 2],
-                                 old_stop - (stop - 500))
-                print(msg, file=sys.stderr)
-            allfreqs.append(getkmerLogs(pc, genomeseq, negfreq, kmers, start, stop, 15))
-    else:
-        maxsize = 50000
-        stepsize = 1000
-        start = 0
-        stop = 1000
-        run = True
-        while run:
-            if stop > (pc.size() - 2) or stop > maxsize:
-                print()
-                print('STOP at: %s' % + stop)
-                run = False
-                break
-            if verbose:
-                functions.showProgress(stop, maxsize, 'Getting kmer log-odds from bins...')
-            allfreqs.append(getkmerLogs(pc, genomeseq, negfreq, kmers, start, stop, 15))
-            start = stop
-            stop = stop + stepsize
+    with EfficientGenome(genomepath) as genomeseq:
+        allfreqs = []
+        fileprefix = '%s_logodds_%smer_sort_%s' % (prefix, kmer, key)
+        if useQuantiles:
+            fileprefix = fileprefix + '_quantiles'
+            allfreqs.append(getkmerLogs(pc, genomeseq, negfreq, kmers, 0, 1000, 15))
+            quantiles = [
+                0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.125, 0.15, 0.175,
+                0.2, 0.225, 0.25, 0.275, 0.3, 0.325, 0.35, 0.375, 0.4,
+                0.45, 0.5, 0.55, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9
+            ]
+            count = 1
+            stop = 1000
+            for q in quantiles:
+                if verbose:
+                    functions.showProgress(count, len(quantiles),
+                                           'Getting kmer log-odds from quantiles...')
+                old_stop = stop
+                start = functions.getQuantileIndex(pc.size(), q) - 500
+                stop = functions.getQuantileIndex(pc.size(), q) + 500
+                if start < 0:
+                    start = 0
+                if stop > (pc.size() - 2):
+                    break
+                count = count + 1
+                if (stop - 500) < old_stop:
+                    msg_pat = 'Bin %s and %s are overlapping by %s sites!'
+                    # TODO 2x quantiles[count - 2] is probably a bug
+                    msg = msg_pat % (quantiles[count - 2], quantiles[count - 2],
+                                     old_stop - (stop - 500))
+                    print(msg, file=sys.stderr)
+                allfreqs.append(getkmerLogs(pc, genomeseq, negfreq, kmers, start, stop, 15))
+        else:
+            maxsize = 50000
+            stepsize = 1000
+            start = 0
+            stop = 1000
+            run = True
+            while run:
+                if stop > (pc.size() - 2) or stop > maxsize:
+                    print()
+                    print('STOP at: %s' % + stop)
+                    run = False
+                    break
+                if verbose:
+                    functions.showProgress(stop, maxsize, 'Getting kmer log-odds from bins...')
+                allfreqs.append(getkmerLogs(pc, genomeseq, negfreq, kmers, start, stop, 15))
+                start = stop
+                stop = stop + stepsize
 
     table_file = os.path.join(outdir, fileprefix + '.table')
     pdf_file = os.path.join(outdir, fileprefix + '.pdf')

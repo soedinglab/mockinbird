@@ -3,7 +3,8 @@ import os
 from itertools import chain
 import datetime
 
-from stammp.obj import functions, gff, parclipsites
+from stammp.obj import functions, gff
+from stammp.utils import ParclipSiteContainer
 from stammp.utils import execute
 from stammp.utils.argparse_helper import file_r, dir_rwx
 
@@ -53,7 +54,7 @@ def main(parclipfile, outputfile, gfffile, downstream, upstream, gene, sense, mi
          maxSize, verbose, vstring=''):
     anno = gff.GFF(gfffile)
     anno.filterSize(minSize, maxSize)
-    pc = parclipsites.ParclipSites('')
+    pc = ParclipSiteContainer()
     pc.loadFromFile(parclipfile)
     with open(outputfile, 'w') as fc_out:
         for g in range(anno.size()):

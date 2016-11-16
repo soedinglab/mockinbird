@@ -1,4 +1,3 @@
-#! /usr/bin/python3
 """
 Observed PAR-CLIP mutations are divided by the observed PAR-CLIP coverage.
 
@@ -19,12 +18,13 @@ import argparse
 import os
 import sys
 from stammp.obj import *
+from stammp.utils import ParclipSiteContainer
 
 def main(inputfile, outputfile):
     if os.path.isfile(inputfile) == False:
         print('Inputfile: '+inputfile+' does not exist')
         sys.exit(-1)
-    sites = parclipsites.ParclipSites('')
+    sites = ParclipSiteContainer()
     sites.loadFromFile(inputfile)
     
     for i in range(sites.size()):

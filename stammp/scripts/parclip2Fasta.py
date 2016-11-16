@@ -1,4 +1,3 @@
-#! /usr/bin/python3
 """
 Takes PAR-CLIP sites and a genome and saves genomic sequences as fasta file
 around PAR-CLIP sites according to the given parameters.
@@ -34,6 +33,7 @@ around PAR-CLIP sites according to the given parameters.
 import argparse
 import os
 from stammp.obj import *
+from stammp.utils import ParclipSiteContainer
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Takes PAR-CLIP sites and a genome and saves genomic sequences as fasta file around PAR-CLIP sites according to the given parameters.', epilog="contact: torkler@genzentrum.lmu.de")
@@ -50,7 +50,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     yeast   = genome.Genome(args.genome, False)
-    sites   = parclipsites.ParclipSites('')
+    sites   = ParclipSiteContainer()
     sites.loadFromFile(args.sites)
     
     if args.verbose:

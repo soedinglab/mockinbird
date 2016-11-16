@@ -1,4 +1,3 @@
-#! /usr/bin/python3
 """
 Returns the colocalization value for a pair of PAR-CLIP tables A and B.
 
@@ -36,12 +35,13 @@ import argparse
 import os
 import sys
 from stammp.obj import *
+from stammp.utils import ParclipSiteContainer
 import math
 
 def main(parclipA, parclipB, start, stop, width, anno=None, annowidth=100,
          logRatio=False, verbose=False):
-    tmpA     = parclipsites.ParclipSites('')
-    dataB    = parclipsites.ParclipSites('')
+    tmpA     = ParclipSiteContainer()
+    dataB    = ParclipSiteContainer()
     tmpA.loadFromFile(parclipA)
     tmpA.sort(key='occ')
     dataB.loadFromFile(parclipB)

@@ -1,4 +1,3 @@
-#! /usr/bin/python3
 """
 Select all PAR-CLIP sites that are located within the given GFF
 
@@ -25,17 +24,18 @@ Select all PAR-CLIP sites that are located within the given GFF
 """
 import argparse
 from stammp.obj import *
+from stammp.utils import ParclipSiteContainer
 
 def main(inputfile, outputfile, gfffile, gffmin, gffmax, upstream,
          downstream, verbose):
-    sites = parclipsites.ParclipSites('')
+    sites = ParclipSiteContainer()
     sites.loadFromFile(inputfile)
     anno = gff.GFF(gfffile)
     anno.filterSize(gffmin, gffmax)
     anno.getChromosomePositions()
     if anno.size() < 10:
         print('Warning: Low number of annotation enries! '+str(anno.size()))
-    fsites = parclipsites.ParclipSites('')
+    fsites = ParclipSiteContainer()
     percent_old = 0
     percent_new = 0
     for i in range(sites.size()):

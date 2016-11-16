@@ -5,9 +5,11 @@ from multiprocessing import Pool
 import numpy as np
 import pandas as pd
 
-from stammp.obj import gff, parclipsites
+from stammp.obj import gff
 from stammp.utils import execute
 from stammp.utils.argparse_helper import file_r, dir_rwx
+from stammp.utils.helper_objects import PCContainer
+from stammp.utils.parsers import GFF3Parser
 
 
 def create_parser():
@@ -68,38 +70,58 @@ def main():
 
     np.random.seed(args.seed)
 
-    anno = gff.GFF(args.gff_file)
-    anno.filterSize(args.min_ts_len, args.max_ts_len)
-    pc = parclipsites.ParclipSites()
-    pc.loadFromFile(args.pc_table)
+    with open(args.pc_table) as table_handle:
+        pc = PCContainer.read_handle(table_handle)
+
+    gff_records = []
+    with open(args.gff_file) as gff_handle:
+        parser = GFF3Parser(gff_handle)
+        for rec in parser.parse():
+            if args.min_ts_len <= rec.end - rec.start + 1 <= args.max_ts_len:
+                gff_records.append(rec)
 
     cut_len = args.downstream_bp + args.upstream_bp + 2 * args.gene_bp + 2
 
-    def aggregate_data(g, sense=True):
-        if anno.strand[g] == '+':
-            values_upstream = pc.getValues(anno.chr[g], anno.start[g], anno.strand[g],
-                                           sense, args.upstream_bp, args.gene_bp)
-            values_dostream = pc.getValues(anno.chr[g], anno.stop[g], anno.strand[g],
-                                           sense, args.gene_bp, args.downstream_bp)
+    gene_bp = args.gene_bp
+    upstream_bp = args.upstream_bp
+    downstream_bp = args.downstream_bp
+
+
+    def aggregate_data(gff_rec, sense=True):
+
+        def rev(strand):
+                return '+' if strand == '-' else '-'
+
+        chrom = gff_rec.seqid
+        start = gff_rec.start
+        end = gff_rec.end
+        smooth_window = args.smooth_window
+        anno_strand = gff_rec.strand
+
+        query_strand = anno_strand if sense else rev(anno_strand)
+        if anno_strand == '+':
+            values_upstream = pc.occ_profile(chrom, start - upstream_bp,
+                                             start + gene_bp, query_strand)
+            values_dostream = pc.occ_profile(chrom, end - gene_bp, end + downstream_bp,
+                                             query_strand)
         else:
-            values_upstream = pc.getValues(anno.chr[g], anno.stop[g], anno.strand[g],
-                                           sense, args.upstream_bp, args.gene_bp)
-            values_dostream = pc.getValues(anno.chr[g], anno.start[g], anno.strand[g],
-                                           sense, args.gene_bp, args.downstream_bp)
-        if values_upstream is not None and values_dostream is not None:
-            upstr = pd.Series(values_upstream).rolling(window=args.smooth_window, center=True,
-                                                       min_periods=0).mean()
-            dostr = pd.Series(values_dostream).rolling(window=args.smooth_window, center=True,
-                                                       min_periods=0).mean()
-            return np.hstack((upstr, dostr))
+            values_upstream = pc.occ_profile(chrom, end - gene_bp, end + upstream_bp,
+                                             query_strand)[::-1]
+            values_dostream = pc.occ_profile(chrom, start - downstream_bp, start + gene_bp,
+                                             query_strand)[::-1]
+
+        upstr = pd.Series(values_upstream).rolling(window=smooth_window, center=True,
+                                                   min_periods=0).mean()
+        dostr = pd.Series(values_dostream).rolling(window=smooth_window, center=True,
+                                                   min_periods=0).mean()
+        return np.hstack((upstr, dostr))
 
     def write_out_data(sense, out_file, bs_file):
         global data_dict
         data_dict = {}
-        for g in range(anno.size()):
-            data = aggregate_data(g, sense)
-            if data is not None:
-                data_dict[g] = data
+        for i, gff_rec in enumerate(gff_records):
+            data = aggregate_data(gff_rec, sense)
+            data_dict[i] = data
         ids = np.array(list(data_dict.keys()))
 
         # actual smoothed curve

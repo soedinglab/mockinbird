@@ -6,7 +6,46 @@ from operator import attrgetter
 
 
 logger = logging.getLogger()
-Annot = namedtuple('Annotation', ['type', 'default', 'converter'])
+
+class Annot:
+    def __init__(self, type, default=None, converter=lambda x:x,
+                 warn_if_missing=True):
+        self._type = type
+        self._default = default
+        self._converter = converter
+        self._warn_if_missing = warn_if_missing
+
+    @property
+    def type(self):
+        return self._type
+
+    @property
+    def default(self):
+        return self._default
+
+    @property
+    def converter(self):
+        return self._converter
+
+    @property
+    def warn_if_missing(self):
+        return self._warn_if_missing
+
+
+def rel_file_r_validator(path, cfg_path):
+    if not os.path.isabs(path):
+        parent_path = os.path.dirname(cfg_path)
+        path = os.path.join(os.path.abspath(parent_path), path)
+    return file_r_validator(path)
+
+
+def rel_genome_validator(path, cfg_path):
+    if not os.path.isabs(path):
+        parent_path = os.path.dirname(cfg_path)
+        path = os.path.join(os.path.abspath(parent_path), path)
+        genome_file = file_r_validator(path)
+        file_r_validator(path + '.fai')
+    return genome_file
 
 
 def dnastr_validator(dna_string):
@@ -23,6 +62,15 @@ def dnanuc_validator(dna_nuc):
         raise ValueError('DNA nucleotide %r is invalid. Valid nucleotides: '
                          'A, C, G, T' % dna_nuc)
     return dna_nuc.upper()
+
+
+def boolean(bool_str):
+    if isinstance(bool_str, bool):
+        return bool_str
+    if bool_str.lower() in ('no', '0', ''):
+        return False
+    else:
+        return True
 
 
 def file_r_validator(path):
@@ -66,12 +114,28 @@ def id_converter(x):
     return x
 
 
-type_getter = {
-    int: attrgetter('getint'),
-    str: attrgetter('get'),
-    float: attrgetter('getfloat'),
-    bool: attrgetter('getboolean')
-}
+def validate_section(config, cfg_format):
+    cfg_dict = {}
+    for key, annot in cfg_format.items():
+        if key not in config:
+            if annot.default is not None:
+                log_cmd = logger.warn if annot.warn_if_missing else logger.debug
+                log_cmd('key %r undefined. Using default value %r.', key, annot.default)
+                cfg_dict[key] = annot.default
+            else:
+                msg = ('mandatory configuration key %r missing' % key)
+                logger.error(msg)
+                raise ConfigError(msg)
+        else:
+            try:
+                raw_data = annot.type(config[key])
+                cfg_dict[key] = annot.converter(raw_data)
+                logger.debug('set %r to %r', key, raw_data)
+            except ValueError as ex:
+                msg = 'invalid value %r for key %r' % (config[key], key)
+                logger.error(msg)
+                raise ConfigError(msg)
+    return cfg_dict
 
 
 def mand_config(config, cfg_format):
@@ -79,7 +143,7 @@ def mand_config(config, cfg_format):
     for section, fields_dict in cfg_format.items():
         if section not in config:
             logger.warn('config section %r missing.', section)
-            config.add_section(section)
+            config[section] = {}
         cfg_sec = config[section]
         sec_dict = {}
         for key, annot in fields_dict.items():
@@ -95,8 +159,8 @@ def mand_config(config, cfg_format):
                     raise ConfigError(msg)
             else:
                 try:
-                    cfg_getter = type_getter[annot.type]
-                    raw_data = cfg_getter(cfg_sec)(key)
+                    print(cfg_sec)
+                    raw_data = annot.type(cfg_sec[key])
                     sec_dict[key] = annot.converter(raw_data)
                     logger.debug('section %r: set %r to %r', section,
                                  key, raw_data)

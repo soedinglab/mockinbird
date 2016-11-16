@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 from stammp.obj import *
+from stammp.utils import ParclipSiteContainer
 from stammp.utils import argparse_helper as aph
 
 
@@ -23,7 +24,7 @@ def main(inputfile, outputfile, q):
     if q < 0 or q > 1.0:
         print('q: '+str(q)+' must between [0,1]')
         sys.exit(1)
-    sites = parclipsites.ParclipSites()
+    sites = ParclipSiteContainer()
     sites.loadFromFile(inputfile)
     # dirty hack to avoid errors on empty files
     if len(sites.chrs) > 0:

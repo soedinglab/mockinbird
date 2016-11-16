@@ -47,9 +47,10 @@ Example::
 import argparse
 import os
 from itertools import chain
-from stammp.obj import functions, genome, parclipsites, gff
+from stammp.obj import functions, gff
 from stammp.utils import execute
 from stammp.utils import argparse_helper as aph
+from stammp.utils import ParclipSiteContainer, EfficientGenome
 
 
 def create_parser():
@@ -124,8 +125,7 @@ def run():
     parser = create_parser()
     args = parser.parse_args()
 
-    yeast = genome.Genome(location=args.genome, verbose=False)
-    sites = parclipsites.ParclipSites()
+    sites = ParclipSiteContainer()
     sites.loadFromFile(args.inputfile)
 
     if args.filterGFF != '':
@@ -133,7 +133,9 @@ def run():
         sites = sites.removeSitesLocatedInGFF(anno, args.awidth)
 
     sites.sort(args.key)
-    seqs = sites.getSequences(yeast, args.start, args.stop, args.width)
+
+    with EfficientGenome(args.genome) as genome:
+        seqs = sites.getSequences(genome, args.start, args.stop, args.width)
 
     prefix_fmt = '%s_kmerPerPosition_kmer%s_start%s_stop%s_width%s_sort_%s'
 

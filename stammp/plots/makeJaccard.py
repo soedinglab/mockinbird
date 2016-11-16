@@ -2,6 +2,7 @@ import argparse
 import os
 from stammp.obj import *
 from stammp.utils import argparse_helper as aph
+from stammp.utils import ParclipSiteContainer
 
 
 def create_parser():
@@ -27,7 +28,7 @@ def getEntries(sites, q1, q2):
     i = 0
     lower = functions.getQuantile(sites.occ,q1)
     upper = functions.getQuantile(sites.occ,q2)
-    pc = parclipsites.ParclipSites('')
+    pc = ParclipSiteContainer()
     count = 0
     size = sites.size()
     for i in range(sites.size()):
@@ -45,12 +46,12 @@ def main(parclipA, parclipB, outfile, width, verbose):
        functions.showProgress(total_count, total, 'Calculating Jaccard-Index')
     fc = open(outfile, 'w')
     for q1 in range(len(quantiles)-1):
-        a = parclipsites.ParclipSites('')
+        a = ParclipSiteContainer()
         a.loadFromFile(parclipA)
         aq = getEntries(a,quantiles[q1], quantiles[q1+1])
         #removeEntries(a,quantiles[q1], quantiles[q1+1])
         for q2 in range(len(quantiles)-1):
-            b = parclipsites.ParclipSites('')
+            b = ParclipSiteContainer()
             b.loadFromFile(parclipB)
             #removeEntries(b,quantiles[q2], quantiles[q2+1])
             bq = getEntries(b,quantiles[q2], quantiles[q2+1])

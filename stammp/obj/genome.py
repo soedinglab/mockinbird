@@ -1,7 +1,9 @@
 import os
 import sys
 from stammp.obj import functions
+from stammp.utils.misc import deprecated
 
+@deprecated('The "Genome" class has been replaced with "EfficientGenome"')
 class Genome:
     """
         :class:`~stammp.obj.genome.Genome` represents the sequence data of a complete genome. Sequences are loaded upon object creation. *location* should be multiple fasta or a directory which only contains one fasta file per chromosome.
