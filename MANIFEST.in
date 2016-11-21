@@ -1,3 +1,2 @@
 include stammp/plots/*.R
-include stammp/data/*.cfg
-include stammp/scripts/utils/*.jar
+include stammp/data/*

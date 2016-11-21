@@ -43,8 +43,8 @@ def rel_genome_validator(path, cfg_path):
     if not os.path.isabs(path):
         parent_path = os.path.dirname(cfg_path)
         path = os.path.join(os.path.abspath(parent_path), path)
-        path = file_r_validator(path)
-        file_r_validator(path + '.fai')
+    path = file_r_validator(path)
+    file_r_validator(path + '.fai')
     return path
 
 

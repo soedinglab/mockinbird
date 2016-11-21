@@ -46,7 +46,7 @@ def main():
         fil_annots = Counter()
         for line in pc:
             toks = line.split()
-            chrom, pos_str, _, _, _, strand, _ = toks
+            chrom, pos_str, _, _, _, strand, *_ = toks
             site_iv = Interval(int(pos_str), int(pos_str))
             has_overlap = False
             for ovl in gff_tree.query_all_overlaps(site_iv):
