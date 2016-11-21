@@ -5,10 +5,9 @@ from multiprocessing import Pool
 import numpy as np
 import pandas as pd
 
-from stammp.obj import gff
 from stammp.utils import execute
 from stammp.utils.argparse_helper import file_r, dir_rwx
-from stammp.utils.helper_objects import PCContainer
+from stammp.utils.helper_objects import ParclipSiteContainer
 from stammp.utils.parsers import GFF3Parser
 
 
@@ -70,8 +69,7 @@ def main():
 
     np.random.seed(args.seed)
 
-    with open(args.pc_table) as table_handle:
-        pc = PCContainer.read_handle(table_handle)
+    pc = ParclipSiteContainer.from_file(args.pc_table)
 
     gff_records = []
     with open(args.gff_file) as gff_handle:
@@ -86,7 +84,6 @@ def main():
     upstream_bp = args.upstream_bp
     downstream_bp = args.downstream_bp
 
-
     def aggregate_data(gff_rec, sense=True):
 
         def rev(strand):
@@ -100,15 +97,15 @@ def main():
 
         query_strand = anno_strand if sense else rev(anno_strand)
         if anno_strand == '+':
-            values_upstream = pc.occ_profile(chrom, start - upstream_bp,
-                                             start + gene_bp, query_strand)
-            values_dostream = pc.occ_profile(chrom, end - gene_bp, end + downstream_bp,
-                                             query_strand)
+            values_upstream = pc.get_occ_profile(chrom, start - upstream_bp,
+                                                 start + gene_bp, query_strand)
+            values_dostream = pc.get_occ_profile(chrom, end - gene_bp, end + downstream_bp,
+                                                 query_strand)
         else:
-            values_upstream = pc.occ_profile(chrom, end - gene_bp, end + upstream_bp,
-                                             query_strand)[::-1]
-            values_dostream = pc.occ_profile(chrom, start - downstream_bp, start + gene_bp,
-                                             query_strand)[::-1]
+            values_upstream = pc.get_occ_profile(chrom, end - gene_bp, end + upstream_bp,
+                                                 query_strand)[::-1]
+            values_dostream = pc.get_occ_profile(chrom, start - downstream_bp, start + gene_bp,
+                                                 query_strand)[::-1]
 
         upstr = pd.Series(values_upstream).rolling(window=smooth_window, center=True,
                                                    min_periods=0).mean()

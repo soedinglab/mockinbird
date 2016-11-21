@@ -42,7 +42,7 @@ class GenomeTests(unittest.TestCase):
                 bp_len = random.randint(1, length)
                 start = random.randint(0, length - bp_len)
                 expected_seq = GenomeTests._seq_dict[seq][start:start + bp_len]
-                observed_seq = genome.get_sequence(seq, start, start + bp_len)
+                observed_seq = genome.get_sequence(seq, start + 1, start + bp_len)
                 self.assertEqual(expected_seq, observed_seq)
 
     @classmethod
@@ -54,7 +54,7 @@ class GenomeTests(unittest.TestCase):
             handle.write(fasta)
         cls._fasta_file = fasta_file
 
-        index_file = os.path.join(tmp_dir, 'test.fa.idx')
+        index_file = os.path.join(tmp_dir, 'test.fa.fai')
         with open(index_file, 'w') as handle:
             handle.write(index)
         cls._tmp_dir = tmp_dir

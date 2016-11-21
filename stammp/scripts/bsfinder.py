@@ -9,6 +9,7 @@ import scipy.special
 import random
 from stammp.obj import functions
 from stammp.utils import argparse_helper as aph
+from stammp.utils.parsers import PC_MANDATORY_FIELDS
 
 
 def create_parser():
@@ -95,6 +96,7 @@ def estimateParametersIter(mr_neg, min_r=5, max_r=10, iterations=5):
             bg_params    = scipy.optimize.fmin_bfgs(f=llh_background, x0=[2.94,-4.8,-2,0], args=(mr_neg[i], -1), disp=0, full_output=1)
             total_fits += 1
         except:
+            # TODO: this silently captures all kinds of errors - should be fixed
             pass
             #print('Unexpected Scipy Error')
         for iter_count in range(iterations):
@@ -104,6 +106,7 @@ def estimateParametersIter(mr_neg, min_r=5, max_r=10, iterations=5):
                 if bg_tmp[1] < bg_params[1] and bg_tmp[6] == 0:
                     bg_params = bg_tmp
             except:
+                # TODO: this silently captures all kinds of errors - should be fixed
                 pass
                 #print('Unexpected Scipy Error')
             try:
@@ -190,55 +193,68 @@ def checkSNP(start, N, par):
     else:
         return(False)
 
-def findPvalueParclipInPileup(pileup, outputfile, mincov, maxcov, probabilities, verbose, reference='T', mutation='C', maxPvalue=0.001, SNPlikely = False):
-    reference_reverse   = functions.makeReverseComplement(reference)
-    mutation_reverse    = functions.makeReverseComplement(mutation)
-    
+
+def findPvalueParclipInPileup(pileup, output_file, mincov, maxcov, probabilities, verbose,
+                              reference='T', mutation='C', maxPvalue=0.001, SNPlikely=False):
+    reference_reverse = functions.makeReverseComplement(reference)
+    mutation_reverse = functions.makeReverseComplement(mutation)
+
     found_sites = 0
     lines = 0
-    for line in open(pileup):
-        lines += 1
-    file_pileup = open(pileup, 'r')
-    file_table  = open(outputfile, 'w')
-    file_table.write('chromosome\tposition\tm\tr\tpvalue\tstrand\tocc\n')
-    line  = file_pileup.readline()
-    linecount = percent_old = percent_new = 0
-    if verbose: functions.showProgress(linecount,lines,'Processing Pileup')
-    while(line):
-        linecount += 1
-        split = line.split('\t')
-        counts = [0,0]
-        pvalue = 1
-        if split[2] == reference:
-            tmp_counts = functions.getCounts(split[4], forward=True)
-            counts     = [tmp_counts[0], tmp_counts[1][mutation]]
-            if counts[0] > mincov and counts[1] > 0:
-                if counts[0] > 500:
-                    pvalue = getPvalue(round((counts[1]/counts[0])*500), 500, probabilities, SNPlikely)
-                else:
-                    pvalue = getPvalue(counts[1], counts[0], probabilities, SNPlikely)
-                if pvalue <= maxPvalue:
-                    file_table.write(split[0]+'\t'+split[1]+'\t'+str(counts[1])+'\t'+str(counts[0])+'\t'+str(pvalue)+'\t+\t0\n')
-                    found_sites += 1
-        if split[2] == reference_reverse:
-            tmp_counts = functions.getCounts(split[4], forward=False)
-            counts     = [tmp_counts[0], tmp_counts[1][mutation_reverse]]
-            if counts[0] > mincov and counts[1] > 0:
-                if counts[0] > 500:
-                    pvalue = getPvalue(round((counts[1]/counts[0])*500), 500, probabilities, SNPlikely)
-                else:
-                    pvalue = getPvalue(counts[1], counts[0], probabilities, SNPlikely)
-                if pvalue <= maxPvalue:
-                    file_table.write(split[0]+'\t'+split[1]+'\t'+str(counts[1])+'\t'+str(counts[0])+'\t'+str(pvalue)+'\t-\t0\n')
-                    found_sites += 1
-        percent_new = math.trunc((linecount/lines)*100)
-        if(percent_new > percent_old):
-            if verbose: functions.showProgress(linecount,lines,'Processing Pileup')
-            percent_old = percent_new
+    with open(pileup) as handle:
+        for line in handle:
+            lines += 1
+
+    with open(pileup) as file_pileup, open(output_file, 'w') as file_table:
+        header = list(PC_MANDATORY_FIELDS) + ['p_value']
+        print(*header, sep='\t', file=file_table)
+
         line = file_pileup.readline()
-    file_table.close()
-    file_pileup.close()
-    print('Found %s PAR-CLIP sites.' % found_sites)
+        linecount = 0
+        percent_old = 0
+        percent_new = 0
+
+        if verbose:
+            functions.showProgress(linecount, lines, 'Processing Pileup')
+        while(line):
+            linecount += 1
+            split = line.split('\t')
+            counts = [0, 0]
+            pvalue = 1
+            if split[2] == reference:
+                tmp_counts = functions.getCounts(split[4], forward=True)
+                counts = [tmp_counts[0], tmp_counts[1][mutation]]
+                if counts[0] > mincov and counts[1] > 0:
+                    if counts[0] > 500:
+                        pvalue = getPvalue(round((counts[1] / counts[0]) * 500), 500,
+                                           probabilities, SNPlikely)
+                    else:
+                        pvalue = getPvalue(counts[1], counts[0], probabilities, SNPlikely)
+                    if pvalue <= maxPvalue:
+                        print(split[0], split[1], counts[1], counts[0], 1 - pvalue, '+', 0,
+                              pvalue, sep='\t', file=file_table)
+                        found_sites += 1
+            if split[2] == reference_reverse:
+                tmp_counts = functions.getCounts(split[4], forward=False)
+                counts = [tmp_counts[0], tmp_counts[1][mutation_reverse]]
+                if counts[0] > mincov and counts[1] > 0:
+                    if counts[0] > 500:
+                        pvalue = getPvalue(round((counts[1] / counts[0]) * 500), 500,
+                                           probabilities, SNPlikely)
+                    else:
+                        pvalue = getPvalue(counts[1], counts[0], probabilities, SNPlikely)
+                    if pvalue <= maxPvalue:
+                        print(split[0], split[1], counts[1], counts[0], 1 - pvalue, '-', 0,
+                              pvalue, sep='\t', file=file_table)
+                        found_sites += 1
+            percent_new = math.trunc((linecount / lines) * 100)
+            if(percent_new > percent_old):
+                if verbose:
+                    functions.showProgress(linecount, lines, 'Processing Pileup')
+                percent_old = percent_new
+            line = file_pileup.readline()
+        print('Found %s PAR-CLIP sites.' % found_sites)
+
 
 def main(inputfile, outputfile, threshold, mincov, reference, mutation, verbose):
     """

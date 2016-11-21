@@ -1,0 +1,6 @@
+seqid	position	transitions	coverage	score	strand	occupancy
+chrI	5	2	5	0.4	+	0.3
+chrI	6	3	5	0.7	-	0.2
+chrI	9	4	5	0.5	+	0.5
+chrI	10	5	5	0.2	-	0.1
+chrII	12	1	19	0.99	+	0.05

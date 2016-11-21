@@ -63,6 +63,7 @@ from stammp.obj import functions, gff
 from stammp.utils import execute
 from stammp.utils import argparse_helper as aph
 from stammp.utils import ParclipSiteContainer, EfficientGenome
+from stammp.utils.postprocess_modules import sort_keys
 
 
 def create_parser():
@@ -77,9 +78,8 @@ def create_parser():
     parser.add_argument('--kmer', help='kmer length', type=int, default=4)
     parser.add_argument('negset', help='path to correct k-mer negative set')
     parser.add_argument('--gff', help='remove PAR-CLIP sites overlapping with annotations')
-    key_choices = ['occ', 'm', 'r', 'mr', 'pvalue']
     key_help = 'set key that is used for PAR-CLIP site ordering'
-    parser.add_argument('--key', help=key_help, choices=key_choices, default='occ')
+    parser.add_argument('--key', help=key_help, choices=sort_keys, default='occupancy')
     quantile_help = ('use quantiles for binarization instead of fixed bin size. '
                      'Note, if you have a small number of bindng sites the bins '
                      'based on quantiles can overlap!')
@@ -106,18 +106,16 @@ def loadNegTable(filename):
     return negset
 
 
-def getkmerLogs(s, g, neg, kmers, start, stop, width):
+def getkmerLogs(sites, g, neg, kmers, start, stop, width):
     # dirty hack to ensure indices not growing larger than index bounds
-    start = min(start, len(s.chrs))
-    stop = min(stop, len(s.chrs))
-
     kmer = len(kmers[0])
     kmer_freqs = {}
     for k in kmers:
         kmer_freqs[k] = 1
 
-    for i in range(start, stop):
-        seq = g.get_sequence(s.chrs[i], s.pos[i] - width, s.pos[i] + width, s.strand[i])
+    pc = sites[start:stop]
+    for rec in pc:
+        seq = g.get_sequence(rec.seqid, rec.position - width, rec.position + width, rec.strand)
         for j in range(len(seq) - kmer + 1):
             kmer_freqs[seq[j:j + kmer]] += 1
 
@@ -151,13 +149,11 @@ def main(parclip, outdir, prefix, genomepath, negset, gfffile, kmer, key,
          useQuantiles, verbose, args):
     scriptPath = os.path.dirname(os.path.realpath(__file__))
     plot_script = os.path.join(scriptPath, 'plotKmerLogOdds.R')
-    pc = ParclipSiteContainer()
-    pc.loadFromFile(parclip)
+    pc = ParclipSiteContainer.from_file(parclip)
 
     if gfffile is not None:
-        anno = gff.GFF(gfffile)
-        pc.removeSitesLocatedInGFF(anno)
-    pc.sort(key)
+        pc.remove_gff_sites(gfffile)
+    pc.sort(by=key, ascending=False)
 
     kmers = functions.makekmers(kmer, list('ACGT'))[kmer - 1]
     negfreq = loadNegTable(negset)
@@ -180,11 +176,11 @@ def main(parclip, outdir, prefix, genomepath, negset, gfffile, kmer, key,
                     functions.showProgress(count, len(quantiles),
                                            'Getting kmer log-odds from quantiles...')
                 old_stop = stop
-                start = functions.getQuantileIndex(pc.size(), q) - 500
-                stop = functions.getQuantileIndex(pc.size(), q) + 500
+                start = functions.getQuantileIndex(len(pc), q) - 500
+                stop = functions.getQuantileIndex(len(pc), q) + 500
                 if start < 0:
                     start = 0
-                if stop > (pc.size() - 2):
+                if stop > len(pc) - 2:
                     break
                 count = count + 1
                 if (stop - 500) < old_stop:
@@ -201,7 +197,7 @@ def main(parclip, outdir, prefix, genomepath, negset, gfffile, kmer, key,
             stop = 1000
             run = True
             while run:
-                if stop > (pc.size() - 2) or stop > maxsize:
+                if stop > len(pc) - 2 or stop > maxsize:
                     print()
                     print('STOP at: %s' % + stop)
                     run = False

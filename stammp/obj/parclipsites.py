@@ -414,7 +414,7 @@ class ParclipSites:
         flipped so that they are returned in 5\' to 3\' orientation.
 
         Args:
-            chrname (str): chromosome identidifier
+            chrname (str): chromosome identifier
             position (int): postion within the chromosome
             strand (str): \'+\' or \'-\'
             sense (bool): If true values for the *strand* are returned or for the opposite strand if false

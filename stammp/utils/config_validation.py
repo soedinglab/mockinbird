@@ -43,9 +43,9 @@ def rel_genome_validator(path, cfg_path):
     if not os.path.isabs(path):
         parent_path = os.path.dirname(cfg_path)
         path = os.path.join(os.path.abspath(parent_path), path)
-        genome_file = file_r_validator(path)
+        path = file_r_validator(path)
         file_r_validator(path + '.fai')
-    return genome_file
+    return path
 
 
 def dnastr_validator(dna_string):

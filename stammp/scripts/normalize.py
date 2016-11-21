@@ -31,7 +31,7 @@ def run():
     with open(args.input_file) as site_table:
         site_table.readline()
         for line in site_table:
-            chrom, pos, _, _, _, strand, _ = line.split()
+            chrom, pos, _, _, _, strand, *_ = line.split()
             pc_sites[chrom][pos] = strand
 
     # count coverages
@@ -60,7 +60,7 @@ def run():
         print(*header.split(), sep='\t', file=out_file)
         for line in site_table:
             toks = line.split()
-            chrom, pos, m, r, pval, strand, occ = toks
+            chrom, pos, m, r, score, strand, occ, *_ = toks
             cov_mut = pc_sites[chrom][pos]
             if isinstance(cov_mut, str):
                 mut = 0
@@ -75,9 +75,9 @@ def run():
                     occ = float(m) / (total_cov)
 
             # update the occupancy
-            toks[-1] = occ
+            toks[6] = occ
 
-            # not clear how to interpret the +1
+            # TODO not clear how to interpret the +1
             if mut / (total_cov + 1) < args.mut_snp_ratio:
                 print(*toks, sep='\t', file=out_file)
             else:

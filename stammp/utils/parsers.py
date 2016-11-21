@@ -1,8 +1,8 @@
-from collections import namedtuple, OrderedDict
+from collections import namedtuple, OrderedDict, defaultdict
 from urllib.parse import quote, unquote
 import logging
 
-logger= logging.getLogger()
+logger = logging.getLogger()
 
 
 GFFRecord = namedtuple('GFFRecord', [
@@ -81,23 +81,25 @@ PCRecord = namedtuple('PCRecord', [
 
 PC_FIELD_TYPES = [str, int, int, int, float, str, float]
 
+PC_MANDATORY_FIELDS = [
+    'seqid', 'position', 'transitions', 'coverage', 'score',
+    'strand', 'occupancy'
+]
+
 
 class PCTableParser:
 
     def __init__(self, handle):
         self._handle = handle
         header = handle.readline().split()
-        mand_fields = [
-            'seqid', 'position', 'transitions', 'coverage', 'score',
-            'strand', 'occupancy'
-        ]
         mand_conv = [str, int, int, int, float, str, float]
 
-        if header[:7] != mand_fields:
+        if header[:7] != PC_MANDATORY_FIELDS:
             raise ValueError('data is not a PCTable')
 
         self._fields = header
-        self._converters = dict(zip(mand_fields, mand_conv))
+        self._converters = defaultdict(lambda: str)
+        self._converters.update(zip(PC_MANDATORY_FIELDS, mand_conv))
 
     def register_converter(self, field, converter):
         self._converters[field] = converter
@@ -106,7 +108,7 @@ class PCTableParser:
         # we already read the header, first line is line 2
         fields = self._fields
         Record = namedtuple('PCRecord', fields)
-        conv = list(map(self._converters, fields))
+        conv = list(map(self._converters.__getitem__, fields))
         for line_no, line in enumerate(self._handle, start=2):
             tokens = line.split()
             if len(tokens) != len(self._fields):

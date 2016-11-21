@@ -4,7 +4,7 @@ import stammp.utils.config_validation as cv
 import os
 from functools import partial
 
-sort_keys = ['occ', 'm', 'r', 'mr', 'pvalue']
+sort_keys = ['occupancy', 'transitions', 'coverage', 'score']
 sort_key_validator = partial(cv.in_set_validator, item_set=sort_keys)
 
 

@@ -47,10 +47,11 @@ Example::
 import argparse
 import os
 from itertools import chain
-from stammp.obj import functions, gff
+from stammp.obj import functions
 from stammp.utils import execute
 from stammp.utils import argparse_helper as aph
 from stammp.utils import ParclipSiteContainer, EfficientGenome
+from stammp.utils.postprocess_modules import sort_keys
 
 
 def create_parser():
@@ -71,9 +72,8 @@ def create_parser():
                         type=int, default=1500)
     parser.add_argument('--width', help='number of nt +/- the crosslink site',
                         type=int, default=50)
-    key_choices = ['occ', 'm', 'r', 'mr', 'pvalue']
     key_help = ('set key that is used for PAR-CLIP site ordering')
-    parser.add_argument('--key', help=key_help, choices=key_choices, default='occ')
+    parser.add_argument('--key', help=key_help, choices=sort_keys, default='occupancy')
     gff_help = ('set path to GFF if sites should be removed that overlap with the GFF. '
                 'By default no sites are filtered out.')
     parser.add_argument('--filterGFF', help=gff_help, default='')
@@ -125,17 +125,16 @@ def run():
     parser = create_parser()
     args = parser.parse_args()
 
-    sites = ParclipSiteContainer()
-    sites.loadFromFile(args.inputfile)
+    sites = ParclipSiteContainer.from_file(args.inputfile)
 
     if args.filterGFF != '':
-        anno = gff.GFF(args.filterGFF)
-        sites = sites.removeSitesLocatedInGFF(anno, args.awidth)
+        sites.remove_gff_sites(args.filterGFF, args.awidth)
 
-    sites.sort(args.key)
+    sites.sort(by=args.key, ascending=False)
 
     with EfficientGenome(args.genome) as genome:
-        seqs = sites.getSequences(genome, args.start, args.stop, args.width)
+        sites = sites[args.start:args.stop]
+        seqs = sites.get_all_sequences(genome, args.width)
 
     prefix_fmt = '%s_kmerPerPosition_kmer%s_start%s_stop%s_width%s_sort_%s'
 

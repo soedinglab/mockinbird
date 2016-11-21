@@ -50,8 +50,7 @@ def main(parclipfile, gfffile, upstream, downstream, sense, minSize,
     anno = gff.GFF(gfffile)
     anno.filterSize(minSize, maxSize)
     anno.sort2size()
-    pc = ParclipSiteContainer()
-    pc.loadFromFile(parclipfile)
+    pc = ParclipSiteContainer.from_file(parclipfile)
     mat = []
     annosize = []
     totalsize = upstream + downstream + 1
