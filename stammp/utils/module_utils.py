@@ -37,6 +37,10 @@ def queue_pipeline(config, pipeline, def_lookup_path):
             data = {}
         logger.debug('Parsing configuration for module %r', module_str)
 
+        if data.get('skip', False):
+            logger.info('Skipping module %r', module_str)
+            continue
+
         # one of our modules
         if '.' not in module_str:
             module_str = def_lookup_path + '.' + module_str

@@ -1,2 +1,2 @@
 include stammp/plots/*.R
-include stammp/data/*
+recursive-include stammp/utils/tests/data *

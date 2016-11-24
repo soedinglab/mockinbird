@@ -133,7 +133,7 @@ def sortAndSave(oddlist, outfile, kmers):
             counts = oddlist[0][kmer] + oddlist[1][kmer] + oddlist[2][kmer]
             sortedKmers.append([kmer, counts])
         else:
-            sortedKmers.append(kmer, oddlist[0][kmer])
+            sortedKmers.append([kmer, oddlist[0][kmer]])
     sortedKmers = [kmer for kmer, counts in sorted(sortedKmers, key=lambda d: d[1], reverse=True)]
 
     with open(outfile, 'w') as fc:
