@@ -145,10 +145,10 @@ class KmerPerPositionModule(pl.CmdPipelineModule):
         table_file = pipeline.get_curfile(fmt='table')
         cmd = [
             'stammp-makeKmerPerPosition',
-            table_file,
-            cfg['genome_fasta'],
-            output_dir,
-            cfg['output_prefix'],
+            '%r' % table_file,
+            '%r' % cfg['genome_fasta'],
+            '%r' % output_dir,
+            '%r' % cfg['output_prefix'],
             '--kmer %s' % cfg['kmer_k'],
             '--start %s' % cfg['first_index'],
             '--stop %s' % cfg['last_index'],
@@ -157,7 +157,7 @@ class KmerPerPositionModule(pl.CmdPipelineModule):
             '--awidth %s' % cfg['gff_padding'],
         ]
         if cfg['gff_exclude_path']:
-            cmd.append('--filterGFF %s' % cfg['gff_exclude_path'])
+            cmd.append('--filterGFF %r' % cfg['gff_exclude_path'])
 
         if cfg['remove_tmp_files'] and not cfg['keep_all']:
             cmd.append('-r')
@@ -219,7 +219,7 @@ class KmerLogoddModule(pl.CmdPipelineModule):
             '--key %s' % cfg['sort_key'],
         ]
         if cfg['gff_exclude_path']:
-            cmd.append('--filterGFF %s' % cfg['gff_exclude_path'])
+            cmd.append('--filterGFF %r' % cfg['gff_exclude_path'])
         if cfg['use_quantiles']:
             cmd.append('-q')
         if not cfg['remove_tmp_files'] or cfg['keep_all']:
@@ -313,9 +313,9 @@ class TransitionFrequencyModule(pl.CmdPipelineModule):
 
         cmd = [
             'stammp-makeNucleotideProbabilities',
-            pileup_file,
-            output_dir,
-            cfg['output_prefix'],
+            '%r' % pileup_file,
+            '%r' % output_dir,
+            '%r' % cfg['output_prefix'],
             '-c %s' % cfg['min_cov'],
             '-l %s' % cfg['y_axis_limit'],
         ]
@@ -351,10 +351,10 @@ class HeatmapPlotModule(pl.CmdPipelineModule):
 
         cmd = [
             'stammp-makeHeatMap',
-            table_file,
-            output_dir,
-            cfg['output_prefix'],
-            cfg['gff_file'],
+            '%r' % table_file,
+            '%r' % output_dir,
+            '%r' % cfg['output_prefix'],
+            '%r' % cfg['gff_file'],
             '-d %s' % cfg['downstream_bp'],
             '-u %s' % cfg['upstream_bp'],
             '--min %s' % cfg['min_trscr_size_bp'],
@@ -396,10 +396,10 @@ class HeatmapSmallPlotModule(pl.CmdPipelineModule):
 
         cmd = [
             'stammp-makeHeatMapSmall',
-            table_file,
-            output_dir,
-            cfg['output_prefix'],
-            cfg['gff_file'],
+            '%r' % table_file,
+            '%r' % output_dir,
+            '%r' % cfg['output_prefix'],
+            '%r' % cfg['gff_file'],
             '-d %s' % cfg['downstream_bp'],
             '-u %s' % cfg['upstream_bp'],
             '--min %s' % cfg['min_trscr_size_bp'],
@@ -439,9 +439,9 @@ class GffFilterModule(pl.CmdPipelineModule):
 
         cmd = [
             'stammp-gffFilterSites',
-            table_file,
-            out_file,
-            cfg['filter_gff'],
+            '%r' % table_file,
+            '%r' % out_file,
+            '%r' % cfg['filter_gff'],
             '--padding_bp %s' % cfg['padding_bp'],
         ]
         if len(cfg['features']) > 0:
