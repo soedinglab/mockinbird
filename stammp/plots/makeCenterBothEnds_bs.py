@@ -26,15 +26,15 @@ def create_parser():
     parser.add_argument('outputdir', help='output directory', type=dir_rwx)
     parser.add_argument('prefix', help='prefix of filenames')
     parser.add_argument('gff_file', help='GFF file used for plotting', type=file_r)
-    parser.add_argument('--downstream_bp', '-d', help='set downstream range',
+    parser.add_argument('--downstream_bp', '-d', help='downstream bp',
                         default=1000, type=int)
-    parser.add_argument('--upstream_bp', '-u', help='set upstream range',
+    parser.add_argument('--upstream_bp', '-u', help='upstream bp',
                         default=1000, type=int)
-    parser.add_argument('--gene_bp', '-g', help='set gene range',
+    parser.add_argument('--gene_bp', '-g', help='annotation body bp',
                         default=750, type=int)
-    parser.add_argument('--min_ts_len', help='minimum transcript size',
+    parser.add_argument('--min_ts_len', help='minimum annotation length',
                         default=0, type=int)
-    parser.add_argument('--max_ts_len', help='maximum transcript size',
+    parser.add_argument('--max_ts_len', help='maximum annotation length',
                         default=5000, type=int)
     smooth_help = 'window size used for running mean smoothing'
     parser.add_argument('--smooth_window', help=smooth_help, default=41, type=int)
@@ -47,9 +47,11 @@ def create_parser():
     parser.add_argument('--title', help='plot title')
     parser.add_argument('--cleanup', action='store_true',
                         help='remove temporary files')
-    parser.add_argument('--seed', type=int, default=42)
-    parser.add_argument('--n_bs_iterations', default=500, type=int)
-    parser.add_argument('--n_processes', default=4, type=int)
+    parser.add_argument('--seed', type=int, default=42, help='random seed')
+    bs_iter_help = 'number of bootstrap iterations'
+    parser.add_argument('--n_bs_iterations', help=bs_iter_help, default=500, type=int)
+    n_proc_help = 'number of parallel processes spawned'
+    parser.add_argument('--n_processes', help=n_proc_help, default=4, type=int)
     return parser
 
 global data_dict
