@@ -1,0 +1,75 @@
+{% set commit_id="9361cd6f882d1a33ef4075b92e58b24dedd395fb" %}
+{% set version="1.3.0" %}
+package:
+  name: stammp
+  version: {{ version }}
+
+source:
+  git_url: git@bitbucket.org:soedinglab/par-clip.git
+  git_rev: {{ commit_id }}
+
+build:
+  number: 0
+  skip: True  #  [not py3k]
+  entry_points:
+    - stammp-bsfinder = stammp.scripts.bsfinder:run
+    - stammp-preprocess = stammp.scripts.preprocess:run
+    - stammp-postprocess = stammp.scripts.postprocess:main
+    - stammp-normalize = stammp.scripts.normalize:run
+#    - stammp-normalizeFake = stammp.scripts.normalizeFake:run
+    - stammp-convert2quantile = stammp.scripts.convert2quantile:run
+#    - stammp-makeCenterBothEnds = stammp.plots.makeCenterBothEnds:run
+    - stammp-makeCenterBothEnds_bs = stammp.plots.makeCenterBothEnds_bs:main
+    - stammp-makeKmerPerPosition = stammp.plots.makeKmerPerPosition:run
+#    - stammp-remove5primeAdapter = stammp.scripts.utils.remove5primeAdapter:run
+    - stammp-removePCRduplicates = stammp.scripts.utils.removePCRduplicates:run
+    - stammp-makeNegSets = stammp.scripts.makeNegSets:run
+    - stammp-xxmotif = stammp.scripts.xxmotif:run
+    - stammp-makeKmerLogOdds = stammp.plots.makeKmerLogOdds:run
+#    - stammp-makeJaccard = stammp.plots.makeJaccard:run
+#    - stammp-getProcessingIndex = stammp.scripts.getProcessingIndex:run
+#    - stammp-getColocalization = stammp.scripts.getColocalization:run
+    - stammp-makeHeatMap = stammp.plots.makeHeatMap:run
+    - stammp-makeHeatMapSmall = stammp.plots.makeHeatMapSmall:run
+    - stammp-makeNucleotideProbabilities = stammp.plots.makeNucleotideProbabilities:run
+    - stammp-adapter-clipper = stammp.scripts.utils.clipper53:main
+#    - stammp-selectSitesInside = stammp.scripts.selectSitesInside:run
+#    - stammp-selectSitesAround = stammp.scripts.selectSitesAround:run
+#    - stammp-generateConfig = stammp.scripts.generate_config:main
+    - stammp-bam-postprocess = stammp.scripts.bam_postprocessing:main
+    - stammp-softclip-analyzer = stammp.scripts.utils.clipped_seq:main
+    - stammp-gffFilterSites = stammp.scripts.filter_sites:main
+#    - stammp-annotate-table = stammp.scripts.utils.annotate_table:main
+
+requirements:
+  build:
+    - python
+
+  run:
+    - python
+    - numpy
+    - scipy
+    - pandas
+    - matplotlib
+    - seaborn
+    - pysam
+    - star
+    - bowtie
+    - samtools
+    - fastqc
+    - xxmotif
+    - r
+    - r-lsd
+    - pyivtree
+    - pyyaml
+    - jinja2
+
+test:
+  imports:
+    - stammp
+    - stammp.utils
+
+  requires:
+    - nose
+  commands:
+    - nosetests stammp
