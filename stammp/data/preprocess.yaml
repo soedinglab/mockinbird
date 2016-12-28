@@ -1,0 +1,70 @@
+{% set organism_dir = "/home/clipar/Organism/S_cerevisiae_R64-2-1" %}
+{% set ref_gen = organism_dir + "/Reference_genome" %}
+
+general:
+    adapter5prime: GTTCAGAGTTCTACAGTCCGACGATC
+    adapter3prime: TGGAATTCTCGGGTGCCAAGG
+    genomeindex: {{ ref_gen }}/STAR_generatedGenome
+    genomefasta: {{ ref_gen }}/WholeGenomeFasta/genome.fa
+    normalization_pileup: {{ organism_dir }}/RNAseqForNormalization/RNAseq_roth.mpileup
+    rmTemp: yes
+    n_threads: 6
+
+reads:
+    fx_Q33: yes
+    bc_5prime: 5
+    bc_3prime: 0
+    min_len: 20
+    reference_nucleotide: T
+    mutation_nucleotide: C
+
+pipeline:
+    - FastQCModule: &FASTQC_CFG
+        kmer_length: 7         # int: used in fastqc's kmer statistics
+        extra_flags: []        # list of additional flags
+        outdir_name: fastQC_raw
+
+    - DuplicateRemovalModule
+
+    - ClippyAdapterClippingModule:
+        clip_len: 10
+
+    - FastQCModule:
+        <<: *FASTQC_CFG
+        outdir_name: fastQC_fil
+
+    - STARMapModule:
+        n_multimap: 1
+        n_mismatch: 1
+        allow_soft_clipping: yes
+        extra_flags: []
+        outdir_name: STAR_output
+
+    - BamPPModule:
+        remove_n_edge_mut: 3
+        plot_transition_profiles: yes
+        max_mut_per_read: 1
+        min_base_quality: 0
+        min_avg_ali_quality: 0
+        min_mismatch_quality: 20
+        dump_raw_data: no
+        outdir_name: bam_analysis
+
+    - SoftclipAnalysisModule:
+       outdir_name: bam_analysis
+
+    - SortIndexModule:
+       keep_all: yes
+
+    - PileupModule:
+       keep_all: yes
+
+    - BSFinderModule:
+        pval_threshold: 0.005
+        min_cov: 2
+
+    - NormalizationModule:
+        mut_snp_ratio: 0.75
+
+    - MaxQuantileModule:
+        max_quantile: 0.95

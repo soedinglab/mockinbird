@@ -26,12 +26,12 @@ def main():
         else:
             print('[WARNING] File %r already exists. I will not overwrite it.' % destination)
 
-    preprocess_src = os.path.join(cur_dir, '../data/preprocess_template.cfg')
-    preprocess_dest = os.path.join(args.output_directory, 'preprocess.cfg')
+    preprocess_src = os.path.join(cur_dir, '../data/preprocess.yaml')
+    preprocess_dest = os.path.join(args.output_directory, 'preprocess.yaml')
     generate_config(preprocess_src, preprocess_dest)
 
-    postprocess_src = os.path.join(cur_dir, '../data/postprocess_template.cfg')
-    postprocess_dest = os.path.join(args.output_directory, 'postprocess.cfg')
+    postprocess_src = os.path.join(cur_dir, '../data/postprocess.yaml')
+    postprocess_dest = os.path.join(args.output_directory, 'postprocess.yaml')
     generate_config(postprocess_src, postprocess_dest)
 
     print()

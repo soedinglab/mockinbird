@@ -1,0 +1,318 @@
+{% set organism_db="/home/clipar/Organism/S_cerevisiae_R64-2-1" %}
+
+{% set gff_db = organism_db + "/Annotations" %}
+{% set genome_file = organism_db + "/Reference_genome/WholeGenomeFasta/genome.fa" %}
+{% set filter_gff = gff_db + "/R64-2-1_genes.gff" %}
+{% set negative_set_gff = gff_db + "/R64-2-1_genes.gff" %}
+{% set tRNA_gff = gff_db + "/R64-2-1_tRNA_gene.gff" %}
+{% set rRNA_gff = gff_db + "/R64-2-1_rRNA_gene.gff" %}
+{% set snRNA_gff = gff_db + "/R64-2-1_snRNA_gene.gff" %}
+{% set snoRNA_gff = gff_db + "/R64-2-1_snoRNA_gene.gff" %}
+{% set intron_gff = gff_db + "/R64-2-1_introns.gff" %}
+
+{% set bootstrap_iter = 2500 %}
+{% set n_processes = 6 %}
+
+{% set skip_cp = False %}
+{% set skip_hm = False %}
+{% set skip_xx = False %}
+{% set skip_km = False %}
+
+pipeline:
+    - CenterPlotBSModule:
+        skip: {{ skip_cp }}
+        module_info: tRNA-plot CenterPlot
+        gff_file: {{ tRNA_gff }}
+        output_prefix: tRNA_gene
+        downstream_bp: 100
+        upstream_bp: 100
+        gene_bp: 30
+        min_trscr_size_bp: 50
+        max_trscr_size_bp: 250
+        smoothing_window: 5
+        labelCenterA: 5' end
+        labelCenterB: 3' end
+        labelBody: tRNA body
+        remove_tmp_files:  yes
+        bootstrap_iter:  {{ bootstrap_iter }}
+        n_processes: {{ n_processes }}
+
+    - CenterPlotBSModule:
+        skip: no
+        skip: {{ skip_cp }}
+        module_info: rRNA-plot CenterPlot
+        gff_file: {{ rRNA_gff }}
+        output_prefix: rRNA_gene
+        downstream_bp: 100
+        upstream_bp: 100
+        gene_bp: 50
+        min_trscr_size_bp: 100
+        max_trscr_size_bp: 5000
+        smoothing_window: 5
+        labelCenterA: 5' end
+        labelCenterB: 3' end
+        labelBody: rRNA body
+        remove_tmp_files: yes
+        bootstrap_iter: {{ bootstrap_iter }}
+        n_processes: {{ n_processes }}
+
+    - CenterPlotBSModule:
+        skip: no
+        skip: {{ skip_cp }}
+        module_info: snRNA-plot CenterPlot
+        gff_file: {{ snRNA_gff }}
+        output_prefix: snRNA_gene
+        downstream_bp: 80
+        upstream_bp: 80
+        gene_bp: 40
+        min_trscr_size_bp: 80
+        max_trscr_size_bp: 5000
+        smoothing_window: 5
+        labelCenterA: 5' end
+        labelCenterB: 3' end
+        labelBody: snRNA body
+        remove_tmp_files: yes
+        bootstrap_iter: {{ bootstrap_iter }}
+        n_processes: {{ n_processes }}
+
+    - CenterPlotBSModule:
+        skip: no
+        skip: {{ skip_cp }}
+        module_info: snoRNA-plot CenterPlot
+        gff_file: {{ snoRNA_gff }}
+        output_prefix: snoRNA_gene
+        downstream_bp: 80
+        upstream_bp: 80
+        gene_bp: 40
+        min_trscr_size_bp: 80
+        max_trscr_size_bp: 5000
+        smoothing_window: 5
+        labelCenterA: 5' end
+        labelCenterB: 3' end
+        labelBody: snoRNA body
+        remove_tmp_files: yes
+        bootstrap_iter: {{ bootstrap_iter }}
+        n_processes: {{ n_processes }}
+
+    - GffFilterModule:
+        filter_gff: {{ filter_gff }}
+        padding_bp: 10
+        features:
+            - tRNA_gene
+            - snRNA_gene
+            - snoRNA_gene
+            - rRNA_gene
+        file_postfix: filtered
+        keep_all: yes
+
+    - CenterPlotBSModule:
+        skip: {{ skip_cp }}
+        module_info: Steinmetz CenterPlot 500bp+
+        gff_file: {{ gff_db }}/steinmetz_transcripts_tifs_clean_sorted.gff
+        output_prefix: steinmetz
+        downstream_bp: 500
+        upstream_bp: 500
+        gene_bp: 250
+        min_trscr_size_bp: 500
+        max_trscr_size_bp: 5000
+        smoothing_window: 21
+        labelCenterA: TSS
+        labelCenterB: pA
+        labelBody: Genebody
+        remove_tmp_files: yes
+        bootstrap_iter:  {{ bootstrap_iter }}
+        n_processes: {{ n_processes }}
+
+    - CenterPlotBSModule:
+        skip: {{ skip_cp }}
+        module_info: Steinmetz CenterPlot 1500bp+
+        gff_file: {{ gff_db }}/steinmetz_transcripts_tifs_clean_sorted.gff
+        output_prefix: steinmetz
+        downstream_bp: 1000
+        upstream_bp: 1000
+        gene_bp: 750
+        min_trscr_size_bp: 1500
+        max_trscr_size_bp: 5000
+        smoothing_window: 41
+        labelCenterA: TSS
+        labelCenterB: pA
+        labelBody: Genebody
+        remove_tmp_files: yes
+        bootstrap_iter: {{ bootstrap_iter }}
+        n_processes: {{ n_processes }}
+
+    - CenterPlotBSModule:
+        skip: {{ skip_cp }}
+        module_info: Non-overlapping_ORF-T CenterPlot 1500bp+
+        type: center_plot_bs
+        gff_file: {{ gff_db }}/nonoverlapping_ORF-T.gff
+        output_prefix: nonovl_orf_t
+        downstream_bp: 1000
+        upstream_bp: 1000
+        gene_bp: 750
+        min_trscr_size_bp: 1500
+        max_trscr_size_bp: 5000
+        smoothing_window: 41
+        labelCenterA: TSS
+        labelCenterB: pA
+        labelBody: Genebody
+        remove_tmp_files: yes
+        bootstrap_iter: {{ bootstrap_iter }}
+        n_processes: {{ n_processes }}
+
+    - CenterPlotBSModule:
+        skip: {{ skip_cp }}
+        module_info: Intron CenterPlot 80bp-200bp
+        gff_file: {{ intron_gff }}
+        output_prefix: intron
+        downstream_bp: 40
+        upstream_bp: 40
+        gene_bp: 40
+        min_trscr_size_bp: 80
+        max_trscr_size_bp: 200
+        smoothing_window: 5
+        labelCenterA: Donor site
+        labelCenterB: Acceptor site
+        labelBody: Intron body
+        remove_tmp_files: yes
+        bootstrap_iter: {{ bootstrap_iter }}
+        n_processes: {{ n_processes }}
+
+    - CenterPlotBSModule:
+        skip: {{ skip_cp }}
+        module_info: Intron CenterPlot 150bp+
+        gff_file: {{ intron_gff }}
+        output_prefix: intron
+        downstream_bp: 75
+        upstream_bp: 75
+        gene_bp: 75
+        min_trscr_size_bp: 150
+        max_trscr_size_bp: 5000
+        smoothing_window: 9
+        labelCenterA: Donor site
+        labelCenterB: Acceptor site
+        labelBody: Intron body
+        remove_tmp_files: yes
+        bootstrap_iter: {{ bootstrap_iter }}
+        n_processes: {{ n_processes }}
+
+    - HeatmapPlotModule:
+        skip: {{ skip_hm }}
+        module_info: Steinmetz Heatmap
+        gff_file: {{ gff_db }}/steinmetz_transcripts_tifs_clean_sorted.gff
+        output_prefix: steinmetz_heatmap_plot
+        downstream_bp: 4000
+        upstream_bp: 1000
+        min_trscr_size_bp: 0
+        max_trscr_size_bp: 5000
+        xbins: 500
+        ybins: 500
+        x_pixels: 500
+        y_pixels: 500
+        remove_tmp_files: yes
+
+    - HeatmapSmallPlotModule:
+        skip: {{ skip_hm }}
+        module_info: Steinmetz Heatmap Small
+        gff_file: {{ gff_db }}/steinmetz_transcripts_tifs_clean_sorted.gff
+        output_prefix: steinmetz_heatmap_sm_plot
+        downstream_bp: 500
+        upstream_bp: 1000
+        min_trscr_size_bp: 0
+        max_trscr_size_bp: 5000
+        xbins: 500
+        ybins: 500
+        x_pixels: 500
+        y_pixels: 500
+        remove_tmp_files: yes
+
+    - KmerPerPositionModule:
+        genome_fasta: {{ genome_file }}
+        output_prefix: kmer_plot
+        kmer_k: 4
+        first_index: 0
+        last_index: 1500
+        width: 50
+        sort_key: occupancy
+        gff_padding: 20
+        remove_tmp_files: no
+
+    - KmerLogoddModule:
+        output_prefix: kmer_logodd
+        genome_fasta: {{ genome_file }}
+        negative_set_gff: {{ negative_set_gff }}
+        n_negative_seqs: 20000
+        kmer_k: 4
+        sort_key: occupancy
+        use_quantiles: yes
+        remove_tmp_files: no
+        keep_all: yes
+
+    - TransitionFrequencyModule:
+        output_prefix: tr_freq_plot
+        min_cov: 5
+        y_axis_limit: 0
+        remove_tmp_files: yes
+
+    - XXmotifModule:
+        skip: {{ skip_xx }}
+        output_prefix: xxmotif
+        module_info: XXmotif 25bp top 1500
+        genome_fasta: {{ genome_file }}
+        negative_set_gff: {{ negative_set_gff }}
+        n_negative_seqs: 20000
+        plot_top_n_pwm: 0
+        first_index: 0
+        last_index: 1500
+        width: 12
+        sort_key: occupancy
+        gff_padding: 20
+        remove_tmp_files: yes
+
+    - XXmotifModule:
+        skip: {{ skip_xx }}
+        output_prefix: xxmotif
+        module_info: XXmotif 25bp top 10000
+        genome_fasta: {{ genome_file }}
+        output_prefix: xxmotif
+        negative_set_gff: {{ negative_set_gff }}
+        n_negative_seqs: 50000
+        plot_top_n_pwm: 0
+        first_index: 0
+        last_index: 10000
+        width: 12
+        sort_key: occupancy
+        gff_padding: 20
+        remove_tmp_files: yes
+
+    - XXmotifModule:
+        skip: {{ skip_xx }}
+        output_prefix: xxmotif
+        module_info: XXmotif 45bp top 1500
+        output_prefix: xxmotif
+        genome_fasta: {{ genome_file }}
+        negative_set_gff: {{ negative_set_gff }}
+        n_negative_seqs: 20000
+        plot_top_n_pwm: 0
+        first_index: 0
+        last_index: 1500
+        width: 22
+        sort_key: occupancy
+        gff_padding: 20
+        remove_tmp_files: yes
+
+    - XXmotifModule:
+        skip: {{ skip_xx }}
+        output_prefix: xxmotif
+        module_info: XXmotif 45bp top 10000
+        output_prefix: xxmotif
+        genome_fasta: {{ genome_file }}
+        negative_set_gff: {{ negative_set_gff }}
+        n_negative_seqs: 20000
+        plot_top_n_pwm: 0
+        first_index: 0
+        last_index: 10000
+        width: 22
+        sort_key: occupancy
+        gff_padding: 20
+        remove_tmp_files: yes
