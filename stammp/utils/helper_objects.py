@@ -240,6 +240,8 @@ class ParclipSiteContainer:
 
     def __getitem__(self, indexer):
         con = copy.copy(self)
+        data_tree = defaultdict(IVTree)
+        con._data_tree = data_tree
         if not self._descending:
             data = self._data_list
             keys = self._sort_keys
