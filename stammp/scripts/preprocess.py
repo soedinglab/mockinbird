@@ -69,6 +69,7 @@ def run():
     logger.addHandler(file_handler)
 
     logger.info('stammp version: %s', __version__)
+    logger.info('working directory: %s', os.getcwd())
     logger.info('started preprocessing via %r', ' '.join(sys.argv))
 
     config = mu.parse_yaml(args.config_file)
