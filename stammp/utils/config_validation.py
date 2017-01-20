@@ -1,14 +1,13 @@
 import re
-from collections import namedtuple
 import os
 import logging
-from operator import attrgetter
 
 
 logger = logging.getLogger()
 
+
 class Annot:
-    def __init__(self, type, default=None, converter=lambda x:x,
+    def __init__(self, type, default=None, converter=lambda x: x,
                  warn_if_missing=True):
         self._type = type
         self._default = default
@@ -37,6 +36,13 @@ def rel_file_r_validator(path, cfg_path):
         parent_path = os.path.dirname(cfg_path)
         path = os.path.join(os.path.abspath(parent_path), path)
     return file_r_validator(path)
+
+
+def rel_file_rw_validator(path, cfg_path):
+    if not os.path.isabs(path):
+        parent_path = os.path.dirname(cfg_path)
+        path = os.path.join(os.path.abspath(parent_path), path)
+    return file_rw_validator(path)
 
 
 def rel_genome_validator(path, cfg_path):
@@ -79,6 +85,18 @@ def file_r_validator(path):
         raise ValueError(msg)
     elif not os.access(path, os.R_OK):
         msg = 'no read access on %r' % path
+        raise ValueError(msg)
+    return os.path.abspath(path)
+
+
+def file_rw_validator(path):
+    if not os.path.isfile(path):
+        parent_dir = os.path.dirname(path)
+        if not os.access(parent_dir, os.W_OK | os.R_OK):
+            msg = 'neither the file nor the parent directoy exists.'
+            raise ValueError(msg)
+    elif not os.access(path, os.W_OK | os.R_OK):
+        msg = 'no read/write access on %r' % path
         raise ValueError(msg)
     return os.path.abspath(path)
 
