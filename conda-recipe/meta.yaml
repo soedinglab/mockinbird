@@ -1,14 +1,15 @@
-{% set commit_id="9361cd6f882d1a33ef4075b92e58b24dedd395fb" %}
-{% set version="1.3.0" %}
+{% set commit_id="75985e3095ea8f12f4ba7dfac9ba38ff59f751e8" %}
+{% set version="2.0.0" %}
 package:
   name: stammp
   version: {{ version }}
 
 source:
-  git_url: git@bitbucket.org:soedinglab/par-clip.git
+  git_url: git@github.com:soedinglab/stammp2.git
   git_rev: {{ commit_id }}
 
 build:
+  script: python setup.py install --single-version-externally-managed --record record.txt
   number: 0
   skip: True  #  [not py3k]
   entry_points:
@@ -39,7 +40,7 @@ build:
     - stammp-bam-postprocess = stammp.scripts.bam_postprocessing:main
     - stammp-softclip-analyzer = stammp.scripts.utils.clipped_seq:main
     - stammp-gffFilterSites = stammp.scripts.filter_sites:main
-#    - stammp-annotate-table = stammp.scripts.utils.annotate_table:main
+    - stammp-annotate-table = stammp.scripts.utils.annotate_table:main
 
 requirements:
   build:

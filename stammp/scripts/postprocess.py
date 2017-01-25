@@ -51,6 +51,7 @@ def main():
     logger.addHandler(file_handler)
 
     logger.info('stammp version: %s', __version__)
+    logger.info('working directory: %s', os.getcwd())
     logger.info('started postprocessing via %r', ' '.join(sys.argv))
 
     required_ext = ['.qtable']
