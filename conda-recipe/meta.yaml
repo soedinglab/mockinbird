@@ -40,7 +40,7 @@ build:
     - stammp-bam-postprocess = stammp.scripts.bam_postprocessing:main
     - stammp-softclip-analyzer = stammp.scripts.utils.clipped_seq:main
     - stammp-gffFilterSites = stammp.scripts.filter_sites:main
-#    - stammp-annotate-table = stammp.scripts.utils.annotate_table:main
+    - stammp-annotate-table = stammp.scripts.utils.annotate_table:main
 
 requirements:
   build:

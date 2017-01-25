@@ -1,6 +1,7 @@
 import argparse
 import os
 from collections import Counter, defaultdict
+from itertools import chain
 
 import numpy as np
 
@@ -36,8 +37,8 @@ def main():
     table = []
     occ_vector = []
     with open(args.parclip_table) as in_table:
-        parser = PCTableParser(in_table)
-        for rec in parser.parse():
+        pc_parser = PCTableParser(in_table)
+        for rec in pc_parser.parse():
             table.append(rec)
             occ_vector.append(-rec.occupancy)
     sort_vec = np.argsort(occ_vector)
@@ -47,8 +48,7 @@ def main():
     table_name = os.path.basename(args.parclip_table)
     annot_table = os.path.join(args.output_dir, table_name + '_annot')
     with open(annot_table, 'w') as out_table:
-        print('chrom', 'pos', 'mut', 'cov', 'pvalue', 'strand', 'occ', 'annotation',
-              sep='\t', file=out_table)
+        print(*chain(pc_parser._fields, ['annotation']), sep='\t', file=out_table)
         hit_counter = Counter()
         ambig_hits = 0
         unannotated = 0
@@ -71,8 +71,7 @@ def main():
 
             if len(hits) == 0:
                 hits.add('NA')
-            print(rec.seqid, rec.position, rec.transitions, rec.coverage, rec.pvalue, rec.strand,
-                  rec.occupancy, '|'.join(hits), sep='\t', file=out_table)
+            print(*chain(list(rec), ['|'.join(hits)]), sep='\t', file=out_table)
 
     summary_file = os.path.join(args.output_dir, 'summary.tab')
     with open(summary_file, 'w') as sum_file:
