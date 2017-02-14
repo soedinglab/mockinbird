@@ -54,7 +54,7 @@ def main():
     logger.info('working directory: %s', os.getcwd())
     logger.info('started postprocessing via %r', ' '.join(sys.argv))
 
-    required_ext = ['.qtable']
+    required_ext = ['.table']
     if not args.no_pileup:
         required_ext.append('.mpileup')
 
@@ -94,7 +94,7 @@ def main():
             sys.exit(1)
         prefix = args.prefix
 
-    qnormed_table = os.path.join(args.preprocess_dir, prefix + '.qtable')
+    qnormed_table = os.path.join(args.preprocess_dir, prefix + '.table')
     pileup_file = os.path.join(args.preprocess_dir, prefix + '.mpileup')
 
     config = mu.parse_yaml(args.config_file)

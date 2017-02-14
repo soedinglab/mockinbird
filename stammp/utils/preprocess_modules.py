@@ -530,7 +530,7 @@ class MaxQuantileModule(pl.CmdPipelineModule):
         prefix = general_cfg['prefix']
         table_file = pipeline.get_curfile(fmt='table')
 
-        maxq_file = os.path.join(output_dir, prefix + '.qtable')
+        maxq_file = os.path.join(output_dir, prefix + '.table')
         cmd = [
             'stammp-convert2quantile',
             table_file,
