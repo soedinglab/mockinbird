@@ -470,7 +470,7 @@ class BSFinderModule(pl.CmdPipelineModule):
         prefix = general_cfg['prefix']
         pileup_file = pipeline.get_curfile(fmt='mpileup')
 
-        table_file = os.path.join(output_dir, prefix + '.table')
+        table_file = os.path.join(output_dir, prefix + '.pre_table')
         cmd = [
             'stammp-bsfinder',
             '-p %s' % cfg['pval_threshold'],
