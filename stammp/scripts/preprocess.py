@@ -130,6 +130,15 @@ def run():
 
     initial_files = {'fastq': inputfile}
 
+    if 'custom_files' in config:
+        for fmt, path in config['custom_files'].items():
+            if isinstance(path, str):
+                try:
+                    rel_path = relpath_conv(path)
+                    initial_files[fmt] = rel_path
+                except ValueError:
+                    logger.warning('key %r: invalid file path %r', fmt, path)
+
     gencfg = {
         'reads': reads_cfg,
         'general': general_cfg,
