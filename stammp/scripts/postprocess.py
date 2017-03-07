@@ -11,9 +11,7 @@ from stammp import __version__
 from stammp import LOG_DEFAULT_FORMAT, LOG_LEVEL_MAP
 
 
-def create_parser():
-    description = 'run the PAR-CLIP postprocessing pipeline'
-    parser = argparse.ArgumentParser(prog='stammp-postprocess', description=description)
+def register_arguments(parser):
     parser.add_argument('preprocess_dir', help='folder to files created by the preprocessing',
                         type=aph.dir_rx)
     prefix_help = ('preprocessing filename prefix - only required if there are multiple prefixes '
@@ -29,13 +27,22 @@ def create_parser():
     parser.add_argument('--log_level', help=log_level_help, choices=LOG_LEVEL_MAP.keys(),
                         default='info')
     aph.add_version_arguments(parser)
+
+
+def create_parser():
+    description = 'run the PAR-CLIP postprocessing pipeline'
+    parser = argparse.ArgumentParser(prog='stammp-postprocess', description=description)
+    register_arguments(parser)
     return parser
 
 
 def main():
     parser = create_parser()
     args = parser.parse_args()
+    run(args)
 
+
+def run(args):
     # activate logging
     logging_file = os.path.join(args.output_dir, 'postprocess.log')
     logger = logging.getLogger()

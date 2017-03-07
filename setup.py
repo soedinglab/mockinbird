@@ -11,7 +11,8 @@ setup(
     entry_points={
         'console_scripts': [
             'stammp-bsfinder = stammp.scripts.bsfinder:run',
-            'stammp-preprocess = stammp.scripts.preprocess:run',
+            'stammp = stammp.scripts.stammp:main',
+            'stammp-preprocess = stammp.scripts.preprocess:main',
             'stammp-postprocess = stammp.scripts.postprocess:main',
             'stammp-normalize = stammp.scripts.normalize:run',
 #            'stammp-normalizeFake = stammp.scripts.normalizeFake:run',
@@ -41,6 +42,7 @@ setup(
             'stammp-filter-sites = stammp.scripts.filter_sites:main',
             'stammp-annotate-table = stammp.scripts.utils.annotate_table:main',
             'stammp-table-converter = stammp.utils.update_table:main',
+            'table2fasta = stammp.utils.table2fasta:main',
         ]
     },
     packages=find_packages(),

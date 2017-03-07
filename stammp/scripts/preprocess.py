@@ -19,9 +19,7 @@ cur_dir = os.path.dirname(os.path.realpath(__file__))
 scriptPath = os.path.join(cur_dir, 'utils')
 
 
-def create_parser():
-    description = 'run the PAR-CLIP preprocessing pipeline'
-    parser = argparse.ArgumentParser(prog='stammp-preprocess', description=description)
+def register_arguments(parser):
     parser.add_argument('parclip_fastq', help='path to PAR-CLIP fastq reads',
                         type=aph.file_r)
     outdir_help = 'output directory - will be created if it does not exist'
@@ -32,6 +30,12 @@ def create_parser():
     parser.add_argument('--log_level', help='verbosity level of the logger',
                         choices=LOG_LEVEL_MAP.keys(), default='info')
     aph.add_version_arguments(parser)
+
+
+def create_parser():
+    description = 'run the PAR-CLIP preprocessing pipeline'
+    parser = argparse.ArgumentParser(prog='stammp-preprocess', description=description)
+    register_arguments(parser)
     return parser
 
 
@@ -44,9 +48,7 @@ def prepare_dir_or_die(dir_path):
         sys.exit(1)
 
 
-def run():
-    parser = create_parser()
-    args = parser.parse_args()
+def run(args):
 
     inputfile = args.parclip_fastq
     outputdir = args.output_dir
@@ -154,5 +156,11 @@ def run():
     logger.info('all done. See you soon!')
 
 
+def main():
+    parser = create_parser()
+    args = parser.parse_args()
+    run(args)
+
+
 if __name__ == '__main__':
-    run()
+    main()
