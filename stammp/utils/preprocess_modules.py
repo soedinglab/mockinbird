@@ -1,21 +1,17 @@
 import os
-import glob
+import time
+from functools import partial
 
 from stammp.utils import pipeline as pl
 from stammp.utils import config_validation as cv
 
 
-def mapindex_validator(genome_index):
-        genome_index_glob = "%s*" % genome_index
-        if len(glob.glob(genome_index_glob)) == 0:
-            raise ValueError('genome index %r does not exist' % genome_index)
-        return genome_index
-
-
 class STARMapModule(pl.CmdPipelineModule):
 
     def __init__(self, pipeline):
+        relgen_conv = partial(cv.rel_mapindex_validator, cfg_path=pipeline.cfg_path)
         cfg_fmt = [
+            ('genome_index', cv.Annot(str, converter=relgen_conv)),
             ('n_mismatch', cv.Annot(int, default=1, converter=cv.nonneg_integer)),
             ('n_multimap', cv.Annot(int, default=1, converter=cv.nonneg_integer)),
             ('extra_flags', cv.Annot(list, default=[])),
@@ -38,11 +34,12 @@ class STARMapModule(pl.CmdPipelineModule):
             os.makedirs(star_output_dir)
         star_output_prefix = os.path.join(star_output_dir, prefix + '_')
         bam_file = star_output_prefix + 'Aligned.out.bam'
+        unmapped = None
         self._tmp_files.append(bam_file)
         cmd = [
             'STAR',
             '--readFilesIn %s' % fastq_file,
-            '--genomeDir %s' % general_cfg['genomeindex'],
+            '--genomeDir %s' % cfg['genome_index'],
             '--outFilterMultimapNmax %s' % cfg['n_multimap'],
             '--outFilterMismatchNmax %s' % cfg['n_mismatch'],
             '--outSAMtype BAM Unsorted',
@@ -56,22 +53,61 @@ class STARMapModule(pl.CmdPipelineModule):
             # it is not allowed to use mismatches to build splice sites
             '--alignSJstitchMismatchNmax 0 0 0 0',
             '--outSAMattributes NH HI AS NM MD',
+            '--outReadsUnmapped Fastx',
         ]
         if not cfg['allow_soft_clipping']:
             cmd.append('--alignEndsType EndToEnd')
-
         for extra_flag in cfg['extra_flags']:
             cmd.append(extra_flag)
-
         self._cmds.append(cmd)
-        self._intermed_files.append(bam_file)
-        pipeline.upd_curfile(fmt='bam', filepath=bam_file)
+
+        sort_bam = star_output_prefix + 'sorted.bam'
+        sort_cmd = [
+            'samtools sort',
+            bam_file,
+            '-@ %s' % general_cfg['n_threads'],
+            '| samtools view -h -b > %r' % sort_bam,
+        ]
+        self._cmds.append(sort_cmd)
+
+        if pipeline.has_curfile(fmt='bam'):
+            self._tmp_files.append(sort_bam)
+            merged_bam = os.path.join(output_dir, prefix + '_merged%s.bam' % int(time.time()))
+            merge_cmd = [
+                'samtools',
+                'merge',
+                '%r' % merged_bam,
+                '%r' % pipeline.get_curfile('bam'),
+                '%r' % sort_bam,
+            ]
+            self._cmds.append(merge_cmd)
+            out_bam = merged_bam
+        else:
+            out_bam = sort_bam
+
+        self._intermed_files.append(out_bam)
+        pipeline.upd_curfile(fmt='bam', filepath=out_bam)
+        pipeline.upd_curfile(fmt='fastq', filepath=unmapped)
+
+        index_cmd = [
+            'samtools',
+            'index',
+            out_bam
+        ]
+        self._cmds.append(index_cmd)
+
+        self._intermed_files.append(out_bam + '.bai')
+        self._intermed_files.append(out_bam)
+        pipeline.upd_curfile(fmt='bam', filepath=out_bam)
 
 
 class BowtieMapModule(pl.CmdPipelineModule):
 
     def __init__(self, pipeline):
+        relgen_conv = partial(cv.rel_mapindex_validator, cfg_path=pipeline.cfg_path)
         cfg_fmt = [
+            ('genome_index', cv.Annot(str, converter=relgen_conv)),
+            ('n_mismatch', cv.Annot(int, default=1, converter=cv.nonneg_integer)),
             ('n_mismatch', cv.Annot(int, default=1, converter=cv.nonneg_integer)),
             ('n_multimap', cv.Annot(int, default=1, converter=cv.nonneg_integer)),
             ('extra_flags', cv.Annot(str, default=[], converter=cv.comma_sep_args)),
@@ -87,16 +123,19 @@ class BowtieMapModule(pl.CmdPipelineModule):
         fastq_file = pipeline.get_curfile(fmt='fastq')
 
         sam_file = os.path.join(output_dir, prefix + '.sam')
+        unmapped = os.path.join(output_dir, prefix + '_unmapped.fq')
 
         cmd = [
             'bowtie',
             '-m %s' % cfg['n_multimap'],
             '-v %s' % cfg['n_mismatch'],
-            '%r' % general_cfg['genomeindex'],
+            '%r' % cfg['genome_index'],
             '%r' % fastq_file,
             '%r' % sam_file,
             '-p %s' % general_cfg['n_threads'],
             '-S',
+            '--un %r' % unmapped,
+            '2>&1',
         ]
         for extra_flag in cfg['extra_flags']:
             cmd.append(extra_flag)
@@ -124,17 +163,32 @@ class BowtieMapModule(pl.CmdPipelineModule):
         ]
         self._cmds.append(calmd_cmd)
 
-        self._intermed_files.append(calmd_file)
-        pipeline.upd_curfile(fmt='bam', filepath=calmd_file)
+        if pipeline.has_curfile(fmt='bam'):
+            self._tmp_files.append(calmd_cmd)
+            merged_bam = os.path.join(output_dir, prefix + '_merged%s.bam' % int(time.time()))
+            merge_cmd = [
+                'samtools',
+                'merge',
+                '%r' % merged_bam,
+                '%r' % pipeline.get_curfile('bam'),
+                '%r' % calmd_cmd,
+            ]
+            self._cmds.append(merge_cmd)
+            out_bam = merged_bam
+        else:
+            out_bam = calmd_file
+
+        self._intermed_files.append(out_bam)
+        pipeline.upd_curfile(fmt='bam', filepath=out_bam)
+        pipeline.upd_curfile(fmt='fastq', filepath=unmapped)
 
         index_cmd = [
             'samtools',
             'index',
-            calmd_file
+            out_bam
         ]
         self._cmds.append(index_cmd)
-
-        self._intermed_files.append(calmd_file + '.bai')
+        self._intermed_files.append(out_bam + '.bai')
 
 
 class FastQCModule(pl.CmdPipelineModule):
@@ -244,6 +298,97 @@ class DuplicateRemovalModule(pl.CmdPipelineModule):
         self._intermed_files.append(rmdup_file)
         pipeline.upd_curfile(fmt='fastq', filepath=rmdup_file)
         self._cmds.append(cmd)
+
+
+class UmiToolsExtractModule(pl.CmdPipelineModule):
+
+    def prepare(self, cfg):
+        super().prepare(cfg)
+        pipeline = self._pipeline
+        general_cfg = pipeline.get_config('general')
+        read_cfg = pipeline.get_config('reads')
+        output_dir = general_cfg['output_dir']
+        prefix = general_cfg['prefix']
+        fastq_file = pipeline.get_curfile(fmt='fastq')
+        log_file = os.path.join(output_dir, 'umi_extr.log')
+
+        extr_file = os.path.join(output_dir, prefix + '_extracted.fastq')
+
+        cmd = [
+            'umi_tools',
+            'extract',
+            '-I %r' % fastq_file,
+            '--bc-pattern=%s' % ('N' * read_cfg['bc_5prime']),
+            '-L %r' % log_file,
+            '-E %r' % log_file,
+            '-S %r' % extr_file,
+        ]
+        self._intermed_files.append(extr_file)
+        pipeline.upd_curfile(fmt='fastq', filepath=extr_file)
+        self._cmds.append(cmd)
+
+
+class UmiToolsDedupModule(pl.CmdPipelineModule):
+
+    def prepare(self, cfg):
+        super().prepare(cfg)
+        pipeline = self._pipeline
+        general_cfg = pipeline.get_config('general')
+        output_dir = general_cfg['output_dir']
+        prefix = general_cfg['prefix']
+
+        bam_file = pipeline.get_curfile(fmt='bam')
+        stat_file = os.path.join(output_dir, 'umi_dedup.stat')
+        dedup_bam = os.path.join(output_dir, prefix + '_dedup.bam')
+
+        cmd = [
+            'umi_tools',
+            'dedup',
+            '-I %r' % bam_file,
+            '--output-stats=%r' % stat_file,
+            '-S %r' % dedup_bam,
+        ]
+        self._intermed_files.append(dedup_bam)
+        pipeline.upd_curfile(fmt='bam', filepath=dedup_bam)
+        self._cmds.append(cmd)
+
+
+class SkewerAdapterClippingModule(pl.CmdPipelineModule):
+
+    def __init__(self, pipeline):
+        cfg_fmt = [
+            ('extra_args', cv.Annot(list, default=[])),
+        ]
+        super().__init__(pipeline, cfg_req=cfg_fmt)
+
+    def prepare(self, cfg):
+        super().prepare(cfg)
+        pipeline = self._pipeline
+        general_cfg = pipeline.get_config('general')
+        read_cfg = pipeline.get_config('reads')
+        output_dir = general_cfg['output_dir']
+        prefix = general_cfg['prefix']
+        fastq_file = pipeline.get_curfile(fmt='fastq')
+
+        adapter_clipped_file = os.path.join(output_dir, prefix + '_skewer.clipped')
+
+        cmd = [
+            'skewer',
+            fastq_file,
+            '-x %s' % general_cfg['adapter3prime'],
+            '-m tail',
+            '--min %s' % read_cfg['min_len'],
+            '--quiet',
+            '--stdout',
+            '> %r' % adapter_clipped_file,
+        ]
+
+        if cfg['extra_args']:
+            cmd.extend(cfg['extra_args'])
+        self._cmds.append(cmd)
+
+        self._intermed_files.append(adapter_clipped_file)
+        pipeline.upd_curfile(fmt='fastq', filepath=adapter_clipped_file)
 
 
 class ClippyAdapterClippingModule(pl.CmdPipelineModule):

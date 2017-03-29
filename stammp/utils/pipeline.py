@@ -86,6 +86,10 @@ class Pipeline:
     def get_config(self, cfg_name):
         return self._general_cfg.get(cfg_name)
 
+    def has_curfile(self, fmt):
+        filepath = self._cur_files.get(fmt)
+        return filepath is not None
+
     def get_curfile(self, fmt):
         filepath = self._cur_files.get(fmt)
         if filepath is None:

@@ -1,7 +1,6 @@
 import argparse
 import os
 import sys
-import glob
 import logging
 from collections import OrderedDict
 
@@ -76,12 +75,6 @@ def run(args):
 
     config = mu.parse_yaml(args.config_file)
 
-    def mapindex_validator(genome_index):
-        genome_index_glob = "%s*" % genome_index
-        if len(glob.glob(genome_index_glob)) == 0:
-            raise ValueError('genome index %r does not exist' % genome_index)
-        return genome_index
-
     def relpath_conv(file_path):
         return cv.rel_file_r_validator(file_path, args.config_file)
 
@@ -91,7 +84,6 @@ def run(args):
     general_fmt = OrderedDict([
         ('adapter5prime', cv.Annot(str, converter=cv.dnastr_validator)),
         ('adapter3prime', cv.Annot(str, converter=cv.dnastr_validator)),
-        ('genomeindex', cv.Annot(str, converter=mapindex_validator)),
         ('genomefasta', cv.Annot(str, converter=genomefasta_validator)),
         ('normalization_pileup', cv.Annot(str, converter=relpath_conv)),
         ('rmTemp', cv.Annot(cv.boolean, default=True)),

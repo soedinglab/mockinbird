@@ -1,3 +1,4 @@
+import glob
 import re
 import os
 import logging
@@ -29,6 +30,16 @@ class Annot:
     @property
     def warn_if_missing(self):
         return self._warn_if_missing
+
+
+def rel_mapindex_validator(genome_index, cfg_path):
+    if not os.path.isabs(genome_index):
+        parent_path = os.path.dirname(cfg_path)
+        genome_index = os.path.join(os.path.abspath(parent_path), genome_index)
+    genome_index_glob = "%s*" % genome_index
+    if len(glob.glob(genome_index_glob)) == 0:
+        raise ValueError('genome index %r does not exist' % genome_index)
+    return genome_index
 
 
 def rel_file_r_validator(path, cfg_path):
@@ -152,6 +163,7 @@ def validate_section(config, cfg_format):
             except ValueError as ex:
                 msg = 'invalid value %r for key %r' % (config[key], key)
                 logger.error(msg)
+                logger.error(ex)
                 raise ConfigError(msg)
     return cfg_dict
 
