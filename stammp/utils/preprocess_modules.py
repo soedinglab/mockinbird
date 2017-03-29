@@ -1,5 +1,6 @@
 import os
 import time
+import glob
 from functools import partial
 
 from stammp.utils import pipeline as pl
@@ -685,3 +686,32 @@ class MaxQuantileModule(pl.CmdPipelineModule):
         self._cmds.append(cmd)
         self._intermed_files.append(maxq_file)
         pipeline.upd_curfile(fmt='table', filepath=maxq_file)
+
+
+class Table2FastaModule(pl.CmdPipelineModule):
+
+    def __init__(self, pipeline):
+        r_conv = partial(cv.rel_file_r_validator, cfg_path=pipeline.cfg_path)
+        cfg_fmt = [
+            ('genome_fasta', cv.Annot(str, converter=r_conv)),
+        ]
+        super().__init__(pipeline, cfg_req=cfg_fmt)
+
+    def prepare(self, cfg):
+        super().prepare(cfg)
+        pipeline = self._pipeline
+        general_cfg = pipeline.get_config('general')
+        output_dir = general_cfg['output_dir']
+        prefix = general_cfg['prefix']
+        table_file = pipeline.get_curfile(fmt='table')
+
+        fasta_file = os.path.join(output_dir, prefix + '.fa')
+        cmd = [
+            'table2fasta',
+            table_file,
+            '%r' % cfg['genome_fasta'],
+            fasta_file
+        ]
+        self._cmds.append(cmd)
+        self._intermed_files.append(fasta_file)
+        pipeline.upd_curfile(fmt='fasta', filepath=fasta_file)

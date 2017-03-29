@@ -37,9 +37,11 @@ class CmdPipelineModule:
     def cleanup(self, keep_intermed=False):
         if not self._keep_all:
             for rm_file in self._tmp_files:
+                logger.debug('%s is marked as a temporary file, cleaning up', rm_file)
                 execute('rm -rf %s' % rm_file, exit=False)
             if not keep_intermed:
                 for rm_file in self._intermed_files:
+                    logger.debug('%s is marked as an intermediate file, cleaning up', rm_file)
                     execute('rm -rf %s' % rm_file, exit=False)
 
     @property
