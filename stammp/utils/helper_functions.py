@@ -41,7 +41,10 @@ def execute(cmd, exit=True):
         stdout, stderr = proc.communicate()
         retcode = proc.returncode
         if retcode != 0:
-            logger.error('\n\n%s', stderr.strip())
+            if stderr.strip() != '':
+                logger.error('\n\n%s\n', stderr.strip())
+            if stdout.strip() != '':
+                logger.error('\n\n%s\n', stdout.strip())
             raise Exception
         return stdout, stderr
     except:
