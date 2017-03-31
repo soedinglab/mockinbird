@@ -1,6 +1,5 @@
 import os
 import time
-import glob
 from functools import partial
 
 from stammp.utils import pipeline as pl
@@ -397,6 +396,8 @@ class ClippyAdapterClippingModule(pl.CmdPipelineModule):
     def __init__(self, pipeline):
         cfg_fmt = [
             ('clip_len', cv.Annot(int, default=10, converter=cv.nonneg_integer)),
+            ('bc_5prime', cv.Annot(int, default=-1, converter=int)),
+            ('bc_3prime', cv.Annot(int, default=-1, converter=int)),
         ]
         super().__init__(pipeline, cfg_req=cfg_fmt)
 
@@ -411,6 +412,9 @@ class ClippyAdapterClippingModule(pl.CmdPipelineModule):
 
         adapter_clipped_file = os.path.join(output_dir, prefix + '_adapter.clipped')
 
+        bc_5prime = cfg['bc_5prime'] if cfg['bc_5prime'] >= 0 else read_cfg['bc_5prime']
+        bc_3prime = cfg['bc_3prime'] if cfg['bc_3prime'] >= 0 else read_cfg['bc_3prime']
+
         cmd = [
             'stammp-adapter-clipper',
             fastq_file,
@@ -419,8 +423,8 @@ class ClippyAdapterClippingModule(pl.CmdPipelineModule):
             general_cfg['adapter3prime'],
             '--clip_len %s' % cfg['clip_len'],
             '--min_len %s' % read_cfg['min_len'],
-            '--nt_barcode_5prime %s' % read_cfg['bc_5prime'],
-            '--nt_barcode_3prime %s' % read_cfg['bc_3prime'],
+            '--nt_barcode_5prime %s' % bc_5prime,
+            '--nt_barcode_3prime %s' % bc_3prime,
             '--plot_dir %s' % output_dir,
             '--verbose'
         ]
