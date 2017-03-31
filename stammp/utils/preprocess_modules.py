@@ -398,6 +398,7 @@ class ClippyAdapterClippingModule(pl.CmdPipelineModule):
             ('clip_len', cv.Annot(int, default=10, converter=cv.nonneg_integer)),
             ('bc_5prime', cv.Annot(int, default=-1, converter=int)),
             ('bc_3prime', cv.Annot(int, default=-1, converter=int)),
+            ('clipped_5prime_bc', cv.Annot(bool, default=False, converter=cv.boolean)),
         ]
         super().__init__(pipeline, cfg_req=cfg_fmt)
 
@@ -428,6 +429,8 @@ class ClippyAdapterClippingModule(pl.CmdPipelineModule):
             '--plot_dir %s' % output_dir,
             '--verbose'
         ]
+        if cfg['clipped_5prime_bc']:
+            cmd.append('--clipped_5prime_bc')
         self._cmds.append(cmd)
 
         self._intermed_files.append(adapter_clipped_file)

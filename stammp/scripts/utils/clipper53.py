@@ -25,6 +25,8 @@ def create_parser():
                         help='size of the 3\' barcode (in bp)')
     parser.add_argument('--verbose', action='store_true',
                         help='verbose output')
+    parser.add_argument('--clipped_5prime_bc', action='store_true',
+                        help='5prime barcode already clipped')
     parser.add_argument('--plot_dir', type=aph.dir_rwx,
                         help='output directory for supplementary plots')
     return parser
@@ -37,6 +39,7 @@ def main():
     clip_len = args.clip_len
     min_len = args.min_len
     bc5_len = args.nt_barcode_5prime
+    start_bc5_len = bc5_len if not args.clipped_5prime_bc else 0
     bc3_len = args.nt_barcode_3prime
 
     size_counter = Counter()
@@ -64,7 +67,7 @@ def main():
                 right_hit = nt_seq.find(prim3_string)
 
                 if left_hit < 0:
-                    read_start = bc5_len
+                    read_start = start_bc5_len
                 else:
                     read_start = left_hit + len(prim5_string) + bc5_len
                     total_5prime_clipped += 1
