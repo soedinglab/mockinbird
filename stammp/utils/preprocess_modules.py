@@ -61,6 +61,10 @@ class STARMapModule(pl.CmdPipelineModule):
             cmd.append(extra_flag)
         self._cmds.append(cmd)
 
+        log_file = star_output_prefix + 'Log.final.out'
+        print_cmd = ['cat', '%r' % log_file]
+        self._cmds.append(print_cmd)
+
         sort_bam = star_output_prefix + 'sorted.bam'
         sort_cmd = [
             'samtools sort',

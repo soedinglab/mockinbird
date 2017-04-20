@@ -92,7 +92,7 @@ def boolean(bool_str):
 
 def file_r_validator(path):
     if not os.path.isfile(path):
-        msg = '%r does not exists' % path
+        msg = '%r does not exist' % path
         raise ValueError(msg)
     elif not os.access(path, os.R_OK):
         msg = 'no read access on %r' % path
