@@ -1,7 +1,7 @@
 import argparse
 from collections import defaultdict, Counter
 
-from stammp.utils.argparse_helper import file_r, file_rw_or_dir_rwx
+from mockinbird.utils.argparse_helper import file_r, file_rw_or_dir_rwx
 
 
 def create_parser():

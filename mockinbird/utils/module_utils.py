@@ -5,12 +5,12 @@ from pydoc import locate
 import yaml
 from jinja2 import Environment, PackageLoader
 
-from stammp.utils import config_validation as cv
+from mockinbird.utils import config_validation as cv
 logger = logging.getLogger()
 
 
 def parse_yaml(cfg_file):
-    env = Environment(loader=PackageLoader('stammp'))
+    env = Environment(loader=PackageLoader('mockinbird'))
     with open(cfg_file) as infile:
         data = env.from_string(infile.read())
         try:

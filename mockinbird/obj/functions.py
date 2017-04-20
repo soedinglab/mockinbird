@@ -1,5 +1,5 @@
 """
-:mod:`stammp.obj.functions`
+:mod:`mockinbird.obj.functions`
 
 Basic internal module that offers functions for loading, sorting, manipulating 
 and saving of data files (mpileups, gff, fasta etc.) as well as PAR-CLIP data.

@@ -2,7 +2,7 @@
 """
 Returns the processing index for a pileup and an annotation file.
 
-**Usage:** stammp-getProcessingIndex [-h] [-s SPACE] [-w WIDTH] [-v] parclip gff
+**Usage:** mockinbird-getProcessingIndex [-h] [-s SPACE] [-w WIDTH] [-v] parclip gff
 
 **Positional arguments:**
   =======               ===========================================
@@ -24,13 +24,13 @@ Returns the processing index for a pileup and an annotation file.
 
 Example::
     
-    stammp-makeCenterBothEnds parclip.table annotation.gff
+    mockinbird-makeCenterBothEnds parclip.table annotation.gff
     
 """
 import argparse
 import os
 import sys
-from stammp.obj import *
+from mockinbird.obj import *
 import math
 
 def main(pileupfile, anno, space, width, verbose):

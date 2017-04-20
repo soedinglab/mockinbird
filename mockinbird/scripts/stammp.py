@@ -1,16 +1,16 @@
 import argparse
 import sys
 
-from stammp import __version__
-from stammp.scripts.preprocess import register_arguments as preprocess_register_args
-from stammp.scripts.preprocess import run as preprocess_main
-from stammp.scripts.postprocess import register_arguments as postprocess_register_args
-from stammp.scripts.postprocess import run as postprocess_main
+from mockinbird import __version__
+from mockinbird.scripts.preprocess import register_arguments as preprocess_register_args
+from mockinbird.scripts.preprocess import run as preprocess_main
+from mockinbird.scripts.postprocess import register_arguments as postprocess_register_args
+from mockinbird.scripts.postprocess import run as postprocess_main
 
 
 def create_parser():
     parser = argparse.ArgumentParser(
-        'stammp',
+        'mockinbird',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     subparser = parser.add_subparsers(title='subcommands')

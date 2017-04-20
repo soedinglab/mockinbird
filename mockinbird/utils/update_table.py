@@ -1,6 +1,6 @@
 import argparse
 import sys
-from stammp.utils.parsers import PC_MANDATORY_FIELDS
+from mockinbird.utils.parsers import PC_MANDATORY_FIELDS
 
 
 def main():

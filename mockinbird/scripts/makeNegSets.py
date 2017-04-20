@@ -7,9 +7,9 @@ format. Negative sets are mandatory for k-mer log odd calculations or motif find
 import argparse
 import random
 import os
-from stammp.obj import gff, functions
-from stammp.utils import argparse_helper as aph
-from stammp.utils import EfficientGenome
+from mockinbird.obj import gff, functions
+from mockinbird.utils import argparse_helper as aph
+from mockinbird.utils import EfficientGenome
 
 
 def getRandomSequences(anno, wg, rnumber, width):

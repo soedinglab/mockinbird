@@ -1,5 +1,5 @@
 import argparse
-from stammp.utils.helper_objects import ParclipSiteContainer, EfficientGenome
+from mockinbird.utils.helper_objects import ParclipSiteContainer, EfficientGenome
 
 
 def create_parser():

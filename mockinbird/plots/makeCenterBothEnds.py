@@ -3,10 +3,10 @@ import os
 from itertools import chain
 import datetime
 
-from stammp.obj import functions, gff
-from stammp.utils import ParclipSiteContainer
-from stammp.utils import execute
-from stammp.utils.argparse_helper import file_r, dir_rwx
+from mockinbird.obj import functions, gff
+from mockinbird.utils import ParclipSiteContainer
+from mockinbird.utils import execute
+from mockinbird.utils.argparse_helper import file_r, dir_rwx
 
 
 def create_parser():

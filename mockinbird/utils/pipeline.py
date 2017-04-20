@@ -2,10 +2,10 @@ import copy
 import sys
 import logging
 
-from stammp.utils import execute
+from mockinbird.utils import execute
 from collections import OrderedDict
 
-import stammp.utils.config_validation as cv
+import mockinbird.utils.config_validation as cv
 
 logger = logging.getLogger()
 

@@ -1,7 +1,7 @@
 """
 Plot all possible conditional mutation probabilities based on pileup data.
 
-**Usage:** stammp-makeNucleotideProbabilities [-h] [-c COVERAGE] [-v] [-r]
+**Usage:** mockinbird-makeNucleotideProbabilities [-h] [-c COVERAGE] [-v] [-r]
                                             inputfile outdir prefix
 
 **Positional arguments:**
@@ -27,9 +27,9 @@ Plot all possible conditional mutation probabilities based on pileup data.
 import argparse
 import math
 import os
-from stammp.obj import functions
-from stammp.utils import argparse_helper as aph
-from stammp.utils import execute
+from mockinbird.obj import functions
+from mockinbird.utils import argparse_helper as aph
+from mockinbird.utils import execute
 
 
 def create_parser():

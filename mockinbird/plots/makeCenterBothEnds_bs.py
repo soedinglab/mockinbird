@@ -5,10 +5,10 @@ from multiprocessing import Pool
 import numpy as np
 import pandas as pd
 
-from stammp.utils import execute
-from stammp.utils.argparse_helper import file_r, dir_rwx
-from stammp.utils.helper_objects import ParclipSiteContainer
-from stammp.utils.parsers import GFF3Parser
+from mockinbird.utils import execute
+from mockinbird.utils.argparse_helper import file_r, dir_rwx
+from mockinbird.utils.helper_objects import ParclipSiteContainer
+from mockinbird.utils.parsers import GFF3Parser
 
 
 def create_parser():

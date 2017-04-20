@@ -1,7 +1,7 @@
 """
 Returns the colocalization value for a pair of PAR-CLIP tables A and B.
 
-**Usage:** stammp-getColocalization [-h] [--gff GFF] [--start START] [--stop STOP]
+**Usage:** mockinbird-getColocalization [-h] [--gff GFF] [--start START] [--stop STOP]
                                 [-w WIDTH] [--gffMIN GFFMIN] [--gffMAX GFFMAX]
                                 [--gffDIST GFFDIST] [--annoWIDTH ANNOWIDTH]
                                 [-r] [-v]
@@ -34,8 +34,8 @@ Returns the colocalization value for a pair of PAR-CLIP tables A and B.
 import argparse
 import os
 import sys
-from stammp.obj import *
-from stammp.utils import ParclipSiteContainer
+from mockinbird.obj import *
+from mockinbird.utils import ParclipSiteContainer
 import math
 
 def main(parclipA, parclipB, start, stop, width, anno=None, annowidth=100,

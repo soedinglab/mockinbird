@@ -7,11 +7,11 @@ import numpy as np
 
 from pyivtree import IVTree
 from pyivtree import GenomicInterval as Interval
-from stammp.obj.functions import makeReverseComplement as rev_complement
-from stammp.obj.gff import GFF
-from stammp.utils.parsers import PCTableParser, GFF3Parser
-from stammp.utils import parsers
-from stammp.utils.misc import deprecated
+from mockinbird.obj.functions import makeReverseComplement as rev_complement
+from mockinbird.obj.gff import GFF
+from mockinbird.utils.parsers import PCTableParser, GFF3Parser
+from mockinbird.utils import parsers
+from mockinbird.utils.misc import deprecated
 
 
 SeqInfo = namedtuple('SeqInfo', ['bp_length', 'byte_offset', 'bp_linewidth', 'byte_linewidth'])

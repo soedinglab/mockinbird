@@ -2,7 +2,7 @@ import tempfile
 import unittest
 import os
 
-from stammp.utils import native_wordcount, prepare_output_dir
+from mockinbird.utils import native_wordcount, prepare_output_dir
 
 
 class TestClass(unittest.TestCase):

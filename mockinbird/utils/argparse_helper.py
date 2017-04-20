@@ -1,7 +1,7 @@
 import argparse
 import os
 
-from stammp import __version__
+from mockinbird import __version__
 
 
 def dir_rwx(path):

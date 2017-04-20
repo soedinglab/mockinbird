@@ -4,8 +4,8 @@ import sys
 import collections
 import math
 
-from stammp.utils import native_wordcount as wccount
-from stammp.utils import argparse_helper as aph
+from mockinbird.utils import native_wordcount as wccount
+from mockinbird.utils import argparse_helper as aph
 
 
 def create_parser():

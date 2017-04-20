@@ -2,8 +2,8 @@ import os
 import time
 from functools import partial
 
-from stammp.utils import pipeline as pl
-from stammp.utils import config_validation as cv
+from mockinbird.utils import pipeline as pl
+from mockinbird.utils import config_validation as cv
 
 
 class STARMapModule(pl.CmdPipelineModule):

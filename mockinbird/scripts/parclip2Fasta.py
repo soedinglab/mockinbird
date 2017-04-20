@@ -2,7 +2,7 @@
 Takes PAR-CLIP sites and a genome and saves genomic sequences as fasta file
 around PAR-CLIP sites according to the given parameters.
 
-**Usage:** stammp-parclip2Fasta [-h] [-v]
+**Usage:** mockinbird-parclip2Fasta [-h] [-v]
                             sites genome fafile filterGFF start stop width
                             additionalFilterWidth key
 
@@ -32,8 +32,8 @@ around PAR-CLIP sites according to the given parameters.
 """
 import argparse
 import os
-from stammp.obj import *
-from stammp.utils import ParclipSiteContainer
+from mockinbird.obj import *
+from mockinbird.utils import ParclipSiteContainer
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Takes PAR-CLIP sites and a genome and saves genomic sequences as fasta file around PAR-CLIP sites according to the given parameters.', epilog="contact: torkler@genzentrum.lmu.de")

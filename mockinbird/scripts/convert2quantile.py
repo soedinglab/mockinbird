@@ -1,8 +1,8 @@
 import argparse
 import sys
-from stammp.obj import functions
-from stammp.utils import ParclipSiteContainer
-from stammp.utils import argparse_helper as aph
+from mockinbird.obj import functions
+from mockinbird.utils import ParclipSiteContainer
+from mockinbird.utils import argparse_helper as aph
 
 
 def create_parser():

@@ -4,11 +4,11 @@ import sys
 import logging
 import glob
 
-from stammp.utils import argparse_helper as aph
-from stammp.utils import pipeline as pl
-from stammp.utils import module_utils as mu
-from stammp import __version__
-from stammp import LOG_DEFAULT_FORMAT, LOG_LEVEL_MAP
+from mockinbird.utils import argparse_helper as aph
+from mockinbird.utils import pipeline as pl
+from mockinbird.utils import module_utils as mu
+from mockinbird import __version__
+from mockinbird import LOG_DEFAULT_FORMAT, LOG_LEVEL_MAP
 
 
 def register_arguments(parser):
@@ -31,7 +31,7 @@ def register_arguments(parser):
 
 def create_parser():
     description = 'run the PAR-CLIP postprocessing pipeline'
-    parser = argparse.ArgumentParser(prog='stammp-postprocess', description=description)
+    parser = argparse.ArgumentParser(prog='mockinbird-postprocess', description=description)
     register_arguments(parser)
     return parser
 
@@ -57,7 +57,7 @@ def run(args):
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
-    logger.info('stammp version: %s', __version__)
+    logger.info('mockinbird version: %s', __version__)
     logger.info('working directory: %s', os.getcwd())
     logger.info('started postprocessing via %r', ' '.join(sys.argv))
 
@@ -121,7 +121,7 @@ def run(args):
     pipeline = pl.Pipeline(initial_files=initial_files, general_cfg=general_cfg,
                            cfg_path=args.config_file)
 
-    mu.queue_pipeline(config, pipeline, def_lookup_path='stammp.utils.postprocess_modules')
+    mu.queue_pipeline(config, pipeline, def_lookup_path='mockinbird.utils.postprocess_modules')
     mu.run_pipeline(pipeline)
 
     for job in pipeline:

@@ -1,7 +1,7 @@
 """
 Select all PAR-CLIP sites that are located around the given GFF start or stop position +/- upstream and downstream.
 
-**Usage:** stammp-selectSitesInside [-h] [--min MIN] [--max MAX]
+**Usage:** mockinbird-selectSitesInside [-h] [--min MIN] [--max MAX]
                                 [--upstream UPSTREAM]
                                 [--downstream DOWNSTREAM]
                                 parclip outputfile gff
@@ -24,8 +24,8 @@ Select all PAR-CLIP sites that are located around the given GFF start or stop po
   ======================= =====================================================
 """
 import argparse
-from stammp.obj import *
-from stammp.utils import ParclipSiteContainer
+from mockinbird.obj import *
+from mockinbird.utils import ParclipSiteContainer
 
 def main(inputfile, outputfile, gfffile, gffmin, gffmax, takeStop,
          upstream, downstream, verbose):

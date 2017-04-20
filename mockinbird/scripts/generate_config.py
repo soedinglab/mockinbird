@@ -2,12 +2,12 @@ import argparse
 import os
 import shutil
 
-from stammp.utils import argparse_helper as aph
+from mockinbird.utils import argparse_helper as aph
 
 
 def create_parser():
     description = 'Tool to generate example config files'
-    parser = argparse.ArgumentParser('stammp-generateConfig', description=description)
+    parser = argparse.ArgumentParser('mockinbird-generateConfig', description=description)
     output_help = 'output folder'
     parser.add_argument('output_directory', help=output_help, type=aph.dir_rwx_create)
     return parser

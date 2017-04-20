@@ -2,7 +2,7 @@
 Plots kmer occurences per sequence position for all kmers of a given kmer-
 length for selected PAR-CLIP sites.
 
-**Usage:** stammp-makeKmerPerPosition [-h] [--kmer KMER] [--start START]
+**Usage:** mockinbird-makeKmerPerPosition [-h] [--kmer KMER] [--start START]
                                   [--stop STOP] [--width WIDTH] [--key KEY]
                                   [--filterGFF FILTERGFF] [--awidth AWIDTH]
                                   [-r]
@@ -36,7 +36,7 @@ length for selected PAR-CLIP sites.
 
 Example::
 
-    $ stammp-makeKmerPerPosition parclip.table genome.fa output/ prefix --kmer 4 --start 0 --stop 2000 --width 50 --key occ -r
+    $ mockinbird-makeKmerPerPosition parclip.table genome.fa output/ prefix --kmer 4 --start 0 --stop 2000 --width 50 --key occ -r
 
 
 .. image:: img/img_kmerPerPosition.png
@@ -47,11 +47,11 @@ Example::
 import argparse
 import os
 from itertools import chain
-from stammp.obj import functions
-from stammp.utils import execute
-from stammp.utils import argparse_helper as aph
-from stammp.utils import ParclipSiteContainer, EfficientGenome
-from stammp.utils.postprocess_modules import sort_keys
+from mockinbird.obj import functions
+from mockinbird.utils import execute
+from mockinbird.utils import argparse_helper as aph
+from mockinbird.utils import ParclipSiteContainer, EfficientGenome
+from mockinbird.utils.postprocess_modules import sort_keys
 
 
 def create_parser():

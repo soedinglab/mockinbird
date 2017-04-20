@@ -1,6 +1,6 @@
 import math
 import os
-from stammp.obj import functions
+from mockinbird.obj import functions
 class Pileup:
     
     def __init__(self, filename):

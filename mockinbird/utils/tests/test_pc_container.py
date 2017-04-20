@@ -4,8 +4,8 @@ import os
 
 import numpy.testing as npt
 
-from stammp.utils import ParclipSiteContainer
-from stammp.obj.parclipsites import ParclipSites
+from mockinbird.utils import ParclipSiteContainer
+from mockinbird.obj.parclipsites import ParclipSites
 
 DATA_DIR = path.join(path.dirname(__file__), 'data')
 TABLE_DIR = path.join(DATA_DIR, 'test.table')

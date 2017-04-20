@@ -2,8 +2,8 @@ import argparse
 import itertools
 import os
 from collections import Counter
-from stammp.utils.argparse_helper import dir_rwx, file_r
-from stammp.obj.functions import makeReverseComplement as revcomp
+from mockinbird.utils.argparse_helper import dir_rwx, file_r
+from mockinbird.obj.functions import makeReverseComplement as revcomp
 import pysam
 
 

@@ -4,8 +4,8 @@ import shutil
 import os
 import random
 
-from stammp.utils.helper_objects import EfficientGenome
-from stammp.utils.helper_objects import parse_fasta_index
+from mockinbird.utils.helper_objects import EfficientGenome
+from mockinbird.utils.helper_objects import parse_fasta_index
 
 fasta = """
 >chr1

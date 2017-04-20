@@ -1,17 +1,17 @@
 import math
-from stammp.obj import functions
+from mockinbird.obj import functions
 
 
 class ParclipSites:
     """
-        :class:`~stammp.obj.parclipsites.ParclipSites` represents the data
+        :class:`~mockinbird.obj.parclipsites.ParclipSites` represents the data
         obtained by :ref:`ref_binding-site-detection`. The class offers methods
         to load, save, sort and modify PAR-CLIP data.
 
         Args:
             name (str): name of the experiment or protein
         Example:
-            >>> from stammp.obj import parclipsites
+            >>> from mockinbird.obj import parclipsites
             >>> sites = parclipsites.ParclipSites('name')
     """
     def __init__(self, name=''):
@@ -30,13 +30,13 @@ class ParclipSites:
         """
         Loads PAR-CLIP binding sites obtained by
         :ref:`ref_binding-site-detection` into a
-        :class:`~stammp.obj.parclipsites.ParclipSites` object.
+        :class:`~mockinbird.obj.parclipsites.ParclipSites` object.
 
         Args:
             filename (str): filename
 
         Example:
-            >>> from stammp.obj import parclipsites
+            >>> from mockinbird.obj import parclipsites
             >>> sites = parclipsites.ParclipSites('name')
             >>> sites.loadFromFile('/path/to/parclip.table')
         """
@@ -69,14 +69,14 @@ class ParclipSites:
 
     def save2File(self, filename):
         """
-        Saves a :class:`~stammp.obj.parclipsites.ParclipSites` object as tab
+        Saves a :class:`~mockinbird.obj.parclipsites.ParclipSites` object as tab
         delimeted text file.
 
         Args:
             filename (str): Filename
 
         Example:
-            >>> from stammp.obj import parclipsites
+            >>> from mockinbird.obj import parclipsites
             >>> sites = parclipsites.ParclipSites('name')
             >>> sites.loadFromFile('/path/to/parclip.table')
             >>> sites.save2File('/path/to/another.table')
@@ -93,14 +93,14 @@ class ParclipSites:
     def print(self, start, stop):
         """
         Prints PAR-CLIP data between given *start* and *stop* indices of an
-        :class:`~stammp.obj.parclipsites.ParclipSites` object to stdout
+        :class:`~mockinbird.obj.parclipsites.ParclipSites` object to stdout
 
         Args:
             start (int): Start index
             stop (int): Stop index
 
         Example:
-            >>> from stammp.obj import parclipsites
+            >>> from mockinbird.obj import parclipsites
             >>> sites = parclipsites.ParclipSites('name')
             >>> sites.loadFromFile('/path/to/parclip.table')
             >>> sites.print(0,5)
@@ -130,7 +130,7 @@ class ParclipSites:
     def size(self):
         """
         Returns the number of binding sites stored in the
-        :class:`~stammp.obj.parclipsites.ParclipSites` object.
+        :class:`~mockinbird.obj.parclipsites.ParclipSites` object.
 
         Returns:
             int
@@ -140,7 +140,7 @@ class ParclipSites:
     def sort(self, key='occ'):
         """
         Sorts the PAR-CLIP data of a
-        :class:`~stammp.obj.parclipsites.ParclipSites` object in descending
+        :class:`~mockinbird.obj.parclipsites.ParclipSites` object in descending
         order according to the given *key*.
 
         *key* can be one of the following values:
@@ -148,7 +148,7 @@ class ParclipSites:
             * *m* = sites are sorted according to the number of mutations
             * *r* = sites are sorted according to the coverage
             * *mr* = sites are sorted according to the ratio of m/r
-            * *pvalue* = sites are sorted according to the p-value calculated by :mod:`stammp.scripts.bsfinder`
+            * *pvalue* = sites are sorted according to the p-value calculated by :mod:`mockinbird.scripts.bsfinder`
 
         Args:
             key (str): see above
@@ -203,7 +203,7 @@ class ParclipSites:
     def removeSite(self, index):
         """
         Removes a single binding site entry of a
-        :class:`~stammp.obj.parclipsites.ParclipSites` object at the given
+        :class:`~mockinbird.obj.parclipsites.ParclipSites` object at the given
         index
 
         Args:
@@ -224,7 +224,7 @@ class ParclipSites:
 
     def addSite(self, chrname, position, m, r, pvalue, strand, occupancy):
         """
-        Adds a binding site to a :class:`~stammp.obj.parclipsites.ParclipSites`
+        Adds a binding site to a :class:`~mockinbird.obj.parclipsites.ParclipSites`
         object.
 
         Args:
@@ -247,11 +247,11 @@ class ParclipSites:
     def removeSitesLocatedInGFF(self, gff, width=0):
         """
         Removes binding sites of an
-        :class:`~stammp.obj.parclipsites.ParclipSites` object which overlap
-        with a given :class:`~stammp.obj.gff.GFF` object.
+        :class:`~mockinbird.obj.parclipsites.ParclipSites` object which overlap
+        with a given :class:`~mockinbird.obj.gff.GFF` object.
 
         Args:
-            gff(GFF): :class:`~stammp.obj.gff.GFF` object
+            gff(GFF): :class:`~mockinbird.obj.gff.GFF` object
             width (int): additional width which is added to the annotation information [default = 0]
         """
         i = 0
@@ -265,17 +265,17 @@ class ParclipSites:
 
     def save2Fasta(self, genome, filename, start, stop, width=15):
         """
-        For each :class:`~stammp.obj.parclipsites.ParclipSites` between the
+        For each :class:`~mockinbird.obj.parclipsites.ParclipSites` between the
         indices *start* and *stop* genomic sequences +/- *width* nt from a
-        :class:`~stammp.obj.genome.Genome` object are saved as a fasta file
+        :class:`~mockinbird.obj.genome.Genome` object are saved as a fasta file
         specified by *filename*.
 
         Args:
-            genome (Genome): :class:`~stammp.obj.genome.Genome` object
+            genome (Genome): :class:`~mockinbird.obj.genome.Genome` object
             filename (str): filename of the resulting fasta file
             start (int): start index
             stop (int): Stop index
-            width (int): number of nucleotides that are saved +/- the position of a :class:`~stammp.obj.parclipsites.ParclipSites` entry.
+            width (int): number of nucleotides that are saved +/- the position of a :class:`~mockinbird.obj.parclipsites.ParclipSites` entry.
         """
         failedSeqs = 0
         if start < 0 or stop < start or start >= len(self.chrs):
@@ -318,16 +318,16 @@ class ParclipSites:
 
     def getSequences(self, genome, start, stop, width):
         """
-        For each :class:`~stammp.obj.parclipsites.ParclipSites` between the
+        For each :class:`~mockinbird.obj.parclipsites.ParclipSites` between the
         indices *start* and *stop* genomic sequences +/- *width* nt from a
-        :class:`~stammp.obj.genome.Genome` object are returned as a list of
+        :class:`~mockinbird.obj.genome.Genome` object are returned as a list of
         strings.
 
             Args:
-                genome (Genome): :class:`~stammp.obj.genome.Genome` object
+                genome (Genome): :class:`~mockinbird.obj.genome.Genome` object
                 start (int): start index
                 stop (int): stop index
-                width (int): number of nucleotides +/- around the crosslink position of a :class:`~stammp.obj.parclipsites.ParclipSites` entry.
+                width (int): number of nucleotides +/- around the crosslink position of a :class:`~mockinbird.obj.parclipsites.ParclipSites` entry.
         """
         if start < 0 or stop < start or start >= len(self.chrs):
             print('start and/or stop indices are out of range!')
@@ -370,7 +370,7 @@ class ParclipSites:
         Binary search which returns the index of the PAR-CLIP site entry, if a
         site is found at the given parameters and -1 otherwise.
 
-        .. warning:: If you added or removed sites after loading you have to call :func:`~stammp.obj.parclipsites.getChromosomePositions`. Otherwise you won't get correct results.
+        .. warning:: If you added or removed sites after loading you have to call :func:`~mockinbird.obj.parclipsites.getChromosomePositions`. Otherwise you won't get correct results.
 
         Args:
             chrname (str): chromosome identifier

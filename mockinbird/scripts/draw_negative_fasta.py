@@ -3,8 +3,8 @@ from collections import Counter
 
 import numpy as np
 
-from stammp.utils import argparse_helper as aph
-from stammp.utils.helper_objects import EfficientGenome
+from mockinbird.utils import argparse_helper as aph
+from mockinbird.utils.helper_objects import EfficientGenome
 
 
 def create_parser():

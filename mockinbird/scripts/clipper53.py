@@ -4,7 +4,7 @@ import os
 
 import numpy as np
 
-from stammp.utils import argparse_helper as aph
+from mockinbird.utils import argparse_helper as aph
 
 
 def create_parser():

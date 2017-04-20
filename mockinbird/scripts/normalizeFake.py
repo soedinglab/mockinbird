@@ -1,7 +1,7 @@
 """
 Observed PAR-CLIP mutations are divided by the observed PAR-CLIP coverage.
 
-**Usage:** stammp-normalizeFake [-h] [-q QUANTILE] inputfile outputfile
+**Usage:** mockinbird-normalizeFake [-h] [-q QUANTILE] inputfile outputfile
 
 **Positional arguments:**
   ==========   ======================================
@@ -17,8 +17,8 @@ Observed PAR-CLIP mutations are divided by the observed PAR-CLIP coverage.
 import argparse
 import os
 import sys
-from stammp.obj import *
-from stammp.utils import ParclipSiteContainer
+from mockinbird.obj import *
+from mockinbird.utils import ParclipSiteContainer
 
 def main(inputfile, outputfile):
     if os.path.isfile(inputfile) == False:

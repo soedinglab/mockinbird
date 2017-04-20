@@ -7,8 +7,8 @@ import numpy as np
 
 from pyivtree import IVTree, GenomicInterval as Interval
 
-from stammp.utils.argparse_helper import file_r, dir_rwx_create
-from stammp.utils.parsers import GFF3Parser, PCTableParser
+from mockinbird.utils.argparse_helper import file_r, dir_rwx_create
+from mockinbird.utils.parsers import GFF3Parser, PCTableParser
 
 
 def create_parser():

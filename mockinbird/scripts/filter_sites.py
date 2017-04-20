@@ -2,7 +2,7 @@ import argparse
 from collections import Counter
 from pyivtree import IVTree
 from pyivtree import GenomicInterval as Interval
-from stammp.utils import argparse_helper as aph
+from mockinbird.utils import argparse_helper as aph
 
 
 def create_parser():

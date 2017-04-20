@@ -7,13 +7,13 @@ import scipy.misc
 import scipy.optimize
 import scipy.special
 import random
-from stammp.obj import functions
-from stammp.utils import argparse_helper as aph
-from stammp.utils.parsers import PC_MANDATORY_FIELDS
+from mockinbird.obj import functions
+from mockinbird.utils import argparse_helper as aph
+from mockinbird.utils.parsers import PC_MANDATORY_FIELDS
 
 
 def create_parser():
-    description = ('stammp-bsfinder detects protein RNA binding sites from PAR-CLIP '
+    description = ('mockinbird-bsfinder detects protein RNA binding sites from PAR-CLIP '
                    'experiments in mpileup files.')
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('inputfile', help='path to the inputfile *.pileup', type=aph.file_r)
@@ -271,7 +271,7 @@ def main(inputfile, outputfile, threshold, mincov, reference, mutation, verbose)
     
     Can be accessed directly::
         
-        $ stammp-bsfinder /path/to/input.mpileup /path/to/output.table
+        $ mockinbird-bsfinder /path/to/input.mpileup /path/to/output.table
     """
     if os.path.isfile(inputfile) == False:
         print('Inputfile: '+inputfile+' does not exist')

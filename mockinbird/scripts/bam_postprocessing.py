@@ -13,11 +13,11 @@ import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 
-from stammp.utils import argparse_helper as aph
+from mockinbird.utils import argparse_helper as aph
 
 
 def create_parser():
-    parser = argparse.ArgumentParser('stammp-bam-postprocess')
+    parser = argparse.ArgumentParser('mockinbird-bam-postprocess')
     parser.add_argument('input_bam_file', type=aph.file_r,
                         help='input bam file to be postprocessed')
     parser.add_argument('output_bam_file', type=aph.file_rw_or_dir_rwx,

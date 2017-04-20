@@ -5,13 +5,13 @@ import logging
 from collections import OrderedDict
 
 
-from stammp.utils import argparse_helper as aph
-from stammp import LOG_DEFAULT_FORMAT, LOG_LEVEL_MAP
-from stammp.utils import prepare_output_dir
-from stammp.utils import config_validation as cv
-from stammp.utils import module_utils as mu
-from stammp.utils import pipeline as pl
-from stammp import __version__
+from mockinbird.utils import argparse_helper as aph
+from mockinbird import LOG_DEFAULT_FORMAT, LOG_LEVEL_MAP
+from mockinbird.utils import prepare_output_dir
+from mockinbird.utils import config_validation as cv
+from mockinbird.utils import module_utils as mu
+from mockinbird.utils import pipeline as pl
+from mockinbird import __version__
 
 logger = logging.getLogger()
 cur_dir = os.path.dirname(os.path.realpath(__file__))
@@ -33,7 +33,7 @@ def register_arguments(parser):
 
 def create_parser():
     description = 'run the PAR-CLIP preprocessing pipeline'
-    parser = argparse.ArgumentParser(prog='stammp-preprocess', description=description)
+    parser = argparse.ArgumentParser(prog='mockinbird-preprocess', description=description)
     register_arguments(parser)
     return parser
 
@@ -69,7 +69,7 @@ def run(args):
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
-    logger.info('stammp version: %s', __version__)
+    logger.info('mockinbird version: %s', __version__)
     logger.info('working directory: %s', os.getcwd())
     logger.info('started preprocessing via %r', ' '.join(sys.argv))
 
@@ -139,7 +139,7 @@ def run(args):
     }
     pipeline = pl.Pipeline(initial_files=initial_files, general_cfg=gencfg,
                            cfg_path=args.config_file)
-    mu.queue_pipeline(config, pipeline, def_lookup_path='stammp.utils.preprocess_modules')
+    mu.queue_pipeline(config, pipeline, def_lookup_path='mockinbird.utils.preprocess_modules')
     mu.run_pipeline(pipeline)
 
     if general_cfg['rmTemp']:

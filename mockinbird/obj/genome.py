@@ -1,21 +1,21 @@
 import os
 import sys
-from stammp.obj import functions
-from stammp.utils.misc import deprecated
+from mockinbird.obj import functions
+from mockinbird.utils.misc import deprecated
 
 @deprecated('The "Genome" class has been replaced with "EfficientGenome"')
 class Genome:
     """
-        :class:`~stammp.obj.genome.Genome` represents the sequence data of a complete genome. Sequences are loaded upon object creation. *location* should be multiple fasta or a directory which only contains one fasta file per chromosome.
+        :class:`~mockinbird.obj.genome.Genome` represents the sequence data of a complete genome. Sequences are loaded upon object creation. *location* should be multiple fasta or a directory which only contains one fasta file per chromosome.
         
-        .. warning:: This is a bit tricky. The final product of the pre-process procedure is a pileup file which stores sequencing information for a chromosome-identifier and a position at that chromosome. The :ref:`ref_binding-site-detection` also stores this chromosome information. In order to use post-processing steps correctly the identifiers that are used in the pileup file have to be identical to the fasta header in the multiple fasta file (everything which follow after '>') or to the fasta filenames of directory of the :class:`~stammp.obj.genome.Genome` object. Otherwise you won't be able to access the correct sequences. Take a look at the :ref:`ref_tutorial` for further explanations.
+        .. warning:: This is a bit tricky. The final product of the pre-process procedure is a pileup file which stores sequencing information for a chromosome-identifier and a position at that chromosome. The :ref:`ref_binding-site-detection` also stores this chromosome information. In order to use post-processing steps correctly the identifiers that are used in the pileup file have to be identical to the fasta header in the multiple fasta file (everything which follow after '>') or to the fasta filenames of directory of the :class:`~mockinbird.obj.genome.Genome` object. Otherwise you won't be able to access the correct sequences. Take a look at the :ref:`ref_tutorial` for further explanations.
         
         
         Args:
             location (str): Mutliple fasta file or path to a directory only containing one fasta file for each chromosome of the genome.
             verbose (bool): 
         Example:
-            >>> from stammp.obj import genome
+            >>> from mockinbird.obj import genome
             >>> yeast = genome.Genome('/path/to/fastafiles/')
     """
     def __init__(self, location, verbose = True):

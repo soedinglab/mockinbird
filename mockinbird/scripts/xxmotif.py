@@ -2,9 +2,9 @@
 Selects sequences from PAR-CLIP sites and pass them for motif search to
 XXmotif.
 
-.. note:: It is recommended to use negative sets for motif analysis of PAR-CLIP data sets as provided by :mod:`~stammp.scripts.makeNegSets`.
+.. note:: It is recommended to use negative sets for motif analysis of PAR-CLIP data sets as provided by :mod:`~mockinbird.scripts.makeNegSets`.
 
-**Usage:** stammp-xxmotif [-h] [--negSet NEGSET] [--plotPWM PLOTPWM]
+**Usage:** mockinbird-xxmotif [-h] [--negSet NEGSET] [--plotPWM PLOTPWM]
                       [--start START] [--stop STOP] [--width WIDTH]
                       [--key KEY] [--filterGFF FILTERGFF] [--awidth AWIDTH]
                       inputfile genome outdir prefix
@@ -39,7 +39,7 @@ XXmotif.
 
 Example::
 
-    $ stammp-xxmotif parclip.table genome.fa outdir/ prefix --start 0 --stop 1000 --plotPWM 3
+    $ mockinbird-xxmotif parclip.table genome.fa outdir/ prefix --start 0 --stop 1000 --plotPWM 3
 
 
 .. image:: img/img_pub1_xxmotif_start0_stop1000_width12_sort_occ_0.png
@@ -51,10 +51,10 @@ Example::
 import argparse
 import os
 import shutil
-from stammp.utils import argparse_helper as aph
-from stammp.utils import execute
-from stammp.utils import ParclipSiteContainer, EfficientGenome
-from stammp.utils.postprocess_modules import sort_keys
+from mockinbird.utils import argparse_helper as aph
+from mockinbird.utils import execute
+from mockinbird.utils import ParclipSiteContainer, EfficientGenome
+from mockinbird.utils.postprocess_modules import sort_keys
 
 
 def create_parser():

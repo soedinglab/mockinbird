@@ -1,5 +1,5 @@
-import stammp.utils.pipeline as pl
-import stammp.utils.config_validation as cv
+import mockinbird.utils.pipeline as pl
+import mockinbird.utils.config_validation as cv
 
 import os
 from functools import partial

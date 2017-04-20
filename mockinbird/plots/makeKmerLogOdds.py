@@ -15,11 +15,11 @@ Colorscale limits:
   >5      [-4.0,4.0]
   ====    =============
 
-.. warning:: Make sure to build an approriate negative set first :mod:`~stammp.scripts.makeNegSets`.
+.. warning:: Make sure to build an approriate negative set first :mod:`~mockinbird.scripts.makeNegSets`.
 
 .. warning:: If you have a low number of PAR-CLIP sites in your PAR-CLIP table and you use *-q* bins will overlap which can be misleading in this case!
 
-**Usage:** stammp-makeKmerLogOdds [-h] [--gff GFF] [--kmer KMER] [--key KEY] [-q]
+**Usage:** mockinbird-makeKmerLogOdds [-h] [--gff GFF] [--kmer KMER] [--key KEY] [-q]
                               [-v]
                               parclip outdir prefix genome negset
 
@@ -47,7 +47,7 @@ Colorscale limits:
 
 Example::
 
-    $ stammp-makeKmerLogOdds path/to/parclip.table outputdir/ prefix path/to/genome.fa kmer path/to/negset.table
+    $ mockinbird-makeKmerLogOdds path/to/parclip.table outputdir/ prefix path/to/genome.fa kmer path/to/negset.table
 
 .. image:: img/img_plotKmerLogOdds.png
    :align: center
@@ -59,11 +59,11 @@ import math
 import argparse
 import sys
 
-from stammp.obj import functions, gff
-from stammp.utils import execute
-from stammp.utils import argparse_helper as aph
-from stammp.utils import ParclipSiteContainer, EfficientGenome
-from stammp.utils.postprocess_modules import sort_keys
+from mockinbird.obj import functions, gff
+from mockinbird.utils import execute
+from mockinbird.utils import argparse_helper as aph
+from mockinbird.utils import ParclipSiteContainer, EfficientGenome
+from mockinbird.utils.postprocess_modules import sort_keys
 
 
 def create_parser():
