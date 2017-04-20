@@ -8,7 +8,7 @@ logger = logging.getLogger()
 
 
 class Annot:
-    def __init__(self, type, default=None, converter=lambda x: x,
+    def __init__(self, type=None, default=None, converter=lambda x: x,
                  warn_if_missing=True):
         self._type = type
         self._default = default

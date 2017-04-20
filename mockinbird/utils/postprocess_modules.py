@@ -43,7 +43,7 @@ class CenterPlotModule(pl.CmdPipelineModule):
         table_file = pipeline.get_curfile(fmt='table')
 
         cmd = [
-            'stammp-makeCenterBothEnds',
+            'mb-plot-metagene-nobs',
             '%r' % table_file,
             '%r' % output_dir,
             '%r' % cfg['output_prefix'],
@@ -94,7 +94,7 @@ class CenterPlotBSModule(pl.CmdPipelineModule):
         table_file = pipeline.get_curfile(fmt='table')
 
         cmd = [
-            'stammp-makeCenterBothEnds_bs',
+            'mb-plot-metagene',
             '%r' % table_file,
             '%r' % output_dir,
             '%r' % cfg['output_prefix'],
@@ -144,7 +144,7 @@ class KmerPerPositionModule(pl.CmdPipelineModule):
 
         table_file = pipeline.get_curfile(fmt='table')
         cmd = [
-            'stammp-makeKmerPerPosition',
+            'mb-plot-kmer-enrichment',
             '%r' % table_file,
             '%r' % cfg['genome_fasta'],
             '%r' % output_dir,
@@ -195,7 +195,7 @@ class KmerLogoddModule(pl.CmdPipelineModule):
         width = 15
         self._tmp_files.append(lo_negset_dir)
         negset_cmd = [
-            'stammp-makeNegSets',
+            'mb-generate-negative-set',
             '--number %s' % cfg['n_negative_seqs'],
             '%r' % cfg['negative_set_gff'],
             '%r' % cfg['genome_fasta'],
@@ -209,7 +209,7 @@ class KmerLogoddModule(pl.CmdPipelineModule):
         negset_fname = 'rnd_sequences_%s_%s_w%s_%smer.table' % fmt_args
         negset_file = os.path.join(lo_negset_dir, negset_fname)
         cmd = [
-            'stammp-makeKmerLogOdds',
+            'mb-plot-kmer-logodds',
             '%r' % table_file,
             '%r' % output_dir,
             '%r' % cfg['output_prefix'],
@@ -259,7 +259,7 @@ class XXmotifModule(pl.CmdPipelineModule):
         xx_negset_dir = os.path.join(output_dir, 'xx_negset')
         self._tmp_files.append(xx_negset_dir)
         negset_cmd = [
-            'stammp-makeNegSets',
+            'mb-generate-negative-set',
             '--number %s' % cfg['n_negative_seqs'],
             '--width %s ' % cfg['width'],
             '%r' % cfg['negative_set_gff'],
@@ -273,7 +273,7 @@ class XXmotifModule(pl.CmdPipelineModule):
         negset_fname = 'rnd_sequences_%s_%s_w%s.fa' % fmt_args
         negset_file = os.path.join(xx_negset_dir, negset_fname)
         cmd = [
-            'stammp-xxmotif',
+            'mb-xxmotif',
             table_file,
             '%r' % cfg['genome_fasta'],
             '%r' % output_dir,
@@ -312,7 +312,7 @@ class TransitionFrequencyModule(pl.CmdPipelineModule):
         pileup_file = pipeline.get_curfile(fmt='pileup')
 
         cmd = [
-            'stammp-makeNucleotideProbabilities',
+            'mb-plot-transition-frequencies',
             '%r' % pileup_file,
             '%r' % output_dir,
             '%r' % cfg['output_prefix'],
@@ -350,7 +350,7 @@ class HeatmapPlotModule(pl.CmdPipelineModule):
         table_file = pipeline.get_curfile(fmt='table')
 
         cmd = [
-            'stammp-makeHeatMap',
+            'mb-plot-heatmap',
             '%r' % table_file,
             '%r' % output_dir,
             '%r' % cfg['output_prefix'],
@@ -395,7 +395,7 @@ class HeatmapSmallPlotModule(pl.CmdPipelineModule):
         table_file = pipeline.get_curfile(fmt='table')
 
         cmd = [
-            'stammp-makeHeatMapSmall',
+            'mb-plot-heatmap-small',
             '%r' % table_file,
             '%r' % output_dir,
             '%r' % cfg['output_prefix'],
@@ -438,7 +438,7 @@ class GffFilterModule(pl.CmdPipelineModule):
         out_file = os.path.join(output_dir, out_bname + ext)
 
         cmd = [
-            'stammp-gffFilterSites',
+            'mb-filter-sites',
             '%r' % table_file,
             '%r' % out_file,
             '%r' % cfg['filter_gff'],

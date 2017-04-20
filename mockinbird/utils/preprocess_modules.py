@@ -295,7 +295,7 @@ class DuplicateRemovalModule(pl.CmdPipelineModule):
         self._tmp_files.append(rmdup_file + '.hist')
 
         cmd = [
-            'stammp-removePCRduplicates',
+            'mb-remove-duplicates',
             fastq_file,
             rmdup_file,
         ]
@@ -421,7 +421,7 @@ class ClippyAdapterClippingModule(pl.CmdPipelineModule):
         bc_3prime = cfg['bc_3prime'] if cfg['bc_3prime'] >= 0 else read_cfg['bc_3prime']
 
         cmd = [
-            'stammp-adapter-clipper',
+            'mb-adapter-clipper',
             fastq_file,
             adapter_clipped_file,
             general_cfg['adapter5prime'],
@@ -563,7 +563,7 @@ class BamPPModule(pl.CmdPipelineModule):
 
         transition = read_cfg['reference_nucleotide'] + read_cfg['mutation_nucleotide']
         cmd = [
-            'stammp-bam-postprocess',
+            'mb-bam-postprocess',
             bam_file,
             out_bam_file,
             pp_plot_dir,
@@ -602,7 +602,7 @@ class SoftclipAnalysisModule(pl.CmdPipelineModule):
             os.makedirs(pp_plot_dir)
 
         cmd = [
-            'stammp-softclip-analyzer',
+            'mb-softclip-analyzer',
             bam_file,
             pp_plot_dir,
         ]
@@ -629,7 +629,7 @@ class BSFinderModule(pl.CmdPipelineModule):
 
         table_file = os.path.join(output_dir, prefix + '.pre_table')
         cmd = [
-            'stammp-bsfinder',
+            'mb-bsfinder',
             '-p %s' % cfg['pval_threshold'],
             '-c %s' % cfg['min_cov'],
             '-r %s' % read_cfg['reference_nucleotide'],
@@ -659,7 +659,7 @@ class NormalizationModule(pl.CmdPipelineModule):
 
         normed_table_file = os.path.join(output_dir, prefix + '.normed_table')
         cmd = [
-            'stammp-normalize',
+            'mb-normalize',
             table_file,
             normed_table_file,
             general_cfg['normalization_pileup'],
@@ -689,7 +689,7 @@ class MaxQuantileModule(pl.CmdPipelineModule):
 
         maxq_file = os.path.join(output_dir, prefix + '.table')
         cmd = [
-            'stammp-convert2quantile',
+            'mb-cap-occupancy',
             table_file,
             maxq_file,
             '-q %s' % cfg['max_quantile'],
@@ -718,7 +718,7 @@ class Table2FastaModule(pl.CmdPipelineModule):
 
         fasta_file = os.path.join(output_dir, prefix + '.fa')
         cmd = [
-            'table2fasta',
+            'mb-table2fasta',
             table_file,
             '%r' % cfg['genome_fasta'],
             fasta_file
