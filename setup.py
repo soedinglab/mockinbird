@@ -1,9 +1,10 @@
 from setuptools import setup, find_packages
-from mockinbird import __version__
+import versioneer
 
 setup(
     name='mockinbird',
-    version=__version__,
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
     description='PAR-CLIP data analysis pipeline',
     author='Christian Roth, Phillipp Torkler',
     author_email='christan.roth@mpibpc.mpg.de',

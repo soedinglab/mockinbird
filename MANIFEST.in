@@ -1,2 +1,4 @@
 include stammp/plots/*.R
 recursive-include stammp/utils/tests/data *
+include versioneer.py
+include mockinbird/_version.py
