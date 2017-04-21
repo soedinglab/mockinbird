@@ -1,0 +1,19 @@
+scipy
+numpy
+pandas
+matplotlib
+pysam
+rpy2
+yaml
+jinja2
+r-vgam
+r-fdrtool
+
+# docs
+sphinx_rtd_theme
+
+# tools
+samtools
+umi_tools
+STAR
+bowtie

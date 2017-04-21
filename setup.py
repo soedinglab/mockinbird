@@ -13,8 +13,17 @@ setup(
 
             # general
             'mockinbird = mockinbird.scripts.mockinbird:main',
-            'mockinbird-preprocess = mockinbird.scripts.preprocess:main',
-            'mockinbird-postprocess = mockinbird.scripts.postprocess:main',
+            'mb-preprocess = mockinbird.scripts.preprocess:main',
+            'mb-postprocess = mockinbird.scripts.postprocess:main',
+
+            # mockinbird model
+            'mb-extract-sites = mockinbird.scripts.extract_sites:main',
+            'mb-pileup2sites = mockinbird.scripts.pileup2sites:main',
+            'mb-site-merger = mockinbird.scripts.site_merger_full:main',
+            'mb-create-bam-statistics = mockinbird.scripts.estimate_bam_statistics:main',
+            'mb-calculate-posterior = mockinbird.scripts.calculate_posterior:main',
+            'mb-mockinbird2table = mockinbird.scripts.mockinbird2table:main',
+            'mb-learn-mock = mockinbird.scripts.learn_model:main',
 
             # preprocessing
             'mb-remove-duplicates = mockinbird.scripts.removePCRduplicates:run',

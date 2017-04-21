@@ -112,7 +112,6 @@ class BowtieMapModule(pl.CmdPipelineModule):
         cfg_fmt = [
             ('genome_index', cv.Annot(str, converter=relgen_conv)),
             ('n_mismatch', cv.Annot(int, default=1, converter=cv.nonneg_integer)),
-            ('n_mismatch', cv.Annot(int, default=1, converter=cv.nonneg_integer)),
             ('n_multimap', cv.Annot(int, default=1, converter=cv.nonneg_integer)),
             ('extra_flags', cv.Annot(str, default=[], converter=cv.comma_sep_args)),
         ]
@@ -400,8 +399,6 @@ class ClippyAdapterClippingModule(pl.CmdPipelineModule):
     def __init__(self, pipeline):
         cfg_fmt = [
             ('clip_len', cv.Annot(int, default=10, converter=cv.nonneg_integer)),
-            ('bc_5prime', cv.Annot(int, default=-1, converter=int)),
-            ('bc_3prime', cv.Annot(int, default=-1, converter=int)),
             ('clipped_5prime_bc', cv.Annot(bool, default=False, converter=cv.boolean)),
         ]
         super().__init__(pipeline, cfg_req=cfg_fmt)
@@ -417,8 +414,8 @@ class ClippyAdapterClippingModule(pl.CmdPipelineModule):
 
         adapter_clipped_file = os.path.join(output_dir, prefix + '_adapter.clipped')
 
-        bc_5prime = cfg['bc_5prime'] if cfg['bc_5prime'] >= 0 else read_cfg['bc_5prime']
-        bc_3prime = cfg['bc_3prime'] if cfg['bc_3prime'] >= 0 else read_cfg['bc_3prime']
+        bc_5prime = read_cfg['bc_5prime']
+        bc_3prime = read_cfg['bc_3prime']
 
         cmd = [
             'mb-adapter-clipper',
@@ -671,7 +668,7 @@ class NormalizationModule(pl.CmdPipelineModule):
         pipeline.upd_curfile(fmt='table', filepath=normed_table_file)
 
 
-class MaxQuantileModule(pl.CmdPipelineModule):
+class QuantileCapModule(pl.CmdPipelineModule):
 
     def __init__(self, pipeline):
         cfg_fmt = [
@@ -726,3 +723,237 @@ class Table2FastaModule(pl.CmdPipelineModule):
         self._cmds.append(cmd)
         self._intermed_files.append(fasta_file)
         pipeline.upd_curfile(fmt='fasta', filepath=fasta_file)
+
+
+class PredictionSitesModule(pl.CmdPipelineModule):
+
+    def __init__(self, pipeline):
+        rw_conv = partial(cv.rel_file_rw_validator, cfg_path=pipeline.cfg_path)
+        r_conv = partial(cv.rel_file_r_validator, cfg_path=pipeline.cfg_path)
+        nuc_validator = partial(cv.in_set_validator, item_set='ACGT')
+        cfg_fmt = [
+            ('sites_file', cv.Annot(str, converter=rw_conv)),
+            ('gff_file', cv.Annot(str, default='', converter=r_conv)),
+            ('fasta_file', cv.Annot(str, converter=r_conv)),
+            ('transition_nucleotide', cv.Annot(str, default='T', converter=nuc_validator))
+        ]
+        super().__init__(pipeline, cfg_req=cfg_fmt)
+
+    def prepare(self, cfg):
+        super().prepare(cfg)
+        pipeline = self._pipeline
+
+        sites_file = cfg['sites_file']
+        pipeline.upd_curfile(fmt='sites', filepath=sites_file)
+
+        if os.path.exists(sites_file):
+            return
+
+        cmd = [
+            'mb-extract-sites',
+            '--transition_from %s' % cfg['transition_nucleotide'],
+            '%r' % cfg['fasta_file'],
+            '%r' % sites_file,
+        ]
+
+        if cfg['gff_file']:
+            cmd.append('--gff_file %r' % cfg['gff_file'])
+
+        self._cmds.append(cmd)
+
+
+class MockTableModule(pl.CmdPipelineModule):
+
+    def __init__(self, pipeline):
+        rw_conv = partial(cv.rel_file_rw_validator, cfg_path=pipeline.cfg_path)
+        r_conv = partial(cv.rel_file_r_validator, cfg_path=pipeline.cfg_path)
+        cfg_fmt = [
+            ('mock_table', cv.Annot(str, converter=rw_conv)),
+            ('mock_pileup', cv.Annot(str, converter=r_conv)),
+        ]
+        super().__init__(pipeline, cfg_req=cfg_fmt)
+
+    def prepare(self, cfg):
+        super().prepare(cfg)
+        pipeline = self._pipeline
+
+        mock_table = cfg['mock_table']
+        pipeline.upd_curfile(fmt='mocktable', filepath=mock_table)
+
+        if os.path.exists(mock_table):
+            return
+
+        mock_pileup = cfg['mock_pileup']
+
+        cmd = [
+            'mb-pileup2sites',
+            '%r' % mock_pileup,
+            '> %r' % mock_table,
+        ]
+
+        self._cmds.append(cmd)
+
+
+class TransitionTableModule(pl.CmdPipelineModule):
+
+    def __init__(self, pipeline):
+        super().__init__(pipeline)
+
+    def prepare(self, cfg):
+        super().prepare(cfg)
+        pipeline = self._pipeline
+
+        general_cfg = pipeline.get_config('general')
+        output_dir = general_cfg['output_dir']
+
+        prefix = general_cfg['prefix']
+        sites_file = pipeline.get_curfile(fmt='sites')
+        mock_table = pipeline.get_curfile(fmt='mocktable')
+        pileup_file = pipeline.get_curfile(fmt='mpileup')
+
+        table_file = os.path.join(output_dir, prefix + '.fac_table')
+        pileup_cmd = [
+            'mb-pileup2sites',
+            '%r' % pileup_file,
+            '> %r' % table_file,
+        ]
+        self._cmds.append(pileup_cmd)
+        self._tmp_files.append(table_file)
+
+        trtable_file = os.path.join(output_dir, prefix + '.trtable')
+        table_cmd = [
+            'mb-site-merger',
+            '%r' % sites_file,
+            '--factor_table %r' % table_file,
+            '%r' % mock_table,
+            '%r' % trtable_file,
+        ]
+        self._cmds.append(table_cmd)
+
+        pipeline.upd_curfile(fmt='trtable', filepath=trtable_file)
+        self._intermed_files.append(trtable_file)
+
+
+class LearnMockModule(pl.CmdPipelineModule):
+
+    def __init__(self, pipeline):
+        rw_conv = partial(cv.rel_file_rw_validator, cfg_path=pipeline.cfg_path)
+        r_conv = partial(cv.rel_file_r_validator, cfg_path=pipeline.cfg_path)
+        cfg_fmt = [
+            ('mock_model', cv.Annot(converter=rw_conv)),
+            ('mock_statistics', cv.Annot(converter=r_conv)),
+            ('n_mixture_components', cv.Annot(converter=cv.nonneg_integer)),
+            ('em_iterations', cv.Annot(default=250, converter=cv.nonneg_integer)),
+        ]
+        super().__init__(pipeline, cfg_req=cfg_fmt)
+
+    def prepare(self, cfg):
+        super().prepare(cfg)
+        pipeline = self._pipeline
+
+        full_table = pipeline.get_curfile(fmt='trtable')
+        mock_model = cfg['mock_model']
+
+        mock_parent = os.path.dirname(mock_model)
+
+        learn_cmd = [
+            'mb-learn-mock',
+            '%r' % full_table,
+            cfg['n_mixture_components'],
+            cfg['mock_statistics'],
+            mock_parent,
+            '--n_iterations %s' % cfg['em_iterations'],
+
+        ]
+        if not os.path.exists(mock_model):
+            self._cmds.append(learn_cmd)
+
+        pipeline.upd_curfile(fmt='mock_model', filepath=mock_model)
+
+
+class BamStatisticsModule(pl.CmdPipelineModule):
+
+    def __init__(self, pipeline):
+        r_conv = partial(cv.rel_file_r_validator, cfg_path=pipeline.cfg_path)
+        cfg_fmt = [
+            ('gff_file', cv.Annot(str, default='', converter=r_conv)),
+        ]
+        super().__init__(pipeline, cfg_req=cfg_fmt)
+
+    def prepare(self, cfg):
+        super().prepare(cfg)
+        pipeline = self._pipeline
+
+        general_cfg = pipeline.get_config('general')
+        output_dir = general_cfg['output_dir']
+
+        prefix = general_cfg['prefix']
+
+        bam_file = pipeline.get_curfile(fmt='bam')
+
+        stat_file = os.path.join(output_dir, prefix + '_stat.json')
+        cmd = [
+            'mb-create-bam-statistics',
+            '%r' % bam_file,
+            '%r' % stat_file,
+        ]
+
+        if cfg['gff_file']:
+            cmd.append('--gff_file %r' % cfg['gff_file'])
+
+        self._cmds.append(cmd)
+        self._intermed_files.append(stat_file)
+        pipeline.upd_curfile(fmt='stat_file', filepath=stat_file)
+
+
+class MockinbirdModule(pl.CmdPipelineModule):
+
+    def __init__(self, pipeline):
+        cfg_fmt = [
+            ('plot_dir', cv.Annot(str, default='mockinbird_plots')),
+            ('max_k_mock', cv.Annot(int, default=10, converter=cv.nonneg_integer)),
+            ('extra_args', cv.Annot(list, default=[])),
+        ]
+        super().__init__(pipeline, cfg_req=cfg_fmt)
+
+    def prepare(self, cfg):
+        super().prepare(cfg)
+        pipeline = self._pipeline
+
+        general_cfg = pipeline.get_config('general')
+        output_dir = general_cfg['output_dir']
+
+        prefix = general_cfg['prefix']
+        trtable_file = pipeline.get_curfile(fmt='trtable')
+        mock_model = pipeline.get_curfile(fmt='mock_model')
+        post_file = os.path.join(output_dir, prefix + '.post')
+
+        stat_file = pipeline.get_curfile(fmt='stat_file')
+        plot_dir = os.path.join(output_dir, cfg['plot_dir'])
+
+        cmd = [
+            'mb-calculate-posterior',
+            '--plot_dir %r' % plot_dir,
+            '--max_k_mock %s' % cfg['max_k_mock'],
+            '--bam_statistics_json %r' % stat_file,
+            '%r' % trtable_file,
+            '%r' % mock_model,
+            '%r' % post_file,
+        ]
+        if cfg['extra_args']:
+            cmd.extend(cfg['extra_args'])
+        self._cmds.append(cmd)
+
+        pipeline.upd_curfile(fmt='post', filepath=post_file)
+        self._intermed_files.append(post_file)
+
+        table_file = os.path.join(output_dir, prefix + '.table')
+        cmd = [
+            'mb-mockinbird2table',
+            '%r' % post_file,
+            '%r' % table_file,
+        ]
+        self._cmds.append(cmd)
+
+        pipeline.upd_curfile(fmt='table', filepath=table_file)
+        self._intermed_files.append(table_file)
