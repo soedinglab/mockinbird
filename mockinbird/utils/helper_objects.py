@@ -5,8 +5,8 @@ import copy
 
 import numpy as np
 
-from pyivtree import IVTree
-from pyivtree import GenomicInterval as Interval
+from mockinbird.ivtree import IVTree
+from mockinbird.ivtree import GenomicInterval as Interval
 from mockinbird.obj.functions import makeReverseComplement as rev_complement
 from mockinbird.obj.gff import GFF
 from mockinbird.utils.parsers import PCTableParser, GFF3Parser

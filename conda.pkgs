@@ -1,16 +1,20 @@
+# dev tools
+git
+gcc
+libgcc
+
+# libraries
+cython
 scipy
 numpy
 pandas
 matplotlib
 pysam
 rpy2
-yaml
+pyyaml
 jinja2
 r-vgam
 r-fdrtool
-
-# docs
-sphinx_rtd_theme
 
 # tools
 samtools

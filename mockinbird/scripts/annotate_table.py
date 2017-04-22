@@ -5,7 +5,7 @@ from itertools import chain
 
 import numpy as np
 
-from pyivtree import IVTree, GenomicInterval as Interval
+from mockinbird.ivtree.ivtree import IVTree, GenomicInterval as Interval
 
 from mockinbird.utils.argparse_helper import file_r, dir_rwx_create
 from mockinbird.utils.parsers import GFF3Parser, PCTableParser

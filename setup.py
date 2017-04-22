@@ -1,5 +1,30 @@
-from setuptools import setup, find_packages
+import os
+from setuptools import setup, find_packages, Extension
 import versioneer
+
+try:
+    from Cython.Build import cythonize
+    USE_CYTHON = True
+except ImportError:
+    USE_CYTHON = False
+
+ext = ".pyx" if USE_CYTHON else ".c"
+module_names = [
+    "mockinbird.ivtree.ivtree",
+    "mockinbird.ivtree.ivtreenode",
+    "mockinbird.ivtree.ivnode",
+    "mockinbird.ivtree.tests.node_utils",
+    "mockinbird.ivtree.tests.tree_utils",
+]
+
+extensions = []
+for module_name in module_names:
+    file_name = module_name.replace(".", os.sep) + ext
+    extension = Extension(module_name, [file_name])
+    extensions.append(extension)
+if USE_CYTHON:
+    extensions = cythonize(extensions)
+
 
 setup(
     name='mockinbird',
@@ -52,6 +77,7 @@ setup(
         ]
     },
     packages=find_packages(),
+    ext_modules=extensions,
     include_package_data=True,
     test_suite='nose.collector',
     zip_safe=False
