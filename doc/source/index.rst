@@ -9,6 +9,7 @@ Contents:
    installation
    getting_started
    pipeline_modules
+   module_reference
 
 
 

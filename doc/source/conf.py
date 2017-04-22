@@ -32,6 +32,7 @@ import os
 extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.mathjax',
+    'sphinx.ext.autodoc',
 ]
 extensions += ['sphinxarg.ext']
 
