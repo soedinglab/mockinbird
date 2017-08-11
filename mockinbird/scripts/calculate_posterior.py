@@ -31,6 +31,7 @@ def create_parser():
     parser.add_argument('--null_fraction', type=float)
     parser.add_argument('--bam_statistics_json')
     parser.add_argument('--posterior_table')
+    parser.add_argument('--debug', action='store_true')
     return parser
 
 
@@ -209,7 +210,22 @@ def main():
 
     if args.null_fraction is not None:
         n0 = int(bam_statistics['total_coverage'] * args.null_fraction)
+    else:
+        # this is a hack that sets the null fraction to 1.
+        # by testing on various factors we have seen that setting this value does not seem to
+        # change the predictions a lot.
+        # everything between 0.8-2 seems to yield reasonable results.
+        n0 = bam_statistics['total_coverage']
     factor_cov = n0
+
+    if not 0.2 <= factor_cov / mock_cov <= 5:
+        print('WARNING: trying to scale the mock coverage more than a factor of 5. ',
+              'Reported posterior probabilities may be inaccurate.')
+
+    if args.debug:
+        print('factor_cov:', factor_cov)
+        print('mock_cov:', mock_cov)
+        print('factor_cov pct: %.4f' % (factor_cov / mock_cov))
 
     pk = pk_wrapper(mock_cov, pg_m, pw_m)
     pk_k_mock = pk_k_mock_wrapper(factor_cov, mock_cov, pg_m, pw_m, pk)

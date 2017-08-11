@@ -1,7 +1,7 @@
 import argparse
 from collections import Counter
 from mockinbird.ivtree.ivtree import IVTree
-from mockinbird.ivtree.ivtree import GenomicInterval as Interval
+from mockinbird.ivtree.interval import GenomicInterval as Interval
 from mockinbird.utils import argparse_helper as aph
 
 

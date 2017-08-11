@@ -139,7 +139,7 @@ def fast_geom_mm_fit(x, p_init, pi_init, n_iter=250):
 
     # calculate the responsibility for each distinct x value just once
     # and weight by the number of occurences
-    x_agg = np.bincount(x)[1:]
+    x_agg = np.bincount(x + 1)[1:]
     x_new = np.arange(len(x_agg)) + 1
 
     n, d = len(x_new), len(p)
@@ -156,6 +156,7 @@ def fast_geom_mm_fit(x, p_init, pi_init, n_iter=250):
             p[k] = Nk / np.dot(x_agg * x_new, r_matrix[k, :])
             pi[k] = Nk / N
 
+    assert np.isclose(np.sum(pi), 1)
     return p, pi
 
 

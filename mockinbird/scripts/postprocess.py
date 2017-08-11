@@ -14,11 +14,10 @@ from mockinbird import LOG_DEFAULT_FORMAT, LOG_LEVEL_MAP
 def register_arguments(parser):
     parser.add_argument('preprocess_dir', help='folder to files created by the preprocessing',
                         type=aph.dir_rx)
-    prefix_help = ('preprocessing filename prefix - only required if there are multiple prefixes '
-                   'in the specified preprocess directory')
+    prefix_help = ('preprocessing filename prefix - only required if there are multiple table '
+                   'files in the specified preprocess directory')
     parser.add_argument('--prefix', help=prefix_help)
     no_pileup_help = 'do not require a pileup file and skip all tasks that depend on the pileup.'
-    parser.add_argument('--no-pileup', help=no_pileup_help, action='store_true')
     output_help = 'output directory - will be created if it does not exist'
     parser.add_argument('output_dir', help=output_help, type=aph.dir_rwx_create)
     config_help = 'path to the postprocessing config file'
@@ -62,8 +61,6 @@ def run(args):
     logger.info('started postprocessing via %r', ' '.join(sys.argv))
 
     required_ext = ['.table']
-    if not args.no_pileup:
-        required_ext.append('.mpileup')
 
     scan_pat = os.path.join(args.preprocess_dir, '*' + required_ext[0])
     avail_prefixes = []
@@ -80,13 +77,13 @@ def run(args):
             avail_prefixes.append(prefix)
 
     if len(avail_prefixes) == 0:
-        logger.error('no complete set of %s files found in directory %s',
+        logger.error('no %s files found in directory %s',
                      '|'.join(required_ext), args.preprocess_dir)
         sys.exit(1)
 
     if args.prefix is None:
         if len(avail_prefixes) != 1:
-            logger.error('multiple sets of files found in directory %s',
+            logger.error('multiple table files found in directory %s',
                          args.preprocess_dir)
             logger.error('please use --prefix to select one of %s',
                          '|'.join(avail_prefixes))
@@ -102,15 +99,12 @@ def run(args):
         prefix = args.prefix
 
     qnormed_table = os.path.join(args.preprocess_dir, prefix + '.table')
-    pileup_file = os.path.join(args.preprocess_dir, prefix + '.mpileup')
 
     config = mu.parse_yaml(args.config_file)
 
     initial_files = {}
     if os.path.exists(qnormed_table):
         initial_files['table'] = qnormed_table
-    if os.path.exists(pileup_file):
-        initial_files['pileup'] = pileup_file
 
     general_cfg = {
         'general': {

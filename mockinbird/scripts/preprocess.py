@@ -91,7 +91,6 @@ def run(args):
     ])
 
     reads_fmt = OrderedDict([
-        ('fx_Q33', cv.Annot(bool, default=True)),
         ('bc_5prime', cv.Annot(int, default=0, converter=cv.nonneg_integer)),
         ('bc_3prime', cv.Annot(int, default=0, converter=cv.nonneg_integer)),
         ('min_len', cv.Annot(int, default=20, converter=cv.nonneg_integer)),

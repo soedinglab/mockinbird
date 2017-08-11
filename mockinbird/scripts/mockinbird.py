@@ -6,6 +6,8 @@ from mockinbird.scripts.preprocess import register_arguments as preprocess_regis
 from mockinbird.scripts.preprocess import run as preprocess_main
 from mockinbird.scripts.postprocess import register_arguments as postprocess_register_args
 from mockinbird.scripts.postprocess import run as postprocess_main
+from mockinbird.scripts.flip_read2 import register_arguments as flipread2_register_args
+from mockinbird.scripts.flip_read2 import run as flipread2_main
 
 
 def create_parser():
@@ -80,6 +82,23 @@ class PostprocessModule(StammpModule):
 
     def __call__(self, args):
         postprocess_main(args)
+
+
+class FlipMateModule(StammpModule):
+    subcommand = 'flip_mate'
+
+    def __init__(self, parser):
+        help_msg = 'flip strand of second read'
+        description = (
+            'flip the strand of the second read. Used for generating a normalizing pileup from '
+            'a paired-end sequenced library'
+        )
+        super().__init__(parser, help=help_msg, description=description)
+        scp = self.subcommand_parser
+        flipread2_register_args(scp)
+
+    def __call__(self, args):
+        flipread2_main(args)
 
 
 if __name__ == '__main__':
