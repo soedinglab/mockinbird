@@ -2,3 +2,5 @@ include mockinbird/plots/*.R
 recursive-include mockinbird/utils/tests/data *
 include versioneer.py
 include mockinbird/_version.py
+global-include *.pyx
+global-include *.pxd

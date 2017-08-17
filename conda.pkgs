@@ -15,9 +15,13 @@ pyyaml
 jinja2
 r-vgam
 r-fdrtool
+r-LSD
 
 # tools
+fastqc
+skewer
 samtools
 umi_tools
 STAR
 bowtie
+xxmotif

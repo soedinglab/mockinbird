@@ -27,6 +27,8 @@ outdir_name       fastQC             name of the output directory that stores th
 extra_flags       []                 list of extra flags passed to the command line tool
 ================  =================  ============================================================
 
+.. _module_bam_analysis:
+
 BamPPModule
 """""""""""
 Postprocesses a bam alignment file and creates statistics of mutation rates and mismatch positions.
@@ -92,6 +94,26 @@ Parameter             Default value      Description
 outdir_name           bam_analysis       name of the output directory storing diagnostics and plots
 ====================  =================  ==========================================================
 
+
+TransitionFrequencyModule
+"""""""""""""""""""""""""
+
+Plots the frequency of transitions in a bar plot.
+
+**Pipeline input:** ``mpileup``
+
+**Pipeline output:**
+
+====================  =================  ==========================================================
+Parameter             Default value      Description
+====================  =================  ==========================================================
+output_prefix                            file name prefix of the output file
+min_cov               5                  only consider sites with at least this coverage
+y_axis_limit          0                  limit of the y axis
+remove_tmp_files      True               remove temporary files
+====================  =================  ==========================================================
+
+
 Duplicate removal
 ^^^^^^^^^^^^^^^^^
 
@@ -125,7 +147,8 @@ libraries that use UMIs. This module extracts the UMI and appends it to the read
 is recommended to run this module as one of the first steps in a pipeline. After mapping the
 :ref:`umi_tools_dedup_module` module can be used to remove duplicated reads.
 
-For further information, please also check the documentation of `umi_tools <https://github.com/CGATOxford/UMI-tools/tree/master/umi_tools>`_.
+For further information, please also check the documentation of `umi_tools <https://github.com/CGATOxford/UMI-tools/tree/master/umi_tools>`_ :cite:`smith2017umi`.
+
 
 **Pipeline input:** ``fastq``
 
@@ -140,7 +163,7 @@ Together with :ref:`umi_tools_extract_module` this is the preferred way to dedup
 libraries that use UMIs. This module deduplicates bam files based on extracted UMIs. This module
 has to be run after :ref:`umi_tools_extract_module`.
 
-For further information, please also check the documentation of `umi_tools <https://github.com/CGATOxford/UMI-tools/tree/master/umi_tools>`_.
+For further information, please also check the documentation of `umi_tools <https://github.com/CGATOxford/UMI-tools/tree/master/umi_tools>`_ :cite:`smith2017umi`.
 
 **Pipeline input:** ``bam``
 
@@ -160,7 +183,7 @@ can be useful when dealing with libraries that were generated from very low amou
 
 SkewerAdapterClippingModule
 """""""""""""""""""""""""""
-This module uses `skewer <https://github.com/relipmoc/skewer>`_ to trim the 3' adapter from the
+This module uses `skewer <https://github.com/relipmoc/skewer>`_  :cite:`jiang2014skewer` to trim the 3' adapter from the
 PAR-CLIP reads. Additional arguments can be directly passed to skewer's command line call.
 Please consult skewer's documentation for a detailed description of all available options.
 
@@ -204,7 +227,7 @@ unmapped reads back in the pipeline and thus can be chained.
 
 STARMapModule
 """""""""""""
-`STAR <https://github.com/alexdobin/STAR>`_ is a general purpose RNA-seq data mapper. Unmapped
+`STAR <https://github.com/alexdobin/STAR>`_ :cite:`dobin2013star` is a general purpose RNA-seq data mapper. Unmapped
 reads are returned to the pipeline in fastq format. For detailed configuration options, please also
 refer to STAR's user manual.
 
@@ -226,7 +249,7 @@ extra_flags          []                 additional commandline options passed to
 
 BowtieMapModule
 """""""""""""""
-`Bowtie <http://bowtie-bio.sourceforge.net/tutorial.shtml>`_ is a genomic aligner and as such
+`Bowtie <http://bowtie-bio.sourceforge.net/tutorial.shtml>`_ :cite:`langmead2010aligning` is a genomic aligner and as such
 cannot map spliced reads. Unmapped reads are re-queued in the pipeline.
 
 **Pipeline input:** ``fastq``
@@ -486,21 +509,119 @@ Postprocessing modules
 Plots
 ^^^^^
 
+.. _centerplot_bs:
+
 CenterPlotBSModule
 """"""""""""""""""
+
+This module plots a bootstrapped metagene plot fixed at the start and end of each annotations.
+
+**Pipeline input:** ``table``
+
+**Pipeline output:**
+
+=====================  =================  ============================================================
+Parameter              Default value      Description
+=====================  =================  ============================================================
+gff_file                                  gff file of annotations used for the metagene plot
+output_prefix                             file name prefix for the output files
+labelCenterA                              label for the metagene start position
+labelCenterB                              label for the metagene end position
+labelBody                                 label for the metagene body
+downstream_bp          1000               number of base pairs shown downstream of start
+upstream_bp            1000               number of base pairs shown upstream of the end
+gene_bp                750                number of base pairs inside the annotation, i.e. downstream
+                                          of the start and upstream of the end
+min_trscr_size_bp      1500               filter out all transcript shorter than this size
+max_trscr_size_bp      100000             filter out all trascript longer than this size
+smoothing_window       20                 size of the window used for smoothing the profile (in bp)
+remove_tmp_files       True               clean up temporary files
+bootstrap_iter         2500               number of bootstrap iterations
+n_processes            4                  number of parallel processes
+=====================  =================  ============================================================
 
 KmerPerPositionModule
 """""""""""""""""""""
 
-TransitionFrequencyModule
-"""""""""""""""""""""""""
+Plots the kmer occurence frequencies around binding sites.
+
+**Pipeline input:** ``table``
+
+**Pipeline output:**
+
+=====================  =================  ============================================================
+Parameter              Default value      Description
+=====================  =================  ============================================================
+genome_fasta                              path to genome in fasta format (requires index)
+output_prefix                             file name prefix for the output files
+kmer_k                 3                  length of kmers
+first_index            0                  index of the first site plotted
+last_index             1500               index of the last site plotted
+width                  50                 number of base pairs around the binding site considered
+sort_key               occupancy          sort column of the table; valid values are occupancy,
+                                          transitions, coverage and score.
+gff_exclude_path       ''                 sites that overlap one of the annotations in this file
+                                          are dropped
+gff_padding            20                 annotations are extended by this amount of base pairs
+                                          around start and end
+remove_tmp_files       True               clean up temporary files
+=====================  =================  ============================================================
+
+
+.. _module_plot_heatmap:
 
 HeatmapPlotModule
 """""""""""""""""
 
+Plot a heatmap of all transcripts matching given length criteria as a heat map.
+Using binning over transcripts and transcript lenth.
+
+**Pipeline input:** ``table``
+
+**Pipeline output:**
+
+=====================  =================  ============================================================
+Parameter              Default value      Description
+=====================  =================  ============================================================
+gff_file                                  gff file of annotations used for the metagene plot
+output_prefix                             file name prefix for the output files
+downstream_bp          4000               number of base pairs shown downstream of start
+upstream_bp            1000               number of base pairs shown upstream of the end
+min_trscr_size_bp      0                  filter out all transcript shorter than this size
+max_trscr_size_bp      5000               filter out all transcripts longer than this size
+x_bins                 500                number of bins in x direction (transcript length)
+y_bins                 500                number of bins in y direction (grouping transcripts)
+x_pixels               500                pixel in x directions
+y_pixels               500                pixels in y direction
+remove_tmp_files       True               clean up temporary files
+=====================  =================  ============================================================
+
 HeatmapSmallPlotModule
 """"""""""""""""""""""
 
+Plot a heatmap of all transcripts matching given length criteria as a heat map.
+Using binning over transcripts and transcript lenth. Similar to :ref:`module_plot_heatmap`,
+but more consise plot.
+
+**Pipeline input:** ``table``
+
+**Pipeline output:**
+
+=====================  =================  ============================================================
+Parameter              Default value      Description
+=====================  =================  ============================================================
+gff_file                                  gff file of annotations used for the metagene plot
+output_prefix                             file name prefix for the output files
+downstream_bp          500                number of base pairs shown downstream of start
+upstream_bp            1000               number of base pairs shown upstream of the end
+min_trscr_size_bp      0                  filter out all transcript shorter than this size
+max_trscr_size_bp      5000               filter out all transcripts longer than this size
+x_bins                 500                number of bins in x direction (transcript length)
+y_bins                 500                number of bins in y direction (grouping transcripts)
+x_pixels               500                pixel in x directions
+y_pixels               500                pixels in y direction
+remove_tmp_files       True               clean up temporary files
+=====================  =================  ============================================================
 
 Motif detection
 ^^^^^^^^^^^^^^^
@@ -508,6 +629,30 @@ Motif detection
 XXmotifModule
 """""""""""""
 
+Runs XXmotif, a tool for de-novo detection of overrepresented motifs.
+
+**Pipeline input:** ``table``
+
+**Pipeline output:**
+
+=====================  =================  ============================================================
+Parameter              Default value      Description
+=====================  =================  ============================================================
+genome_fasta                              path to genome in fasta format (requires index)
+output_prefix                             file name prefix for the output files
+negative_set_gff                          path to a gff file used for sampling the negative set
+n_negative seqs        20000              number of negative sequences sampled
+first_index            0                  index of the first site plotted
+last_index             1500               index of the last site plotted
+width                  12                 number of base pairs around the binding site considered
+sort_key               occupancy          sort column of the table; valid values are occupancy,
+                                          transitions, coverage and score.
+gff_exclude_path       ''                 sites that overlap one of the annotations in this file
+                                          are dropped
+gff_padding            20                 annotations are extended by this amount of base pairs
+                                          around start and end
+remove_tmp_files       True               clean up temporary files
+=====================  =================  ============================================================
 
 Miscellaneous
 ^^^^^^^^^^^^^
@@ -515,6 +660,246 @@ Miscellaneous
 GffFilterModule
 """""""""""""""
 
+Filter sites that overlap with a given gff annotation.
+Can be used to filter sites in highly abundant transcripts such as `tRNA` or `rRNA`.
+Pass the name of the gff features you want to exclude to the ``features`` option.
+
+**Pipeline input:** ``table``
+
+**Pipeline output:** ``table``
+
+=====================  =================  ============================================================
+Parameter              Default value      Description
+=====================  =================  ============================================================
+filter_gff                                path to gff file used for filtering
+file_postfix           fil                postfix appended to the table name
+padding_bp             20                 annotations are extended by this amount of base pairs
+features               []                 list of features that are filtered. Excludes all by default.
+=====================  =================  ============================================================
+
+
 Writing your own modules
 ------------------------
 
+A straightforward way to implement your own pipeline module is by subclassing
+:class:`.CmdPipelineModule`. Here we use the :class:`.SkewerAdapterClippingModule` as an example.
+
+::
+
+        from mockinbird.utils import pipeline as pl
+        class SkewerAdapterClippingModule(pl.CmdPipelineModule):
+
+.. _custommod_args:
+
+Adding module arguments
+^^^^^^^^^^^^^^^^^^^^^^^
+
+If your  module accepts arguments, you have to modify the constructor ``__init__(self, pipeline)``:
+
+::
+
+        def __init__(self, pipeline):
+            cfg_fmt = [
+               ('extra_args', cv.Annot(list, default=[])),
+            ]
+            super().__init__(pipeline, cfg_req=cfg_fmt)
+
+Each argument is a tuple consisting of a name, here ``extra_args`` and an annotation object
+:class:`.Annot`. Upon construction the annotation takes following keyword arguments:
+
+type:
+        a callable that represents the base type of the value, here a ``list``
+default:
+        the default value if the option was not provided by the user. The default value ``None``
+        makes setting the value in the configuration file mandatory.
+converter:
+        a callable that validates and converts the value the user set in the config file.
+        Can raise a ``ValueError``, if the user entered an invalid value.
+
+By calling ``super().__init__()`` the list of arguments ``cfg_fmt`` is passed to the parent
+constructor.
+
+Following configurations are now valid in an configuration file:
+
+::
+
+        [...]
+        - SkewerAdapterClippingModule:
+            extra_args:
+              - -k 12
+              - -d 0.01
+
+::
+
+        [...]
+        - SkewerAdapterClippingModule:
+            extra_args: []
+
+which is equivalent to falling back to the default argument
+
+::
+
+        [...]
+        - SkewerAdapterClippingModule
+
+
+We define a variety of validators that can readily be used. Please refer to :ref:`api_config` for
+details.
+
+Preparing the module
+^^^^^^^^^^^^^^^^^^^^
+
+``prepare(self, cfg)`` is the heart of the module and defines the commands that are executed when
+the module runs. It also registers the outputs and thus makes new files visible to downstream
+modules.
+
+``cfg`` is a dict of all configuration options set by the user. Configuration of all options
+requested as described in :ref:`custommod_args` can be accessed by their names.
+
+The first action in the ``prepare`` method has to be the call to the parent's prepare method:
+
+::
+
+     def prepare(self, cfg):
+        super().prepare(cfg)
+
+
+Information from previously run modules and global configuration options can be obtained through
+a reference to :class:`.Pipeline`, which can be accessed through the private attribute
+``self._pipeline``.
+
+::
+
+         def prepare(self, cfg):
+            super().prepare(cfg)
+            pipeline = self._pipeline
+            general_cfg = pipeline.get_config('general')
+            read_cfg = pipeline.get_config('reads')
+            output_dir = general_cfg['output_dir']
+            prefix = general_cfg['prefix']
+
+Here we access the global configuration sections ``general`` and ``reads`` to obtain the path to
+the output directory and the file name prefix.
+
+:func:`.Pipeline.get_curfile` is used to obtain the path to files that are queued in
+the pipeline.
+The pipeline stores the most recent file path of each format.
+
+::
+
+    def prepare(self, cfg):
+        [...]
+        fastq_file = pipeline.get_curfile(fmt='fastq')
+
+Here we obtain the path to the most recently queued ``fastq`` file.
+
+
+Now we have all information to construct the command line call for running ``skewer``.
+The output path is stored in ``adapter_clipped_file``, a file path relative to the
+output directory passed by the command line script.
+
+::
+
+    def prepare(self, cfg):
+        [...]
+        adapter_clipped_file = os.path.join(output_dir, prefix + '_skewer.clipped')
+        cmd = [
+            'skewer',
+            fastq_file,
+            '-x %s' % general_cfg['adapter3prime'],
+            '-m tail',
+            '--min %s' % read_cfg['min_len'],
+            '--quiet',
+            '--stdout',
+            '> %r' % adapter_clipped_file,
+        ]
+        if cfg['extra_args']:
+            cmd.extend(cfg['extra_args'])
+        self._cmds.append(cmd)
+
+Having collected the command as a list of arguments in ``cmd``, we append all user defined
+arguments that are conveniently stored in ``cfg`` and queue the command by appending it to the
+private ``self._cmds`` variable.
+
+::
+
+        self._intermed_files.append(adapter_clipped_file)
+        pipeline.upd_curfile(fmt='fastq', filepath=adapter_clipped_file)
+
+As a final step we register ``adapter_clipped_file`` as an intermediate file, meaning that it 
+can be deleted provided this module is not the last in the pipeline.
+
+:func:`.Pipeline.upd_curfile` registers the file as new ``fastq`` file and thus
+makes it visible to following modules.
+
+**Note:** At time ``prepare()`` is called, files to the passed paths  may or may not exist. \
+Only queue new commands by appending to ``self._cmds``, never try to execute commands.
+
+
+The full module
+^^^^^^^^^^^^^^^
+
+Putting everything together, the code of the :class:`.SkewerAdapterClippingModule` looks like this:
+
+::
+
+        import os
+        from mockinbird.utils import pipeline as pl
+        from mockinbird.utils import config_validation as cv
+
+        class SkewerAdapterClippingModule(pl.CmdPipelineModule):
+
+            def __init__(self, pipeline):
+                cfg_fmt = [
+                    ('extra_args', cv.Annot(list, default=[])),
+                ]
+                super().__init__(pipeline, cfg_req=cfg_fmt)
+
+            def prepare(self, cfg):
+                super().prepare(cfg)
+                pipeline = self._pipeline
+                general_cfg = pipeline.get_config('general')
+                read_cfg = pipeline.get_config('reads')
+                output_dir = general_cfg['output_dir']
+                prefix = general_cfg['prefix']
+                fastq_file = pipeline.get_curfile(fmt='fastq')
+
+                adapter_clipped_file = os.path.join(output_dir, prefix + '_skewer.clipped')
+
+                cmd = [
+                    'skewer',
+                    fastq_file,
+                    '-x %s' % general_cfg['adapter3prime'],
+                    '-m tail',
+                    '--min %s' % read_cfg['min_len'],
+                    '--quiet',
+                    '--stdout',
+                    '> %r' % adapter_clipped_file,
+                ]
+
+                if cfg['extra_args']:
+                    cmd.extend(cfg['extra_args'])
+                self._cmds.append(cmd)
+
+                self._intermed_files.append(adapter_clipped_file)
+                pipeline.upd_curfile(fmt='fastq', filepath=adapter_clipped_file)
+
+
+The parent class :class:`.CmdPipelineModule` and the :class:`Pipeline` take care of all required
+steps such as config parsing and validation, executing commands and cleaning up files.
+
+Custom modules in config files
+------------------------------
+
+Having created your own module, you have to make the class importable in python.
+The cleanest way to achieve that is to make your module installable by writing a
+``setup.py``. For more information please refer to available documentation, e.g.
+`here <https://docs.python.org/3.5/distutils/setupscript.html>`_.
+
+In the config file you have to refer to the module with its full import path, e.g.:
+
+::
+
+        - mypackage.mymodule.SkewerAdapterClippingModule:
+          extra_args:
+            - -k 2

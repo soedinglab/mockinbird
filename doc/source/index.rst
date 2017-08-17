@@ -9,7 +9,8 @@ Contents:
    installation
    getting_started
    pipeline_modules
-   module_reference
+   api_reference
+   zreferences
 
 
 
@@ -19,4 +20,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-

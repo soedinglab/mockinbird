@@ -13,6 +13,8 @@ Pipeline
 .. autoclass:: mockinbird.utils.pipeline.Pipeline
   :members:
 
+.. _api_config:
+
 Configuration
 -------------
 

@@ -33,6 +33,7 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.mathjax',
     'sphinx.ext.autodoc',
+    'sphinxcontrib.bibtex',
 ]
 extensions += ['sphinxarg.ext']
 
