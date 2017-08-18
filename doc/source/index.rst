@@ -10,6 +10,7 @@ Contents:
    getting_started
    pipeline_modules
    api_reference
+   developer_info
    zreferences
 
 

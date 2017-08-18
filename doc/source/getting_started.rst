@@ -365,6 +365,7 @@ The configuration file
 In the beginning several ``jinja`` variables are defined for later use.
 
 ::
+
         {% set data_dir = "data" %}
 
         {% set gff_db = data_dir + "/Annotations" %}
@@ -382,6 +383,7 @@ The first module removes PAR-CLIP sites falling into `tRNA`, `snRNA`, `snoRNA` a
 table file.
 
 ::
+
         pipeline:
 
             - GffFilterModule:
