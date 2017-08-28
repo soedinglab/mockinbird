@@ -73,7 +73,7 @@ setup(
             'mb-plot-heatmap = mockinbird.plots.makeHeatMap:run',
             'mb-plot-heatmap-small = mockinbird.plots.makeHeatMapSmall:run',
             'mb-filter-sites = mockinbird.scripts.filter_sites:main',
-            'mb-annotate-table = mockinbird.scripts.utils.annotate_table:main',
+            'mb-annotate-table = mockinbird.scripts.annotate_table:main',
         ]
     },
     packages=find_packages(),
