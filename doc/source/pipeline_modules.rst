@@ -150,6 +150,12 @@ is recommended to run this module as one of the first steps in a pipeline. After
 For further information, please also check the documentation of `umi_tools <https://github.com/CGATOxford/UMI-tools/tree/master/umi_tools>`_ :cite:`smith2017umi`.
 
 
+====================  =================  ==========================================================
+Parameter             Default value      Description
+====================  =================  ==========================================================
+extra_flags           []                 list of extra flags passed to the command line tool
+====================  =================  ==========================================================
+
 **Pipeline input:** ``fastq``
 
 **Pipeline output:** ``fastq``
@@ -168,6 +174,12 @@ For further information, please also check the documentation of `umi_tools <http
 **Pipeline input:** ``bam``
 
 **Pipeline output:** ``bam``
+
+====================  =================  ==========================================================
+Parameter             Default value      Description
+====================  =================  ==========================================================
+extra_flags           []                 list of extra flags passed to the command line tool
+====================  =================  ==========================================================
 
 Adapter clipping
 ^^^^^^^^^^^^^^^^

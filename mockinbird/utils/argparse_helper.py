@@ -48,7 +48,10 @@ def file_rw(path):
 
 
 def file_r(path):
-    if not os.path.isfile(path):
+    if os.path.isdir(path):
+        msg = '%r is a directory - expected a file' % path
+        raise argparse.ArgumentTypeError(msg)
+    elif not os.path.isfile(path):
         msg = '%r does not exist' % path
         raise argparse.ArgumentTypeError(msg)
     elif not os.access(path, os.R_OK):
