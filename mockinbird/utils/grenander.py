@@ -6,6 +6,8 @@ import rpy2.robjects.numpy2ri as rpyn
 
 
 PVAL_ECDF_STR = '''
+options(warn=-1)
+
 ecdf_pval <- function (x)
 {
     # compute empirical CDF as usual
@@ -37,9 +39,8 @@ ecdf_pval <- function (x)
     rval
 }
 
-require(fdrtool)
+library(fdrtool)
 plot_ecdf_lcm <- function(pvals, outfile, title) {
-    require(fdrtool)
     x_uniq <- sort(unique(pvals))
     pval_ecdf <- ecdf(pvals)
     y <- pval_ecdf(x_uniq)

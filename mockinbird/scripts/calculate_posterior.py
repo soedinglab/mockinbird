@@ -163,7 +163,6 @@ def main():
                     true_fraction += posterior
                     true_coverage += k * posterior * avg_read_len
 
-        global_eta0 = 1 - true_fraction / total_sites
         n0 = bam_statistics['total_coverage'] - true_coverage
     else:
         total_sites = 0
@@ -177,7 +176,6 @@ def main():
                     null_sites += 1
                 total_sites += 1
 
-        global_eta0 = null_sites / total_sites
         n0 = bam_statistics['total_coverage']
 
     if args.plot_dir:
@@ -238,50 +236,67 @@ def main():
     pval_nk = pval_nk_wrapper(pn_k)
 
     k_kmock_fits = {}
+    pval_kk_scaling_factors = {}
     for k_mock, kmock_df in df.groupby('k_mock'):
         if k_mock > max_k_mock:
             continue
         pvals = []
         for k_factor in kmock_df.k_factor:
             pvals.append(pval_k_k_mock(k_factor, k_mock))
+        pvals = np.array(pvals)
+
+        pval_kk_scaling_factor = pvals.max()
+        pval_kk_scaling_factors[k_mock] = pval_kk_scaling_factor
+        pvals = pvals / pval_kk_scaling_factor
+
         x_knots, f_knots = pval_grenander_fit(pvals)
         plot_pval_ecdf(pvals, 'ecdf_kk%s' % k_mock, 'k_mock=%s' % k_mock)
-        eta0 = np.min(f_knots)
+        qk_prime = 1 - np.min(f_knots)
 
         # heuristic to stop the elimination of k=1 sites
-        if k_mock <= 1:
-            eta0 = eta0 - 0.01
-        f_knots_z1 = f_knots - eta0
+        # if k_mock <= 1:
+        #     qk_prime = qk_prime + 0.01
+        f_knots_bf_kk = (f_knots / (1 - qk_prime)) - 1
 
         def p_pval_z1(x_knots, f_knots):
             @lru_cache(maxsize=2**15)
             def f(pval):
                 return interp1d(x_knots, f_knots, kind='zero')(pval)
             return f
-        dens_fun = p_pval_z1(x_knots, f_knots_z1)
-        plot_pval_density(dens_fun, 'pval_kk%s_density.pdf' % k_mock)
+        dens_fun = p_pval_z1(x_knots, f_knots_bf_kk)
+        plot_pval_density(dens_fun, 'pval_kk%s_bf.pdf' % k_mock)
         k_kmock_fits[k_mock] = dens_fun
 
     k_lump = 10
     df.loc[:, 'k_lump'] = df.k_factor
     df.loc[df.k_lump >= k_lump, 'k_lump'] = k_lump
     n_k_fits = {}
+    qk_store = {}
+    pval_nk_scaling_factors = {}
     for k, k_df in df[df.n_factor > 0].groupby('k_lump'):
         pvals = []
         for n_factor, k_factor in zip(k_df.n_factor, k_df.k_factor):
             pvals.append(pval_nk(n_factor, k_factor))
+        pvals = np.array(pvals)
+
+        pval_nk_scaling_factor = pvals.max()
+        pval_nk_scaling_factors[k] = pval_nk_scaling_factor
+        pvals = pvals / pval_nk_scaling_factor
+
         plot_pval_ecdf(pvals, 'ecdf_nk%s' % k, 'k=%s' % k)
         x_knots, f_knots = pval_grenander_fit(pvals)
-        eta0 = np.min(f_knots)
-        f_knots_z1 = f_knots - eta0
+        qk = 1 - np.min(f_knots)
+        qk_store[k] = qk
+
+        f_knots_bf_nk = (f_knots / (1 - qk)) - 1
 
         def p_pval_z1(x_knots, f_knots):
             @lru_cache(maxsize=2**15)
             def f(pval):
                 return interp1d(x_knots, f_knots, kind='zero')(pval)
             return f
-        dens_fun = p_pval_z1(x_knots, f_knots_z1)
-        plot_pval_density(dens_fun, 'pval_nk%s_density.pdf' % k)
+        dens_fun = p_pval_z1(x_knots, f_knots_bf_nk)
+        plot_pval_density(dens_fun, 'pval_nk%s_bf.pdf' % k)
         n_k_fits[k] = dens_fun
 
     with open(args.factor_mock_table) as infile, open(args.outfile, 'w') as outfile:
@@ -302,12 +317,12 @@ def main():
             if k_mock > max_k_mock:
                 continue
 
-            pval_k = pval_k_k_mock(k_factor, k_mock)
+            pval_k = pval_k_k_mock(k_factor, k_mock) / pval_kk_scaling_factors[k_mock]
             BF_k = k_kmock_fits[k_mock](pval_k)
-            pval_n = pval_nk(n_factor, k_factor)
+            pval_n = pval_nk(n_factor, k_factor) / pval_nk_scaling_factors[k_factor_lump]
             BF_n = n_k_fits[k_factor_lump](pval_n)
 
-            BF = BF_k * BF_n * (1 - global_eta0) / global_eta0
+            BF = BF_k * BF_n * (1 - qk_store[k_factor_lump]) / qk_store[k_factor_lump]
             posterior = BF / (1 + BF)
             toks.extend([BF_k, BF_n, pval_k, pval_n, posterior])
             print(*toks, sep='\t', file=outfile)

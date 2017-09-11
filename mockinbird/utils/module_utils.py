@@ -48,11 +48,13 @@ def queue_pipeline(config, pipeline, def_lookup_path):
         if not module:
             logger.error('module %r could not be loaded', module_str)
             sys.exit(1)
+        module_name = module.__name__
         module = module(pipeline)
         config_tmpl = module.config_req
         try:
             cfg = cv.validate_section(data, config_tmpl)
         except cv.ConfigError:
+            logger.error('error in config of module: %r. Exiting.', module_name)
             sys.exit(1)
         if cfg['skip']:
             mod_info = cfg['module_info']

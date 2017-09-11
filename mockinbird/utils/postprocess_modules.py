@@ -24,8 +24,8 @@ class CenterPlotModule(pl.CmdPipelineModule):
             ('downstream_bp', cv.Annot(int, default=1000, converter=cv.nonneg_integer)),
             ('upstream_bp', cv.Annot(int, default=1000, converter=cv.nonneg_integer)),
             ('gene_bp', cv.Annot(int, default=750, converter=cv.nonneg_integer)),
-            ('min_trscr_size_bp', cv.Annot(int, default=0, converter=cv.nonneg_integer)),
-            ('max_trscr_size_bp', cv.Annot(int, default=5000, converter=cv.nonneg_integer)),
+            ('min_trscr_size_bp', cv.Annot(int, default=1500, converter=cv.nonneg_integer)),
+            ('max_trscr_size_bp', cv.Annot(int, default=100000, converter=cv.nonneg_integer)),
             ('smoothing_window', cv.Annot(int, default=20, converter=cv.nonneg_integer)),
             ('labelCenterA', cv.Annot(str)),
             ('labelCenterB', cv.Annot(str)),
@@ -73,8 +73,8 @@ class CenterPlotBSModule(pl.CmdPipelineModule):
             ('downstream_bp', cv.Annot(int, default=1000, converter=cv.nonneg_integer)),
             ('upstream_bp', cv.Annot(int, default=1000, converter=cv.nonneg_integer)),
             ('gene_bp', cv.Annot(int, default=750, converter=cv.nonneg_integer)),
-            ('min_trscr_size_bp', cv.Annot(int, default=0, converter=cv.nonneg_integer)),
-            ('max_trscr_size_bp', cv.Annot(int, default=5000, converter=cv.nonneg_integer)),
+            ('min_trscr_size_bp', cv.Annot(int, default=1500, converter=cv.nonneg_integer)),
+            ('max_trscr_size_bp', cv.Annot(int, default=100000, converter=cv.nonneg_integer)),
             ('smoothing_window', cv.Annot(int, default=20, converter=cv.nonneg_integer)),
             ('labelCenterA', cv.Annot(str)),
             ('labelCenterB', cv.Annot(str)),
@@ -128,7 +128,7 @@ class KmerPerPositionModule(pl.CmdPipelineModule):
             ('first_index', cv.Annot(int, default=0, converter=cv.nonneg_integer)),
             ('last_index', cv.Annot(int, default=1500, converter=cv.nonneg_integer)),
             ('width', cv.Annot(int, default=50, converter=cv.nonneg_integer)),
-            ('sort_key', cv.Annot(str, default='occ', converter=sort_key_validator)),
+            ('sort_key', cv.Annot(str, default='occupancy', converter=sort_key_validator)),
             ('gff_exclude_path', cv.Annot(str, default='', converter=optpath_conv,
                                           warn_if_missing=False)),
             ('gff_padding', cv.Annot(int, default=20, converter=cv.nonneg_integer)),
@@ -241,7 +241,7 @@ class XXmotifModule(pl.CmdPipelineModule):
             ('first_index', cv.Annot(int, default=0, converter=cv.nonneg_integer)),
             ('last_index', cv.Annot(int, default=1500, converter=cv.nonneg_integer)),
             ('width', cv.Annot(int, default=12, converter=cv.nonneg_integer)),
-            ('sort_key', cv.Annot(str, default='occ', converter=sort_key_validator)),
+            ('sort_key', cv.Annot(str, default='occupancy', converter=sort_key_validator)),
             ('gff_exclude_path', cv.Annot(str, default='', converter=optpath_conv,
                                           warn_if_missing=False)),
             ('gff_padding', cv.Annot(int, default=20, converter=cv.nonneg_integer)),
@@ -290,37 +290,6 @@ class XXmotifModule(pl.CmdPipelineModule):
             cmd.append('--filterGFF %r' % cfg['gff_exclude_path'])
         if not cfg['remove_tmp_files']:
             cmd.append('--keep-tmp-files')
-        self._cmds.append(cmd)
-
-
-class TransitionFrequencyModule(pl.CmdPipelineModule):
-    def __init__(self, pipeline):
-
-        cfg_fmt = [
-            ('output_prefix', cv.Annot(str)),
-            ('min_cov', cv.Annot(int, default=5, converter=cv.nonneg_integer)),
-            ('y_axis_limit', cv.Annot(float, default=0)),
-            ('remove_tmp_files', cv.Annot(bool, default=True)),
-        ]
-        super().__init__(pipeline, cfg_req=cfg_fmt)
-
-    def prepare(self, cfg):
-        super().prepare(cfg)
-        pipeline = self._pipeline
-        general_cfg = pipeline.get_config('general')
-        output_dir = general_cfg['output_dir']
-        pileup_file = pipeline.get_curfile(fmt='pileup')
-
-        cmd = [
-            'mb-plot-transition-frequencies',
-            '%r' % pileup_file,
-            '%r' % output_dir,
-            '%r' % cfg['output_prefix'],
-            '-c %s' % cfg['min_cov'],
-            '-l %s' % cfg['y_axis_limit'],
-        ]
-        if cfg['remove_tmp_files']:
-            cmd.append('-r')
         self._cmds.append(cmd)
 
 
