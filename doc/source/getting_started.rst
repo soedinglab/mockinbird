@@ -49,7 +49,7 @@ The preprocessing can be started from the tutorial directory by running
 
 ::
 
-        mockinbird preprocess nrd1 nrd1 preprocess.yaml
+        mockinbird preprocess nrd1.fastq nrd1 nrd1 preprocess.yaml
 
 in a standard installation, or
 
@@ -59,8 +59,13 @@ in a standard installation, or
 
 in case you are using the docker container.
 
+Running the full pipeline will take some time. The current status will be logged to the shell.
+
+
 Inspecting the results
 ----------------------
+
+Once the pipeline finished successfully, it's time to inspect the results.
 
 Checking reads and mapping
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
