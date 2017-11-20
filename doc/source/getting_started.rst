@@ -1,35 +1,6 @@
 Getting started
 ###############
 
-Overview
-********
-
-mockinbird is a highly configurable PAR-CLIP processing pipeline that performs quality assessment,
-read alignment, PAR-CLIP interaction site prediction and visualization automatically.
-
-A recent study has found that unspecific background binding is present in PAR-CLIP data sets,
-despite of the immunprecipiation followed by stringent washing steps :cite:`friedersdorf2014advancing`,
-
-In contrast to previously published PAR-CLIP site prediction methods such as PARalyzer :cite:`corcoran2011paralyzer`, wavClusteR :cite:`comoglio2015sensitive` or PIPE-CLIP :cite:`chen2014pipe`,
-our model integrates background binding information from a PAR-CLIP mock experiment and thus can
-distinguish factor specific protein-RNA binding from unspecific interactions.
-
-Our model is integrated in a modular, highly configurable and easily extenable PAR-CLIP pipeline.
-
-To use our PAR-CLIP binding model you need:
-
-#. a PAR-CLIP data set from a factor of interest (fastq reads)
-#. a mock PAR-CLIP experiment measuring background binding (fastq reads)
-
-Please note that our model learns background binding strength from the mock to calculate p-values.
-Ideally the background binding should thus be measured under the same conditions as the factor of interest.
-
-The pipeline is divided into two steps:
-
-#. In the **preprocessing** phase PAR-CLIP binding sites are predicted from raw PAR-CLIP reads.
-
-#. The **postprocessing** step runs automatized downstream analyses on the predicted binding sites.
-
 Tutorial
 ********
 

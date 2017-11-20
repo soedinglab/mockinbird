@@ -294,7 +294,7 @@ BSFinderModule
 """"""""""""""
 
 BSFinder calculates p-values by learning a statistical model on non-specific conversion events.
-This model cannot distinguish background binding from factor specific binding events.
+This model cannot distinguish background binding from factor specific binding events. The prediction algorithm was presented in :cite:`torkler2015stammp`.
 
 **Pipeline input:** ``mpileup``
 

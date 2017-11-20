@@ -6,6 +6,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   intro.rst
    installation
    getting_started
    pipeline_modules
