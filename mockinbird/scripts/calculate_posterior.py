@@ -31,6 +31,8 @@ def create_parser():
     parser.add_argument('--null_fraction', type=float)
     parser.add_argument('--bam_statistics_json')
     parser.add_argument('--posterior_table')
+    parser.add_argument('--scale_pvalues', action='store_true',
+                        help='scaling pvalues such that the highest p-value is 1')
     parser.add_argument('--debug', action='store_true')
     return parser
 
@@ -245,7 +247,11 @@ def main():
             pvals.append(pval_k_k_mock(k_factor, k_mock))
         pvals = np.array(pvals)
 
-        pval_kk_scaling_factor = pvals.max()
+        if args.scale_pvalues:
+            pval_kk_scaling_factor = pvals.max()
+        else:
+            pval_kk_scaling_factor = 1
+
         pval_kk_scaling_factors[k_mock] = pval_kk_scaling_factor
         pvals = pvals / pval_kk_scaling_factor
 
@@ -279,7 +285,11 @@ def main():
             pvals.append(pval_nk(n_factor, k_factor))
         pvals = np.array(pvals)
 
-        pval_nk_scaling_factor = pvals.max()
+        if args.scale_pvalues:
+            pval_nk_scaling_factor = pvals.max()
+        else:
+            pval_nk_scaling_factor = 1
+
         pval_nk_scaling_factors[k] = pval_nk_scaling_factor
         pvals = pvals / pval_nk_scaling_factor
 
