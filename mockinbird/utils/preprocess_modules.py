@@ -626,6 +626,36 @@ class SoftclipAnalysisModule(pl.CmdPipelineModule):
         self._cmds.append(cmd)
 
 
+class NaiveBSFinderModule(pl.CmdPipelineModule):
+
+    def __init__(self, pipeline):
+        cfg_fmt = [
+            ('min_transitions', cv.Annot(cv.nonneg_integer, default=2)),
+        ]
+        super().__init__(pipeline, cfg_req=cfg_fmt)
+
+    def prepare(self, cfg):
+        super().prepare(cfg)
+        pipeline = self._pipeline
+        general_cfg = pipeline.get_config('general')
+        read_cfg = pipeline.get_config('reads')
+        output_dir = general_cfg['output_dir']
+        prefix = general_cfg['prefix']
+        pileup_file = pipeline.get_curfile(fmt='mpileup')
+
+        table_file = os.path.join(output_dir, prefix + '.pre_table')
+        cmd = [
+            'mb-naive-bsfinder',
+            '-r %s' % read_cfg['reference_nucleotide'],
+            '-m %s' % read_cfg['mutation_nucleotide'],
+            pileup_file,
+            table_file
+        ]
+        self._cmds.append(cmd)
+        self._intermed_files.append(table_file)
+        pipeline.upd_curfile(fmt='table', filepath=table_file)
+
+
 class BSFinderModule(pl.CmdPipelineModule):
 
     def __init__(self, pipeline):

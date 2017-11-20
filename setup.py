@@ -57,6 +57,7 @@ setup(
             'mb-bam-postprocess = mockinbird.scripts.bam_postprocessing:main',
             'mb-softclip-analyzer = mockinbird.scripts.clipped_seq:main',
             'mb-bsfinder = mockinbird.scripts.bsfinder:run',
+            'mb-naive-bsfinder = mockinbird.scripts.naive_bsfinder:run',
             'mb-normalize = mockinbird.scripts.normalize:run',
             'mb-cap-occupancy = mockinbird.scripts.convert2quantile:run',
             'mb-table2fasta = mockinbird.utils.table2fasta:main',
