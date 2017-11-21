@@ -26,6 +26,8 @@ def queue_pipeline(config, pipeline, def_lookup_path):
         if isinstance(module_descr, dict):
             if len(module_descr) != 1:
                 logger.error('There is an error in the pipeline description syntax')
+                logger.error('The pipeline section defines one list of modules. Please make'
+                             ' sure you did not assign additional attributes.')
                 sys.exit(1)
             # sorry for this ugly dictionary unpacking hack
             for module_str, data in module_descr.items():
