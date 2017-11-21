@@ -40,6 +40,7 @@ class CmdPipelineModule:
             ('module_info', cv.Annot(str, default='', warn_if_missing=False)),
             ('skip', cv.Annot(cv.boolean, default=False, warn_if_missing=False)),
         ])
+        self._default_parameters = {'keep_all', 'module_info', 'skip'}
         self._cfg_req = OrderedDict()
         for key, value in cfg_req:
             self._cfg_req[key] = value
@@ -90,6 +91,11 @@ class CmdPipelineModule:
     def module_info(self):
         """The module info string"""
         return self._module_info
+
+    @property
+    def default_config_keys(self):
+        """A set with the keys of pre-defined configuration options"""
+        return self._default_parameters
 
 
 class Pipeline:
