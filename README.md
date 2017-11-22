@@ -1,6 +1,6 @@
 # mockinbird: A fully automatic and reproducible PAR-CLIP analysis pipeline
 
-For a detailed description of *mockinbird*, please refer to the [documentation](http://wwwuser.gwdg.de/~compbiol/mockinbird).
+For a detailed description of *mockinbird*, please refer to the [documentation](http://wwwuser.gwdg.de/~compbiol/mockinbird/doc).
 
 ## Installing mockinbird with bioconda (recommended)
 ```bash
