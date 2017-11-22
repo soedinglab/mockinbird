@@ -114,6 +114,13 @@ remove_tmp_files      True               remove temporary files
 ====================  =================  ==========================================================
 
 
+Shows the observed substitution rates for all possible base substitutions. The T->C transitions is displayed as P(C|T).
+
+Example output:
+
+.. figure:: imgs/transition_freq.png
+
+
 Duplicate removal
 ^^^^^^^^^^^^^^^^^
 
@@ -305,6 +312,22 @@ Parameter            Default value      Description
 ===================  =================  ============================================================
 pval_threshold       0.005              only sites with a p-value smaller than this are reported
 min_cov              2                  minimum coverage of reported binding sites
+===================  =================  ============================================================
+
+NaiveBSFinderModule
+"""""""""""""""""""
+
+The naive binding site finder predicts all sites that pass a specified minimum threshold of conversion events.
+
+**Pipeline input:** ``mpileup``
+
+**Pipeline output:** ``table``
+
+===================  =================  ============================================================
+Parameter            Default value      Description
+===================  =================  ============================================================
+min_transitions      2                  only sites with at least this many conversion events are
+                                        reported
 ===================  =================  ============================================================
 
 .. _mockinbird_module:
@@ -551,6 +574,21 @@ remove_tmp_files       True               clean up temporary files
 bootstrap_iter         2500               number of bootstrap iterations
 n_processes            4                  number of parallel processes
 =====================  =================  ============================================================
+
+
+Example plot:
+
+.. figure:: imgs/nrd1_metagene.png
+    :alt: size metagene plot
+    :align: center
+
+A plot of the PAR-CLIP occupancy around the start and end sites of genomic annoations. The occupancy profile of the sense strand is depicted in blue, occupancy on the anti-sense strand is shown in green. The profiles are smoothed with a running mean. 95%-confidence intervals are calculated by bootstrap sampling the annotations.
+
+ The bottom of the plot shows the occupancy profiles in heatmap representation.
+
+
+
+
 
 KmerPerPositionModule
 """""""""""""""""""""

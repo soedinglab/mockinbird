@@ -1,38 +1,29 @@
 Installation
 ============
 
-Using docker
-------------
-
-The easiest way to obtain a working pipeline is by using docker: 
-::
-
-        docker pull soedinglab/mockinbird
-
-A host folder with data can be mounted to the ``/data`` directory using the ``-v`` argument.
-
-::
-
-        docker run -v '/path/to/host/folder:/data' soedinglab/mockinbird preprocess \
-                input.fastq
-                output_folder
-                prefix
-                config.yaml
-
-All data written to the ``/data`` directory in the docker container will be accessible from the host.
-
 Via bioconda
 ------------
 
 Users of the `anaconda <https://www.continuum.io/downloads>`_ python distribution can install
-mockinbird and all dependencies using ``conda``:
+*mockinbird* and all its dependencies using ``conda``:
 
 ::
 
-        conda install -c bioconda -c conda-forge -c r mockinbird
+        conda create -n mockinbird -c bioconda -c conda-forge python=3.6 mockinbird
 
-Note that ``mockinbird`` requires python3 and thus has to be installed in a python3 environment
+Above command installs *mockinbird* into an independent conda environment named ``mockinbird``. The environment has to be activated in the shell before the pipeline can be used. To activate, type ``source activate mockinbird``.
 
+*mockinbird* and all its dependencies are installed into a separate folder and will not interfere with the system. *mockinbird* can be cleanly removed by ``conda remove --all -n mockinbird``.
+
+To simplify the starting process, we recommend adding
+
+::
+
+        alias load_mockinbird='source activate mockinbird'
+
+to the startup script of your shell. On most linux systems this command has to be added to ``~/.bashrc``, on macOS you have to edit ``~/.bash_profile``.
+
+After restarting your shell you can now load mockinbird by typing ``load_mockinbird`` instead of the the more verbose and cryptic ``source activate mockinbird``.
 
 Manual installation
 -------------------

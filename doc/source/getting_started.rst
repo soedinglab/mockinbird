@@ -10,25 +10,18 @@ Getting started
 In this tutorial we are processing PAR-CLIP data of the `Nrd1 <http://www.yeastgenome.org/locus/S000005195/overview>`_ protein in S. cerevisiae.
 For more information on the biological role of Nrd1 and the PAR-CLIP experiment, please refer to :cite:`schulz2013transcriptome`.
 
-Please follow this link and download `mockinbird_tutorial.tar.gz <https://TODO.todo>`_ which contains all data required for completing this tutorial.
+Please follow this link and download `mockinbird_tutorial_nomock.tar.gz <http://wwwuser.gwdg.de/~compbiol/mockinbird/mockinbird_tutorial_nomock.tar.gz>`_ which contains all data required for completing this tutorial.
 
 
 Running the preprocessing
 =========================
 
-The preprocessing can be started from the tutorial directory by running
+Having installed and loaded the mockinbird enviroment according to the :ref:`installation` guide, use ``cd`` to navigate into the tutorial directory from the shell. First we run the preprocessing pipeline to obtain predicted binding sites at single nucleotide resolution:
 
 ::
 
         mockinbird preprocess nrd1.fastq nrd1 nrd1 preprocess.yaml
 
-in a standard installation, or
-
-::
-
-        docker run -v $PWD:/data soedinglab/mockinbird preprocess nrd1.fastq nrd1 nrd1 preprocess.yaml
-
-in case you are using the docker container.
 
 Running the full pipeline will take some time. The current status will be logged to the shell.
 
@@ -36,7 +29,7 @@ Running the full pipeline will take some time. The current status will be logged
 Inspecting the results
 ----------------------
 
-Once the pipeline finished successfully, it's time to inspect the results.
+Once the pipeline finished successfully, it is time to inspect the results.
 
 Checking reads and mapping
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -67,17 +60,16 @@ the characteristic PAR-CLIP mutation (T->C for 4sU) is the dominant transition:
    Transition frequencies
 
    Frequencies of the individual transitions. The PAR-CLIP specific mutation (here T->C)
-   is significantly higher than any other mutation.
+   dominates all other mutations.
 
 
 The ``FastQC`` reports in ``fastQC_raw`` and ``fastQC_clipped`` can be consulted to obtain
-a general overview over the sequencing library. It is recommended to pay attention to the
+a general overview over the quality of the sequencing library. It is adviced to pay special attention to the
 read quality and the overrepresented sequences.
 
 A quick glance at ``clipped_len_distr.pdf`` will give an overview over the size
 distribution of the RNA inserts. The optimal size distribution depends on the the genome size.
-For yeast we will only map reads of size 20 nt and longer. More than 80% of the clipped reads are
-therefore eligible for mapping.
+For yeast we will only map reads of size 20 nt and longer. Here, more than 80% of the clipped reads are eligible for mapping.
 
 
 .. figure:: imgs/clipped_distr.png
@@ -105,7 +97,7 @@ dominate all other transitions and be roughly uniformly distributed over all pos
 Spikes at specific positions hint towards mismapping and/or abundance of PCR duplicates. The ratio
 of specific to unspecific mutations will drop towards the ends of the reads due to (adapter)
 contamination. You may want to drop mutations at the edges. Please refer to the documentation of
-:ref:`module_bam_analysis` for configuration details.
+:ref:`module_bam_analysis` for how this can be done.
 
 Transition profiles will degenerate for shorter read lengths. Increasing the minimum length of accepted
 alignments will therefore increase the signal to noise ratio.
@@ -120,7 +112,7 @@ alignments will therefore increase the signal to noise ratio.
 
    The PAR-CLIP specific T->C mutation dominates all other mutations and is reasonably smooth.
    Watch out for spikes in the curves as they are indicators of unwanted PCR duplication and
-   mismapping. If the specific T->C mutation rate drops at the ends you can drop mutations at the
+   mismapping. If the specific T->C mutation rate drops at the ends you can clip mutations at the
    edges.
 
 Additional aspects
@@ -157,7 +149,7 @@ In the following the preprocessing file for the tutorial is explained in more de
         {% set mock_processing = False %}
 
 The first block uses `jinja <http://jinja.pocoo.org/docs/latest/>`__ syntax to define a set of
-variables. Note that paths are defined relative to ``preprocess.yaml``.
+variables. Path can be defined absolutely, or relative to the directory that contains the config file ``preprocess.yaml``.
 
 ::
 
@@ -176,10 +168,9 @@ variables. Note that paths are defined relative to ``preprocess.yaml``.
             reference_nucleotide: T
             mutation_nucleotide: C
 
-The second block defines general and read-specific configuration. For a description of the flags
-please refer to the section on :ref:`preprocess_cfg`.
+The second block defines general and read-specific configuration. Here you can define the minimum read length, presence and size of *UMIs*, sequencing adapter sequences and more.For a detailed description of all available settings please refer to the section on :ref:`preprocess_cfg`.
 
-The next parts define the preprocessing pipeline.
+The next parts define the preprocessing pipeline as a list of modules.
 
 ::
 
@@ -470,8 +461,8 @@ Postprocessing configuration
 The postprocessing config file contains only the ``pipeline`` section.
 The pipeline starts initially with the path to a ``table`` file.
 
-Expert options
-==============
+Expert knowledge
+================
 
 jinja templating
 ----------------
@@ -490,7 +481,7 @@ A simple example that uses a variables:
           - MyGenomeModule:
               genome: {{ genome_fasta }}
 
-For a indepth explanation of jinja, please refer to their
+For a indepth explanation of jinja, please refer to the official
 `documentation <http://jinja.pocoo.org/docs/>`_.
 
 Setting initial files
@@ -508,5 +499,3 @@ formats:
         custom_files:
           bam: /path/to/file.bam
           mpileup: /path/to/file.mpileup
-
-
