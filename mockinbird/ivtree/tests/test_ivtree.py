@@ -3,10 +3,10 @@ import random
 
 from nose.tools import raises
 
-from pyivtree import GenomicInterval, IVTree
-from pyivtree.ivtreenode import IVTreeNode as IVNode
-from pyivtree.tests import node_utils as nu
-from pyivtree.tests import tree_utils as tu
+from mockinbird.ivtree import GenomicInterval, IVTree
+from mockinbird.ivtree.ivtreenode import IVTreeNode as IVNode
+from mockinbird.ivtree.tests import node_utils as nu
+from mockinbird.ivtree.tests import tree_utils as tu
 
 random.seed(20140907)
 

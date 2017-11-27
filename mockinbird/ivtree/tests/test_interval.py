@@ -1,6 +1,6 @@
 import unittest
 
-from pyivtree import GenomicInterval
+from mockinbird.ivtree import GenomicInterval
 
 
 class IntervalTestCase(unittest.TestCase):
