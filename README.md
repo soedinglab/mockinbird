@@ -4,39 +4,14 @@ For a detailed description of *mockinbird*, please refer to the [documentation](
 
 ## Installing mockinbird with bioconda (recommended)
 ```bash
-conda create -n mockinbird -c bioconda -c conda-forge mockinbird
+conda create -n mockinbird -c bioconda -c conda-forge python=3.6 mockinbird
 ```
 
-## Installing with conda from the git repository (not recommended)
+## NEWS
+2017/11/28  mockinbird version 1.0.0a is now available on bioconda :tada:
 
-Clone the repository: `git clone https://github.com/soedinglab/mockinbird.git`
+## License
+mockinbird can be modified and distributed under the [GNU GPLv3](https://choosealicense.com/licenses/gpl-3.0/) license.
 
-### Setting up the conda channels
-If you have not yet registered the `conda-forge` and `bioconda` channels, please do
-
-```bash
-conda config --add channels conda-forge
-conda config --add channels bioconda
-```
-
-### Installing mockinbird and its dependencies
-
-```bash
-cd mockinbird
-conda install -f conda.pkgs
-pip install .
-```
-
-## Building the sphinx documentation
-
-### Installing the dependencies
-
-```bash
-conda install -f conda_doc.pkg
-```
-
-### Building the documentation
-
-```bash
-cd doc && make html
-```
+## Contact
+If you encounter bugs, problems or simply have questions, please do not hesitate to [contact me](mailto:christian.roth@mpibpc.mpg.de).
